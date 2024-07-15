@@ -1,10 +1,6 @@
 # Formatting Excel workbook
 print('Formatting Excel workbook...')
 
-library(openxlsx)
-library(here)
-library(tidyverse)
-
 file_list <- apropos('for_release')
 
 # Create a new workbook

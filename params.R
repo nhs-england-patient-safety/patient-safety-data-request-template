@@ -3,6 +3,7 @@ library(DBI)
 library(dbplyr)
 library(janitor)
 library(here)
+library(openxlsx)
 library(glue)
 library(Microsoft365R)
 
