@@ -1,10 +1,10 @@
 # lfpse
+dataset <- "LFPSE"
+print(glue("Running {dataset} search..."))
 
-library(DBI)
-library(tidyverse)
-library(dbplyr)
-library(here)
-library(janitor)
+if(lfpse_categorical==0){
+  lfpse_categorical <- expr(1==1)
+}
 
 # connection ####
 
@@ -40,79 +40,102 @@ analysis_table_names <- c(
 )
 
 analysis_tables <- lapply(analysis_table_names, function(x){
-  tbl(con_lfpse, in_schema("analysis", x))
+  tbl(con_lfpse, in_schema("analysis", x)) |>
+    group_by(Reference) |>
+    filter(Revision == max(Revision))
 })
 
-patient_reponses <- tbl(con_lfpse, in_schema("analysis", "patient_responses"))
-data <- reduce(analysis_tables, left_join, by = c("Reference", "Revision")) |>
+lfpse <- reduce(analysis_tables, left_join, by = c("Reference", "Revision")) |>
   group_by(Reference) |>
-  mutate(ReportedDate = min(SubmissionDate)) |>
-  rename(RevisionDate = SubmissionDate) |>
+  mutate(reported_date = min(SubmissionDate)) |>
+  rename(revision_date = SubmissionDate) |>
   filter(Revision == max(Revision)) |>
   ungroup()
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
-data_parsed <- data |>
+lfpse_parsed <- lfpse |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
   mutate(P004_years = as.numeric(P004) 
-  #outstanding: number of person involved in incidents 
-  )
+         #outstanding: number of person involved in incidents 
+  ) |>
+  rename(occurred_date = T005)
 
 # categorical filters ####
 
-data_filtered_categorical <- data_parsed |>
+lfpse_filtered_categorical <- lfpse_parsed |>
   # apply categorical filters here
-  filter(
-    T005 == "2022-01-01"
-  ) |>
+  filter(between(date_filter, start_date, end_date)) |>
+  filter(lfpse_categorical) |>
   # collecting here so that we can apply text filters later
   collect()
 
-# text filters ####
+print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
-data_filtered_text <- data_filtered_categorical |>
-  # apply text filters here
-  filter(
-    grepl("ambulance", F001, ignore.case = T)
-  )
+# text filters ####
+if (!is.na(text_terms)) {
+  print(glue("Running {dataset} text search..."))
+  lfpse_text_filter_refs <- lfpse_filtered_categorical |>
+    pivot_longer(cols = where(is.character)) |>
+    filter(str_detect(value, text_terms)) |>
+    pivot_wider(
+      id_cols = !where(is.character),
+      names_from = name,
+      values_from = value
+    ) |>
+    distinct(Reference)
+  
+  lfpse_filtered_text <- lfpse_filtered_categorical |>
+    filter(Reference %in% lfpse_text_filter_refs$Reference)
+  
+  print(glue("{dataset} text search retrieved {nrow(lfpse_filtered_text)} incidents."))
+} else {
+  print("- No text terms supplied. Skipping text search...")
+  lfpse_filtered_text <- lfpse_filtered_categorical
+}
 
 # sampling ####
 # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
-
-if (nrow(data_filtered_text) > 300) {
-  data_death_severe <- data_filtered_text |>
+if(sampling_strategy == 'default'){
+if (nrow(lfpse_filtered_text) > 300) {
+  print("- Sampling according to default strategy...")
+  lfpse_death_severe <- lfpse_filtered_text |>
     # deaths or severe physical / psychological harm
     filter(OT001 %in% c("1", "2") | 
              OT002 == "1")
   
   set.seed(123)
-  data_moderate <- data_filtered_text |>
+  lfpse_moderate <- lfpse_filtered_text |>
     # moderate physical / psychological harm
     filter(OT001 == "3" | OT002 == "2") |>
     collect() |>
     sample_n(min(n(),100))
   
   set.seed(123)
-  data_low_no_other <- data_filtered_text |>
+  lfpse_low_no_other <- lfpse_filtered_text |>
     filter(!OT001 %in% c("1", "2", "3"),
            !OT002 %in% c("1", "2")) |>
     collect() |>
     sample_n(min(n(),100))
   
-  data_sampled <- bind_rows(
-    data_death_severe,
-    data_moderate,
-    data_low_no_other
+  lfpse_sampled <- bind_rows(
+    lfpse_death_severe,
+    lfpse_moderate,
+    lfpse_low_no_other
   )
 } else {
-  data_sampled <- data_filtered_text
+  print("- Sampling not required, default threshold not met.")
+  lfpse_sampled <- lfpse_filtered_text
+}
+} else if(sampling_strategy == 'none'){
+  print("- Skipping sampling...")
+  lfpse_sampled <- lfpse_filtered_text
 }
 
 # columns for release ####
 
-data_for_release <- data_sampled |>
-   # pivot the coded columns
+lfpse_for_release <- lfpse_sampled |>
+  # pivot the coded columns
   pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
   # separate the multi-responses into single row per selection
   separate_rows(value, sep = " {~@~} ") |>
@@ -142,10 +165,10 @@ data_for_release <- data_sampled |>
     Revision, 
     OccurredOrganisationCode, 
     ReporterOrganisationCode, 
-    ReportedDate, 
+    reported_date, 
     "Number of patients" = npatient, 
     "Patient no." = EntityId, 
-    "T005 - Event date" = T005, 
+    "T005 - Event date" = occurred_date, 
     # TODO: check whether these are needed
     #"T005 - Event year" = year(T005), 
     #"T005 - Event moth" = month(T005),
@@ -178,5 +201,12 @@ data_for_release <- data_sampled |>
   )) |>
   remove_empty("cols") 
 
-write_csv(data_for_release, here("csv", "LFPSE.csv"))
+print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
 
+dbDisconnect(con_lfpse)
+
+if (search_steis) {
+  source("steis.R")
+} else {
+  source("formatter.R")
+}

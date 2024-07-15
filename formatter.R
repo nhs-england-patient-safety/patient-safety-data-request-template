@@ -1,10 +1,11 @@
-# Formatting Excel workbooks
+# Formatting Excel workbook
+print('Formatting Excel workbook...')
 
 library(openxlsx)
 library(here)
 library(tidyverse)
 
-file_list <- list.files(here("csv"), full.names = T)
+file_list <- apropos('for_release')
 
 # Create a new workbook
 wb <- createWorkbook()
@@ -46,7 +47,7 @@ title <- basename(here())
 # To do - cover sheet
 # include summary tables - one for each dataset or one with all?
 addWorksheet(wb, "Search strategy", gridLines = FALSE)
- 
+
 metadata <- c(
   "Reference:",
   "",
@@ -56,45 +57,90 @@ metadata <- c(
   "",
   "Date range:",
   "",
-  "Categorical criteria:",
+  "NRLS categorical criteria:",
+  "",
+  "StEIS categorical criteria:",
+  "",
+  "LFPSE categorical criteria:",
   "",
   "Free text filters:"
 )
 
+ref_no <- substr(title, 5, 8)
+
+datasets_used <- file_list |>
+  str_extract("^([^_])+") |> 
+  toupper() |> 
+  str_replace("STEIS", "StEIS") |> 
+  paste(collapse = "; ")
+
+extraction_date <- format(Sys.Date(), "%d-%b-%y")
+
+date_type_text <- 
+  if(date_type == 'reported'){
+    'reported'
+  } else if (date_type == 'occurring'){
+    'reported as occurring'
+  }
+
+date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
+
+metadata_answers <- c(
+  ref_no,
+  "",
+  datasets_used,
+  "",
+  extraction_date,
+  "",
+  date_range,
+  "",
+  deparse(nrls_categorical),
+  "",
+  deparse(steis_categorical),
+  "",
+  deparse(lfpse_categorical),
+  "",
+  text_terms
+)
+
 addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
+writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 # Add worksheets
 
 for (i in file_list) {
-  sheet <- tools::file_path_sans_ext(basename(i))
-
-  df <- read_csv(i)
+  
+  sheet <- str_extract(i, "^([^_])+") |> 
+    toupper() |> 
+    str_replace("STEIS", "StEIS") 
+  
+  df <- get(i)
   
   addWorksheet(wb, sheet, gridLines = FALSE)
-
+  
   # set column widths
   setColWidths(wb,
-    sheet = sheet,
-    cols = 1:ncol(df),
-    widths = 35
+               sheet = sheet,
+               cols = 1:ncol(df),
+               widths = 35
   )
-
+  
   # set row heights - header row
-
+  
   setRowHeights(wb,
-    sheet = sheet,
-    rows = 7:7,
-    heights = 34
+                sheet = sheet,
+                rows = 7:7,
+                heights = 34
   )
-
+  
   # set row heights - body
   setRowHeights(wb,
-    sheet = sheet,
-    rows = 8:(nrow(df) + 7),
-    heights = 150
+                sheet = sheet,
+                rows = 8:(nrow(df) + 7),
+                heights = 150
   )
-
+  
   
   # Add text style
   addStyle(wb,
@@ -138,8 +184,17 @@ options(openxlsx.dateFormat = "dd-mmm-yyyy")
 
 # save workbook
 
-saveWorkbook(wb, here("output", paste(title,
-  "output",
-  format(Sys.time(), "%Y-%m-%d_%H%M%S.xlsx"),
-  sep = "_"
-)), overwrite = T)
+workbook_title <- paste(title,
+                        "output",
+                        format(Sys.time(), "%Y-%m-%d_%H%M%S.xlsx"),
+                        sep = "_"
+)
+
+tf <- tempfile(fileext = ".xlsx")
+
+saveWorkbook(wb, 
+             file = tf,
+             overwrite = T)
+
+source('microsoft365R.R')
+
