@@ -18,7 +18,7 @@ end_date <- "2024-01-01"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
-cols_to_extract <- "all"
+cols_to_extract <- "default"
 
 # nrls categorical filters (wrap in expr() or set to 0)
 nrls_categorical <- 0
