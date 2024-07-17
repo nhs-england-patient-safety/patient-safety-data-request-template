@@ -1,5 +1,4 @@
 library(tidyverse)
-library(DBI)
 library(dbplyr)
 library(janitor)
 library(here)
@@ -10,7 +9,7 @@ library(Microsoft365R)
 # datasets to be searched (T/F)
 search_nrls <- T
 search_lfpse <- F
-search_steis <- T
+search_steis <- F
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
@@ -36,4 +35,5 @@ text_terms <- NA
 # TODO: custom
 sampling_strategy <- "default"
 
+source("connections.R")
 source("flow.R")

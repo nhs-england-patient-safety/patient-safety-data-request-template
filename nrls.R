@@ -7,16 +7,6 @@ if(nrls_categorical==0){
   nrls_categorical <- expr(1==1)
 }
 
-# connection ####
-
-con_nrls <- dbConnect(odbc::odbc(),
-                      Driver = "ODBC Driver 17 for SQL Server",
-                      Server = Sys.getenv("psims_server"),
-                      database = Sys.getenv("nrls_database"),
-                      uid = Sys.getenv("nrls_uid"),
-                      pwd = Sys.getenv("nrls_pwd")
-)
-
 # read tables ####
 
 nrls <- tbl(con_nrls, in_schema("art", "vw_clean"))

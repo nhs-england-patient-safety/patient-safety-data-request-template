@@ -6,16 +6,6 @@ if(lfpse_categorical==0){
   lfpse_categorical <- expr(1==1)
 }
 
-# connection ####
-
-con_lfpse <- dbConnect(odbc::odbc(),
-                       Driver = "ODBC Driver 17 for SQL Server",
-                       Server = Sys.getenv("psims_server"),
-                       database = Sys.getenv("lfpse_database"),
-                       uid = Sys.getenv("lfpse_uid"),
-                       pwd = Sys.getenv("lfpse_pwd")
-)
-
 # reading reference tables
 QuestionReference <- tbl(con_lfpse, "QuestionReference") |> collect()
 ResponseReference <- tbl(con_lfpse, "ResponseReference") |> collect()
