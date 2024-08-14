@@ -26,7 +26,7 @@ lfpse_categorical <- 0
 
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- 0
-steis_filename <- ''
+steis_filename <- 'iugiugihuis'
 
 # text terms
 text_terms <- NA
