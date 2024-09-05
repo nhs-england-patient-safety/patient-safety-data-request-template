@@ -78,19 +78,10 @@ print(glue("- {dataset} categorical filters retrieved {nrow(nrls_filtered_catego
 # text filters ####
 if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
-  nrls_text_filter_refs <- nrls_filtered_categorical |>
-    pivot_longer(cols = where(is.character)) |>
-    filter(str_detect(value, text_terms)) |>
-    pivot_wider(
-      id_cols = !where(is.character),
-      names_from = name,
-      values_from = value
-    ) |>
-    distinct(INCIDENTID)
   
   nrls_filtered_text <- nrls_filtered_categorical |>
-    filter(INCIDENTID %in% nrls_text_filter_refs$INCIDENTID)
-  
+    filter(if_any(c(IN07,IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~str_detect(.,text_terms)))
+
   print(glue("{dataset} text search retrieved {nrow(nrls_filtered_text)} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")

@@ -52,18 +52,14 @@ print(glue("- No sampling for StEIS since no harm grading."))
 # text filters ####
 if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
-  steis_text_filter_refs <- steis_filtered_categorical |>
-    pivot_longer(cols = where(is.character)) |>
-    filter(str_detect(value, text_terms)) |>
-    pivot_wider(
-      id_cols = !where(is.character),
-      names_from = name,
-      values_from = value
-    ) |>
-    distinct(INCIDENTID)
   
   steis_filtered_text <- steis_filtered_categorical |>
-    filter(INCIDENTID %in% steis_text_filter_refs$INCIDENTID)
+    filter(if_any(c(description_of_what_happened,
+                    immediate_action_taken,
+                    key_findings,
+                    how_will_lessons_be_disseminated_to_interested_parties,
+                    type_of_incident_other),
+                  ~str_detect(.,text_terms)))
   
   print(glue("{dataset} text search retrieved {nrow(steis_filtered_text)} incidents."))
   

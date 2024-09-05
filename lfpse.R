@@ -10,14 +10,14 @@ if(lfpse_categorical==0){
 QuestionReference <- tbl(con_lfpse, "QuestionReference") |> collect()
 ResponseReference <- tbl(con_lfpse, "ResponseReference") |> collect()
 
+
 analysis_table_names <- c(
-  "Events",
   "Metadata_Responses",
   "Incident_Responses",
   "Risk_Responses",
   "Outcome_Responses",
   "GoodCare_Responses",
-  "EventDetails_Responses ",
+  "EventDetails_Responses",
   "EventTime_Responses",
   "Location_Responses",
   "Patient_Responses",
@@ -29,55 +29,49 @@ analysis_table_names <- c(
   # "DmdMedication_Responses"
 )
 
-analysis_tables <- lapply(analysis_table_names, function(x){
-  tbl(con_lfpse, in_schema("analysis", x)) |>
-    group_by(Reference) |>
-    filter(Revision == max(Revision))
+#create table for all tables except events
+analysis_tables_non_event <- lapply(analysis_table_names, function(x){
+  tbl(con_lfpse, in_schema("analysis", x)) 
 })
 
-lfpse <- reduce(analysis_tables, left_join, by = c("Reference", "Revision")) |>
+#create table for events, filter for most recent revision
+event_table<- tbl(con_lfpse, in_schema("analysis","Events")) %>%
   group_by(Reference) |>
-  mutate(reported_date = min(SubmissionDate)) |>
-  rename(revision_date = SubmissionDate) |>
-  filter(Revision == max(Revision)) |>
-  ungroup()
+  mutate(reported_date = min(SubmissionDate),
+         max_revision = max(Revision)) %>%
+  ungroup() %>%
+  filter(Revision == max_revision)
+
+#combine event table and non event tables into one
+analysis_tables<- c(list(event_table), analysis_tables_non_event)
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
-lfpse_parsed <- lfpse |>
+lfpse_parsed <- reduce(analysis_tables, left_join, by = c("Reference", "Revision")) |>
+  rename(occurred_date = T005,
+         revision_date = SubmissionDate) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
-  mutate(P004_years = as.numeric(P004) 
-         #outstanding: number of person involved in incidents 
-  ) |>
-  rename(occurred_date = T005)
+  mutate(P004_years = as.numeric(P004))
 
-# categorical filters ####
+#sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
-lfpse_filtered_categorical <- lfpse_parsed |>
-  # apply categorical filters here
-  filter(between(date_filter, start_date, end_date)) |>
-  filter(lfpse_categorical) |>
-  # collecting here so that we can apply text filters later
-  collect()
+lfpse_filtered_categorical<- lfpse_parsed|>
+  filter(between(date_filter, start_date, end_date),
+         #apply categorical filters here
+         lfpse_categorical)  |>
+         # collecting here so that we can apply text filters later
+         collect()  
+
 
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
 # text filters ####
 if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
-  lfpse_text_filter_refs <- lfpse_filtered_categorical |>
-    pivot_longer(cols = where(is.character)) |>
-    filter(str_detect(value, text_terms)) |>
-    pivot_wider(
-      id_cols = !where(is.character),
-      names_from = name,
-      values_from = value
-    ) |>
-    distinct(Reference)
   
   lfpse_filtered_text <- lfpse_filtered_categorical |>
-    filter(Reference %in% lfpse_text_filter_refs$Reference)
-  
+    filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~str_detect(.,text_terms)))
+  #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {nrow(lfpse_filtered_text)} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
