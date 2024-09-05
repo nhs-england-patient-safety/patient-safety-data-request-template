@@ -68,19 +68,10 @@ print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categ
 # text filters ####
 if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
-  lfpse_text_filter_refs <- lfpse_filtered_categorical |>
-    pivot_longer(cols = where(is.character)) |>
-    filter(str_detect(value, text_terms)) |>
-    pivot_wider(
-      id_cols = !where(is.character),
-      names_from = name,
-      values_from = value
-    ) |>
-    distinct(Reference)
   
   lfpse_filtered_text <- lfpse_filtered_categorical |>
-    filter(Reference %in% lfpse_text_filter_refs$Reference)
-  
+    filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~str_detect(.,text_terms)))
+  #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {nrow(lfpse_filtered_text)} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
