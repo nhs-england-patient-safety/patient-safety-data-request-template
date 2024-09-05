@@ -42,7 +42,7 @@ event_table<- tbl(con_lfpse, in_schema("analysis","Events")) %>%
   ungroup() %>%
   filter(Revision == max_revision)
 
-#combine event table and non event tables into one list
+#combine event table and non event tables into one
 analysis_tables<- c(list(event_table), analysis_tables_non_event)
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
@@ -51,16 +51,17 @@ lfpse_parsed <- reduce(analysis_tables, left_join, by = c("Reference", "Revision
          revision_date = SubmissionDate) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
-  mutate(P004_years = as.numeric(P004))|>
-  filter(between(date_filter, start_date, end_date),
-         #apply categorical filters here
-         lfpse_categorical) 
+  mutate(P004_years = as.numeric(P004))
 
 #sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
-lfpse_filtered_categorical <- lfpse_parsed |>
-# collecting here so that we can apply text filters later
-  collect()
+lfpse_filtered_categorical<- lfpse_parsed|>
+  filter(between(date_filter, start_date, end_date),
+         #apply categorical filters here
+         lfpse_categorical)  |>
+         # collecting here so that we can apply text filters later
+         collect()  
+
 
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
