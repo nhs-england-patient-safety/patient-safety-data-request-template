@@ -56,16 +56,18 @@ expand_categorical_filters <- function(string,
   
   
   string_formatted<-string
-  string_formatted<- str_replace_all(string_formatted,'\"','')
+  string_formatted<- str_replace_all(string_formatted, '\"','') 
   #loop through all filters, replacing codes with text
   for (i in list_of_filters) {
-    #ignore empty filters
-    if (i != quote(1 == 1)) {
       #split each filter into column, value and operator
       column <- as.character(i[2])
       value <- i[[3]]
       operator <- as.character(i[1])
       
+      #this step is put in because the string separator in nrls {~@~} doesn't work well with regex
+      contains_at<-sum(str_detect(as.character(value),"~@~")==TRUE)
+      # only tidy up string where ~@~ sequence is not present
+      if(contains_at==0){
       #create vector for value
       value_old <- c()
       value_new <- c()
@@ -107,15 +109,15 @@ expand_categorical_filters <- function(string,
         str_replace_all("c\\(", "\\(") %>%
         #replace initial filter with the formatted filter
         str_replace_all(filter_initial, filter_nice)
-    }
+      }
   }
-  
   #replace |, & , == and %in% with more understandable phrases
   string_formatted<- string_formatted %>%  
     str_replace_all("\\|", "OR") %>%
     str_replace_all("&", "AND") %>%
     str_replace_all("==", "=") %>%
-    str_replace_all("%in%", "IN")
+    str_replace_all("%in%", "IN") %>%
+    str_replace_all("%like%", "LIKE")
   
   return(string_formatted)
 }

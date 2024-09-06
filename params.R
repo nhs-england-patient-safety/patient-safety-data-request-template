@@ -40,6 +40,13 @@ nrls_full_string<-NA
 # set up filters in the form col_name == value or col_name %in% c(value1, value2, value3)
 #  e.g. lfpse_filter_2 =  quote(A008 ==  "19")
 #  e.g2 lfpse_filter_3 = quote( A001 %in% c("3","4","5"))
+# For multi-response questions, you need to add additional filters to include values which occur in a string with other values
+# str_detect does not work for SQL so you need to use LIKE (or filter after collect() step)
+# lfpse_filter_2 <- quote(A001 == "4") #picks up cases where only one value selected
+# lfpse_filter_3 <- quote(A001 %like% " 4 {~@~}%") #picks up cases where 4 is the first value selected
+# lfpse_filter_4 <- quote(A001 %like% "%{~@~} 4 {~@~}%") # picks up cases where 4 is in between two other numbers 
+# lfpse_filter_5 <- quote(A001 %like% "% {~@~} 4") # picks up case where 4 is the last value selected
+
 
 vector_of_lfpse_filters <- apropos("lfpse_filter_")
 list_of_lfpse_filters<-vector_of_lfpse_filters %>%
