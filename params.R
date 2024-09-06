@@ -6,19 +6,6 @@ library(openxlsx)
 library(glue)
 library(Microsoft365R)
 
-# download nrls colnames file, and save to data folder
-site_url <- "https://nhsengland.sharepoint.com/sites/MED/ps2/it/mit"
-site <- get_sharepoint_site(site_url = site_url, tenant = "nhsengland") # need to specify tenant, for it to work for non-nhse team members.
-reslib <- site$get_drive("Restricted Library")
-dr <- reslib$get_item("Data Requests") 
-dr$download("data/nrls") # download files within  top level of Data Requests folder (i.e. not in subfolders) and save to nrls folder in data.
-
-
-nrls_colname_lookup <- read.csv("data/data/nrls_colnames.csv") %>%
-  distinct(NAME, LABEL) %>%
-  filter(NAME != LABEL) %>%
-  filter(NAME != "", LABEL!="")
-
 # datasets to be searched (T/F)
 search_nrls <- T
 search_lfpse <- F
