@@ -62,7 +62,8 @@ metadata <- c(
   "Free text filters:"
 )
 
-ref_no <- substr(title, 5, 8)
+ref_no<- str_extract(title, "Ref-[0-9]{4,4}")
+
 
 datasets_used <- file_list |>
   str_extract("^([^_])+") |> 
@@ -81,6 +82,13 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
+text_terms_pretty <- text_terms |>
+  str_replace_all(pattern = "\\|", " OR ") |>
+  str_replace_all(pattern = "\\\\b", "%") |>
+  str_replace_all(pattern = "\\(\\?i\\)", "")
+
+
+
 metadata_answers <- c(
   ref_no,
   "",
@@ -90,16 +98,23 @@ metadata_answers <- c(
   "",
   date_range,
   "",
-  deparse(nrls_categorical),
+  nrls_full_string,
   "",
-  deparse(steis_categorical),
+  steis_full_string,
   "",
-  deparse(lfpse_categorical),
+  lfpse_full_string,
   "",
-  text_terms
+  "Free text search based the following terms (including misspellings and variations):",
+  text_terms_pretty,
+  "",
+  "Notes:",
+  "'%' represents a boundary",
+  "'~' represents an optional space that can be filled by any character"
 )
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 16, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = length(metadata_answers) - 1, cols = 5)
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
@@ -193,4 +208,3 @@ saveWorkbook(wb,
              overwrite = T)
 
 source('microsoft365R.R')
-

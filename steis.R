@@ -113,5 +113,6 @@ if(cols_to_extract == 'all'){
 }
 
 print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
+steis_full_string<-expand_categorical_filters(deparse(steis_categorical), list_of_steis_filters, "STEIS" )
 
 source('formatter.R')

@@ -186,6 +186,7 @@ lfpse_for_release <- lfpse_sampled |>
   remove_empty("cols") 
 
 print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
+lfpse_full_string<-expand_categorical_filters(deparse(lfpse_categorical), list_of_lfpse_filters, "LFPSE" )
 
 dbDisconnect(con_lfpse)
 
