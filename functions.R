@@ -1,12 +1,12 @@
 get_code_text <-function(column, code, database){
   
-  if (database=="STEIS"){
+  if (database=="steis"){
     return(code)
-  }else if(database=="NRLS"){
+  }else if(database=="nrls"){
     code_text_df<-codes |> 
       filter(col_name==column, SASCODE== code) |>
       select(OPTIONTEXT)
-  } else if(database=="LFPSE"){
+  } else if(database=="lfpse"){
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
@@ -23,15 +23,15 @@ get_code_text <-function(column, code, database){
 }
 
 get_column_text<-function(column, database){
-  if (database=="STEIS"){
+  if (database=="steis"){
     return(column)
-  } else if (database=="LFPSE"){
+  } else if (database=="lfpse"){
     column_text_df<-QuestionReference |> 
       filter(QuestionId==column) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
       distinct(QuestionId, Property) |>
       select(Property)
-  }else if (database=="NRLS"){
+  }else if (database=="nrls"){
     column_text_df<- nrls_colname_lookup %>% 
       filter(NAME==column) %>% 
       select(LABEL)
@@ -51,10 +51,13 @@ get_column_text<-function(column, database){
 
 
 expand_categorical_filters <- function(string,
-                                       list_of_filters,
                                        database) {
   
-  
+  vector_of_filters <-   apropos(str_glue("{database}_filter_"))
+  list_of_filters <- vector_of_filters %>%
+    set_names() %>%
+    map(~get(.))
+
   string_formatted<-string
   string_formatted<- str_replace_all(string_formatted, '\"','') 
   #loop through all filters, replacing codes with text

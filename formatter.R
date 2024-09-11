@@ -85,7 +85,8 @@ date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_dat
 text_terms_pretty <- text_terms |>
   str_replace_all(pattern = "\\|", " OR ") |>
   str_replace_all(pattern = "\\\\b", "%") |>
-  str_replace_all(pattern = "\\(\\?i\\)", "")
+  str_replace_all(pattern = "\\(\\?i\\)", "") |>
+  str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
 
 
 
@@ -98,11 +99,11 @@ metadata_answers <- c(
   "",
   date_range,
   "",
-  nrls_full_string,
+  get0("nrls_full_string", ifnotfound = NA),
   "",
-  steis_full_string,
+  get0("steis_full_string", ifnotfound = NA),
   "",
-  lfpse_full_string,
+  get0("lfpse_full_string", ifnotfound = NA),
   "",
   "Free text search based the following terms (including misspellings and variations):",
   text_terms_pretty,

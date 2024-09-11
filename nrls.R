@@ -179,7 +179,7 @@ nrls_for_release <- nrls_pre_release |>
   remove_empty("cols")
 
 print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release)} incidents."))
-nrls_full_string<-expand_categorical_filters(deparse(nrls_categorical), list_of_nrls_filters, "NRLS" )
+nrls_full_string<-expand_categorical_filters(deparse(nrls_categorical), tolower(dataset) )
 
 dbDisconnect(con_nrls)
 
