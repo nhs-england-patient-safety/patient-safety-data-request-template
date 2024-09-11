@@ -8,8 +8,8 @@ library(Microsoft365R)
 library(readxl)
 
 # datasets to be searched (T/F)
-search_nrls <- T
-search_lfpse <- F
+search_nrls <- F
+search_lfpse <- T
 search_steis <- F
 
 # date filter (type is occurring/reported)
@@ -30,6 +30,7 @@ sampling_strategy <- "default"
 
 # NRLS filters -------------------------------------------------------------
 # Add nrls categorical filters in the form col_name == value or col_name %in% c(value1, value2, value3), wrapped in quote()
+# variable names must begin with nrls_filter_
 # e.g. nrls_filter_1 <- quote( IN05_LVL1 == 10)
 
 
@@ -41,15 +42,10 @@ nrls_categorical <- 0
 
 # LFPSE filters---------------------------------------------------------------
 # lfpse categorical filters in the form col_name == value or col_name %in% c(value1, value2, value3), wrapped in quote()
-# e.g lfpse_filter_3 = quote( A001 %in% c("3","4","5"))
+# variable names must begin with lfpse_filter_
+# e.g lfpse_filter_3 = quote( A001 %in% c("3","4","5")
+# For multi-response questions, word boundaries are not possible but this works-  quote(' ' + A001 + ' ' %LIKE% '% 4 %') 
 
-
-# For multi-response questions, you need to add additional filters to include values which occur in a string with other values
-# str_detect does not work for SQL so you need to use LIKE (or filter after collect() step)
-# lfpse_filter_2 <- quote(A001 == "4") #picks up cases where only one value selected
-# lfpse_filter_3 <- quote(A001 %like% " 4 {~@~}%") #picks up cases where 4 is the first value selected
-# lfpse_filter_4 <- quote(A001 %like% "%{~@~} 4 {~@~}%") # picks up cases where 4 is in between two other numbers 
-# lfpse_filter_5 <- quote(A001 %like% "% {~@~} 4") # picks up case where 4 is the last value selected
 
 
 
@@ -62,6 +58,7 @@ lfpse_categorical <- 0
 # STEIS filters and filename-----------------------------------------------------
 
 # Add steis categorical filters in the form col_name == value or col_name %in% c(value1, value2, value3), wrapped in quote()
+# variable names must begin with steis_filter_
 # e.g. steis_filter_1 <- quote(type_of_incident =="Treatment delay meeting SI criteria")
 
 

@@ -62,7 +62,6 @@ lfpse_filtered_categorical<- lfpse_parsed|>
          # collecting here so that we can apply text filters later
          collect()  
 
-
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
 # text filters ####
