@@ -179,8 +179,13 @@ nrls_for_release <- nrls_pre_release |>
   remove_empty("cols")
 
 print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release)} incidents."))
-nrls_full_string<-expand_categorical_filters(deparse(nrls_categorical), tolower(dataset) )
+deparsed_nrls_string<- deparse(nrls_categorical,width.cutoff = 500)
 
+if (length(deparsed_nrls_string)==1){
+  nrls_full_string<-expand_categorical_filters(deparsed_nrls_string, "nrls" )
+}else{
+  nrls_full_string <- "Query to long. Please generate manually"
+}
 dbDisconnect(con_nrls)
 
 if (search_lfpse) {

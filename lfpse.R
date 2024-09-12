@@ -185,8 +185,14 @@ lfpse_for_release <- lfpse_sampled |>
   remove_empty("cols") 
 
 print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
-lfpse_full_string<-expand_categorical_filters(deparse(lfpse_categorical), tolower(dataset) )
 
+deparsed_lfpse_string<- deparse(lfpse_categorical,width.cutoff = 500)
+
+if (length(deparsed_lfpse_string)==1){
+lfpse_full_string<-expand_categorical_filters(deparsed_lfpse_string, "lfpse")
+}else{
+  lfpse_full_string <- "Query to long. Please generate manually"
+}
 dbDisconnect(con_lfpse)
 
 if (search_steis) {

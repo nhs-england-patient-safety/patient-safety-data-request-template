@@ -1,12 +1,12 @@
-get_code_text <-function(column, code, database){
+get_code_text <-function(column, code, dataset){
   
-  if (database=="steis"){
+  if (dataset=="steis"){
     return(code)
-  }else if(database=="nrls"){
+  }else if(dataset=="nrls"){
     code_text_df<-codes |> 
       filter(col_name==column, SASCODE== code) |>
       select(OPTIONTEXT)
-  } else if(database=="lfpse"){
+  } else if(dataset=="lfpse"){
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
@@ -17,21 +17,21 @@ get_code_text <-function(column, code, database){
     code_text <- pull(code_text_df)
   } else {
     code_text<-  code
-    print(str_glue("{code} was not found in {column} column in lookup table for {database}. (or it was found with duplicates)"))
+    print(str_glue("{code} was not found in {column} column in lookup table for {dataset}. (or it was found with duplicates)"))
   }
   return(code_text)
 }
 
-get_column_text<-function(column, database){
-  if (database=="steis"){
+get_column_text<-function(column, dataset){
+  if (dataset=="steis"){
     return(column)
-  } else if (database=="lfpse"){
+  } else if (dataset=="lfpse"){
     column_text_df<-QuestionReference |> 
       filter(QuestionId==column) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
       distinct(QuestionId, Property) |>
       select(Property)
-  }else if (database=="nrls"){
+  }else if (dataset=="nrls"){
     column_text_df<- nrls_colname_lookup %>% 
       filter(NAME==column) %>% 
       select(LABEL)
@@ -40,7 +40,7 @@ get_column_text<-function(column, database){
     column_new <- pull(column_text_df)
   } else{
     column_new <- column
-    print(str_glue("{column} column was not found in lookup table for {database}"))
+    print(str_glue("{column} column was not found in lookup table for {dataset}"))
   }
   
   return(column_new)   
@@ -51,41 +51,53 @@ get_column_text<-function(column, database){
 
 
 expand_categorical_filters <- function(string,
-                                       database) {
+                                       dataset) {
   
-  vector_of_filters <-   apropos(str_glue("{database}_filter_"))
+  #create a list of filters starting with dataset name _filter
+  vector_of_filters <-   apropos(str_glue("{dataset}_filter_"))
   list_of_filters <- vector_of_filters %>%
     set_names() %>%
     map(~get(.))
 
-  string_formatted<-string
-  string_formatted<- str_replace_all(string_formatted, '\"','') 
-  #loop through all filters, replacing codes with text
+  #manipulate full string - to make later processing simpler
+  string_formatted<- string %>%
+    str_replace_all( '\"','') %>% #get rid of speech marks
+    str_replace_all(" +"," ") %>% #get rid of excess spaces - most important for (" " + col_name + " ") pattern
+    str_replace_all("\\( \\+ ","") %>% #replace ( + pattern - important for (" " + col_name + " ") pattern
+    str_replace_all(" \\+ \\)","") %>% # replace + ) pattern - important for (" " + col_name + " ") pattern
+    str_replace_all("c\\(", "\\(") #remove c from the start of vectors 
+  #loop through all filters, replacing  filter with full text version of filter
   for (i in list_of_filters) {
+    
       #split each filter into column, value and operator
       column <- as.character(i[2])
       value <- i[[3]]
       operator <- as.character(i[1])
       
-      #this step is put in because the string separator in nrls {~@~} doesn't work well with regex
-      contains_at<-sum(str_detect(as.character(value),"~@~")==TRUE)
-      # only tidy up string where ~@~ sequence is not present
-      if(contains_at==0){
+       #get column name
+      column_searchable<- column %>%
+        str_extract("[a-zA-Z0-9_.-]+") #pull out just column code
+      column_new <- get_column_text(column_searchable, dataset)
+
+       
       #create vector for value
       value_old <- c()
       value_new <- c()
-      
-      #get column name
-      column_new <- get_column_text(column, database)
       
       # get value descriptions
       # loop through each element in the vector (so can handle 1 or c(1,2,3))
       for (j in 1:length(value)) {
         #this is required because value is of the type class when it is in c(1,2,3) form
         if (value[[j]]!="c"){
-          value_old <- append(value_old, value[[j]])
+          j_value<- value[[j]]
+          j_value_pretty <- j_value %>% 
+            str_replace_all("% ","") %>% #get rid of "% "- which is present with a multi-select column
+            str_replace_all(" %", "") #get rid of " %"- which is present with a multi-select column
+          
+          #add old value to vector
+          value_old <- append(value_old, j_value)
           #get text for this element of value 
-          code_text <- get_code_text(column, value[[j]], database)
+          code_text <- get_code_text(column_searchable, j_value_pretty, dataset)
           #append this value to a vector of values
           value_new <- append(value_new, code_text)
         }
@@ -104,23 +116,21 @@ expand_categorical_filters <- function(string,
       }
       
       #recreate the filter by combining column, operator and value old
-      filter_initial <- str_c(column, operator, value_old , sep = " ")
+      filter_initial <- str_c(column_searchable, operator, value_old , sep = " ")
       filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
-      
-      # remove c in front of brackets
+  
       string_formatted <-  string_formatted %>% 
-        str_replace_all("c\\(", "\\(") %>%
         #replace initial filter with the formatted filter
         str_replace_all(filter_initial, filter_nice)
-      }
-  }
-  #replace |, & , == and %in% with more understandable phrases
+             }
+  #replace |, & , ==, like and %in% with more understandable phrases
   string_formatted<- string_formatted %>%  
     str_replace_all("\\|", "OR") %>%
     str_replace_all("&", "AND") %>%
     str_replace_all("==", "=") %>%
     str_replace_all("%in%", "IN") %>%
-    str_replace_all("%like%", "LIKE")
+    str_replace_all("%LIKE%", "CONTAINS")
+  print(string_formatted)
   
   return(string_formatted)
 }
