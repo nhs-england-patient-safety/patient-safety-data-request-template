@@ -12,6 +12,23 @@ search_nrls <- T
 search_lfpse <- F
 search_steis <- F
 
+
+#type of data extract - "data" for full tables, "summary" for summary
+type_of_output<- "summary"
+
+# create a list with an element containing for each table you would like 
+#first element is what you want as rows, second is what you want as columns
+# or you can just have one element
+# summary_categories_nrls <- list(c(expr(`MD02 Med Error Category`)),
+#                                 c(expr(`PD09 Degree of harm (severity)`), expr(Year)))
+# summary_categories_lfpse <- list(c(expr(`CL001 - Event Type`)),
+#                                  c(expr(`OT001 - Physical harm`), expr(Year)))
+# summary_categories_steis <- list(c(expr(`Type of Incident`)))
+
+summary_categories_nrls <- list(c(expr(0)))
+summary_categories_lfpse <- list(c(expr(0)))
+summary_categories_steis <- list(c(expr(0)))
+
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
 end_date <- "2024-01-01"

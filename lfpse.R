@@ -182,7 +182,8 @@ lfpse_for_release <- lfpse_sampled |>
     "A016_Other - BuildingsInfrastructure (other)" = A016_Other
     # TODO: add age columns once DQ issues resolved
   )) |>
-  remove_empty("cols") 
+  remove_empty("cols") %>%
+  ungroup()
 
 print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
 

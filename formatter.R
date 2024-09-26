@@ -38,6 +38,17 @@ bodyStyle <- createStyle(
   halign = "left"
 )
 
+rowTitleStyle <- createStyle(
+  fontSize = 11,
+  fontName = "Arial",
+  border = "TopBottomLeftRight",
+  borderStyle = "thin",
+  wrapText = TRUE,
+  textDecoration = "bold",
+  valign = "center",
+  halign = "left"
+)
+
 title <- basename(here())
 
 # To do - cover sheet
@@ -122,71 +133,12 @@ writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 # Add worksheets
 
 for (i in file_list) {
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
-    str_replace("STEIS", "StEIS") 
-  
-  df <- get(i)
-  
-  addWorksheet(wb, sheet, gridLines = FALSE)
-  
-  # set column widths
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1:ncol(df),
-               widths = 35
-  )
-  
-  # set row heights - header row
-  
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 7:7,
-                heights = 34
-  )
-  
-  # set row heights - body
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 8:(nrow(df) + 7),
-                heights = 150
-  )
-  
-  
-  # Add text style
-  addStyle(wb,
-           sheet = sheet,
-           textStyle,
-           rows = 1:6,
-           cols = 1:1
-  )
-  
-  # Add header style
-  addStyle(wb,
-           sheet = sheet,
-           headerStyle,
-           rows = 7,
-           cols = 1:ncol(df)
-  )
-  
-  # Add body style
-  addStyle(wb,
-           sheet = sheet,
-           bodyStyle,
-           rows = 8:(nrow(df) + 7),
-           cols = 1:ncol(df),
-           gridExpand = T
-  )
-  
-  # Write text
-  writeData(wb, sheet, paste(sheet, "Confidential", sep = " - "), startCol = 1, startRow = 1)
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-  writeData(wb, sheet, paste("Number of Incidents", nrow(df), sep = ": "), startCol = 1, startRow = 5)
-  
-  # Write data
-  writeData(wb, sheet, df, startRow = 7)
-  
+  database_name <- str_split_i(i, "_", 1)
+  if (type_of_output =="data"){
+    wb<-add_data_sheet(wb, i, title)
+  }else{
+    wb<-add_summary_sheet(wb, i, title, database_name)
+  }
 }
 
 # set date formats
