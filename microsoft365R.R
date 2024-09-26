@@ -17,5 +17,14 @@ dr$upload(
 )
 
 print(glue('Workbook saved at https://nhsengland.sharepoint.com/:f:/r/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
+
+
+#save steis csv to sharepoint - this flags sharepoint warning- although no more risky than normal upload
+# 
+# dr$upload(
+#   src = here("data", steis_filename),
+#   dest = glue('{title}/{steis_filename}')
+# )
+
 toc <- Sys.time()
 print(glue('Query time (s): {toc-tic}'))
