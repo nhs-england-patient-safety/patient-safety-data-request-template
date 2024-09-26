@@ -187,7 +187,7 @@ find_filter_category<- function(i){
   space_colname_space_present <- sum(str_detect(as.character(i), '" " *\\+ *\\w+ *\\+ *" "')) == 1
   vector_present <- sum(str_detect(as.character(i), "c\\(")) == 1
   in_present <- sum(str_detect(as.character(i), "%in%")) == 1
-  equals_present <- sum(str_detect(as.character(i), "==")) == 1
+  equals_present <- sum(str_detect(as.character(i), "==|!=")) == 1
 
   
   type_na <- sum(str_detect(as.character(i), "na"))
@@ -199,6 +199,7 @@ find_filter_category<- function(i){
   type_multi <- if_else(like_present & space_number_space_present & space_colname_space_present, 1, 0)
   
   filter_category=NA
+  
   if (type_equals == 1  &  sum(type_in, type_na, type_multi)==0){
     filter_category="equals"
   }
