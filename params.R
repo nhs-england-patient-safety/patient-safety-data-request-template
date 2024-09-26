@@ -14,7 +14,7 @@ search_steis <- F
 
 
 #type of data extract - "data" for full tables, "summary" for summary
-type_of_output<- "summary"
+type_of_output<- "data"
 
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
