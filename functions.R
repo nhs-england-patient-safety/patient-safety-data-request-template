@@ -75,7 +75,8 @@ expand_categorical_filters <- function(string,
   string_formatted<- string_formatted %>%  
     str_replace_all("\\|", "OR") %>%
     str_replace_all("&", "AND") %>%
-    str_replace_all("==", "=") %>%
+    str_replace_all("==", "EQUALS") %>%
+    str_replace_all("!=", "IS NOT ") %>%
     str_replace_all("%in%", "IN") %>%
     str_replace_all("%LIKE%", "CONTAINS")
   
