@@ -86,24 +86,33 @@ expand_categorical_filters <- function(string,
 
 
 replace_filter<-function(string_formatted, i, dataset){
+  
   filter_category<-find_filter_category(i)
-  if (filter_category=="in"){
+  
+  if (filter_category=="in" | filter_category=="not_in"){
     #split each filter into column, value and operator
     
-    column <- as.character(i[2])
+    if(filter_category=="in"){
+      column <- as.character(i[2])
+      value <- i[[3]]
+    }else if(filter_category=="not_in"){
+      column <- str_split_i(str_replace_all(i2," ",""),"%in%",1)
+      value <- str_split_i(str_replace_all(i2," ",""),"%in%",2)
+    }
+    
+    operator <- "%in%"
     column_new <- get_column_text(column, dataset)  
-    value <- i[[3]]
-    operator <- as.character(i[1])
-
     #create vector for value
     value_old <- c()
     value_new <- c()
     
     # get value descriptions
     # loop through each element in the vector (so can handle 1 or c(1,2,3))
+    
     for (j in 1:length(value)) {
       #this is required because value is of the type class when it is in c(1,2,3) form
-      if (value[[j]]!="c"){
+    
+        if (value[[j]]!="c"){
         j_value<- value[[j]]
 
         #add old value to vector
@@ -129,6 +138,7 @@ replace_filter<-function(string_formatted, i, dataset){
     #recreate the filter by combining column, operator and value old
     filter_initial <- str_c(column, operator, value_old , sep = " ")
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
+  
   }else if (filter_category=="equals"){
     
     column <- as.character(i[2])
@@ -140,6 +150,7 @@ replace_filter<-function(string_formatted, i, dataset){
     #recreate the filter by combining column, operator and value old
     filter_initial <- str_c(column, operator, value_old , sep = " ")
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
+  
   }else if (filter_category=="multi"){
     
     column <- as.character(i[2])%>% 
@@ -156,6 +167,7 @@ replace_filter<-function(string_formatted, i, dataset){
     #recreate the filter by combining column, operator and value old
     filter_initial <- str_c(column, operator, value_old , sep = " ")
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
+  
   }else if (filter_category=="filter_na"){
     not_na<-as.character(i)[1]=="!"
     column<- as.character(i)[2] %>%
@@ -188,6 +200,7 @@ find_filter_category<- function(i){
   space_colname_space_present <- sum(str_detect(as.character(i), '" " *\\+ *\\w+ *\\+ *" "')) == 1
   vector_present <- sum(str_detect(as.character(i), "c\\(")) == 1
   in_present <- sum(str_detect(as.character(i), "%in%")) == 1
+  not_at_start <- sum(as.character(i)=="!")==1
   equals_present <- sum(str_detect(as.character(i), "==|!=")) == 1
 
   
@@ -195,22 +208,27 @@ find_filter_category<- function(i){
 
   type_equals <- if_else(equals_present & !vector_present, 1, 0)
   
-  type_in <- if_else(vector_present & in_present, 1, 0)
+  type_in <- if_else(vector_present & in_present & !not_at_start, 1, 0)
+  
+  type_not_in <- if_else(vector_present & in_present & not_at_start, 1, 0)
 
   type_multi <- if_else(like_present & space_number_space_present & space_colname_space_present, 1, 0)
   
-  filter_category=NA
+  filter_category <- NA
   
-  if (type_equals == 1  &  sum(type_in, type_na, type_multi)==0){
+  if (type_equals == 1  &  sum(type_in, type_not_in, type_na, type_multi)==0){
     filter_category="equals"
   }
-  else if (type_in == 1  &  sum(type_equals, type_na, type_multi)==0){
+  else if (type_in == 1  &  sum(type_not_in, type_equals, type_na, type_multi)==0){
     filter_category="in"
   }
-  else if (type_na == 1  &  sum(type_in, type_equals, type_multi)==0){
+  else if (type_not_in == 1  &  sum(type_in, type_equals, type_na, type_multi)==0){
+    filter_category="not_in"
+  }
+  else if (type_na == 1  &  sum(type_in, type_not_in, type_equals, type_multi)==0){
     filter_category="filter_na"
   }
-  else if (type_multi== 1  &  sum(type_in, type_na, type_equals)==0){
+  else if (type_multi== 1  &  sum(type_in, type_not_in, type_na, type_equals)==0){
     filter_category="multi"
   } else{
     print("Filter category not found")
