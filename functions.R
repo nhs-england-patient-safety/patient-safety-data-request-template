@@ -268,7 +268,8 @@ add_summary_sheet<- function(wb, i, title, database_name){
 
     if (database_name=="lfpse"){
       df <- df %>% 
-        mutate(Year = year(`T005 - Event date`)) %>%
+        mutate(Year = year(`T005 - Event date`),
+               Month = month(`T005 - Event date`,label = TRUE, abbr = TRUE)) %>%
         mutate(`OT001 - Physical harm` = fct_relevel(`OT001 - Physical harm`, 
                                                      "No physical harm",
                                                      "Low physical harm",
@@ -278,7 +279,8 @@ add_summary_sheet<- function(wb, i, title, database_name){
         
     }else if (database_name=="nrls"){
       df <- df %>% 
-        mutate(Year = year(`Date of Incident`)) %>%
+        mutate(Year = year(`Date of Incident`),
+               Month = month(`Date of Incident`,label = TRUE, abbr = TRUE)) %>%
         mutate(`PD09 Degree of harm (severity)` = fct_relevel(`PD09 Degree of harm (severity)`, 
                                                      "No Harm",
                                                      "Low",
@@ -287,8 +289,10 @@ add_summary_sheet<- function(wb, i, title, database_name){
                                                      "Death"))
     
     }else if (database_name=="steis"){
+      print("steis")
       df <- df %>% 
-        mutate(Year = year(`Created on`))
+        mutate(Year = year(`Created on`),
+               Month = month(`Created on`, label = TRUE, abbr = TRUE))
       
     }
 
