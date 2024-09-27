@@ -217,182 +217,6 @@ find_filter_category<- function(i){
   return(filter_category)
 }
 
-
-
-add_summary_sheet<- function(wb, i, title, summary_categories_list){
-  
-  
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
-    str_replace("STEIS", "StEIS") 
-  
-  df <- get(i)
-  
-  addWorksheet(wb, sheet, gridLines = FALSE)
-  
-  # set column widths
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1,
-               widths = 50
-  )
-  # 
-  
-  #Add text style
-  addStyle(wb,
-           sheet = sheet,
-           textStyle,
-           rows = 1:6,
-           cols = 1:1
-  )
-  
-  
-  # Write text
-  writeData(wb, sheet, paste(sheet, "Confidential", sep = " - "), startCol = 1, startRow = 1)
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-  writeData(wb, sheet, paste("Number of Incidents", nrow(df), sep = ": "), startCol = 1, startRow = 5)
-  
-  
-  
-  start_row = 7
-  
-  for(category in summary_categories_list){
-    
-    
-    if (length(category)==1){
-      one_variable= TRUE
-      category[[2]]= category[[1]]
-    }else{
-      one_variable = FALSE
-    }
-    
-    summary_table<-df %>% 
-      mutate(Year=year(`Date of Incident`))  %>% 
-      count(!!category[[1]],!!category[[2]])
-    
-    if (!one_variable){
-      summary_table<- summary_table %>%
-        pivot_wider(names_from=!!category[[2]], values_from = n)%>%
-        adorn_totals('both')
-      
-    }else{
-      summary_table <- summary_table %>% 
-        adorn_totals('row')
-    }
-    
-    print(summary_table)
-    writeData(wb, sheet, summary_table, startRow = start_row)
-    
-    # 
-    # # Add header style
-    addStyle(wb,
-             sheet = sheet,
-             headerStyle,
-             rows = start_row,
-             cols = 1:(ncol(summary_table))
-    )
-    
-    addStyle(wb,
-             sheet = sheet,
-             rowTitleStyle,
-             rows = (start_row + 1):(nrow(summary_table) + start_row),
-             cols = 1
-    )
-    # 
-    # # Add body style
-    addStyle(wb,
-             sheet = sheet,
-             bodyStyle,
-             rows = (start_row + 1):(nrow(summary_table) + start_row),
-             cols = 2:(ncol(summary_table)),
-             gridExpand = T
-    )
-    
-    # set row heights 
-    
-    setRowHeights(wb,
-                  sheet = sheet,
-                  rows = start_row:(start_row + nrow(summary_table)),
-                  heights = 34
-    )
-    
-    start_row<- start_row + nrow(summary_table) + 3
-    
-  }
-  return(wb)
-}
-
-
-
-add_data_sheet<-function(wb, i, title){
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
-    str_replace("STEIS", "StEIS") 
-  
-  df <- get(i)
-  
-  addWorksheet(wb, sheet, gridLines = FALSE)
-  
-  # set column widths
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1:ncol(df),
-               widths = 35
-  )
-  
-  # set row heights - header row
-  
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 7:7,
-                heights = 34
-  )
-  
-  # set row heights - body
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 8:(nrow(df) + 7),
-                heights = 150
-  )
-  
-  
-  # Add text style
-  addStyle(wb,
-           sheet = sheet,
-           textStyle,
-           rows = 1:6,
-           cols = 1:1
-  )
-  
-  # Add header style
-  addStyle(wb,
-           sheet = sheet,
-           headerStyle,
-           rows = 7,
-           cols = 1:ncol(df)
-  )
-  
-  # Add body style
-  addStyle(wb,
-           sheet = sheet,
-           bodyStyle,
-           rows = 8:(nrow(df) + 7),
-           cols = 1:ncol(df),
-           gridExpand = T
-  )
-  
-  # Write text
-  writeData(wb, sheet, paste(sheet, "Confidential", sep = " - "), startCol = 1, startRow = 1)
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-  writeData(wb, sheet, paste("Number of Incidents", nrow(df), sep = ": "), startCol = 1, startRow = 5)
-  
-  # Write data
-  writeData(wb, sheet, df, startRow = 7)
-  return(wb)
-}
-
 add_summary_sheet<- function(wb, i, title, database_name){
 
   summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
@@ -443,14 +267,31 @@ add_summary_sheet<- function(wb, i, title, database_name){
     }
 
     if (database_name=="lfpse"){
-      df <- df %>% mutate(Year = year(`T005 - Event date`))
+      df <- df %>% 
+        mutate(Year = year(`T005 - Event date`)) %>%
+        mutate(`OT001 - Physical harm` = fct_relevel(`OT001 - Physical harm`, 
+                                                     "No physical harm",
+                                                     "Low physical harm",
+                                                     "Moderate physical harm",
+                                                     "Severe physical harm",
+                                                     "Fatal"))
+        
     }else if (database_name=="nrls"){
-      df <- df %>% mutate(Year = year(`Date of Incident`))
+      df <- df %>% 
+        mutate(Year = year(`Date of Incident`)) %>%
+        mutate(`PD09 Degree of harm (severity)` = fct_relevel(`PD09 Degree of harm (severity)`, 
+                                                     "No Harm",
+                                                     "Low",
+                                                     "Moderate",
+                                                     "Severe",
+                                                     "Death"))
+    
     }else if (database_name=="steis"){
-      df <- df %>% mutate(Year = year(`Created on`))
+      df <- df %>% 
+        mutate(Year = year(`Created on`))
       
     }
-     
+
       summary_table <- df %>%
         count(!!category[[1]], !!category[[2]])
     print(summary_table)
@@ -507,7 +348,6 @@ add_summary_sheet<- function(wb, i, title, database_name){
   }
     return(wb)
 }
-
 
 add_data_sheet<-function(wb, i, title){
   
