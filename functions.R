@@ -218,13 +218,9 @@ find_filter_category<- function(i){
   return(filter_category)
 }
 
-add_summary_sheet<- function(wb, i, title, database_name){
+add_summary_sheet<- function(wb, i, title, database_name, sheet){
 
   summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
-    str_replace("STEIS", "StEIS") 
   
   df <- get(i)
   
@@ -354,11 +350,7 @@ add_summary_sheet<- function(wb, i, title, database_name){
     return(wb)
 }
 
-add_data_sheet<-function(wb, i, title){
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
-    str_replace("STEIS", "StEIS") 
+add_data_sheet<-function(wb, i, title, sheet){
   
   df <- get(i)
   

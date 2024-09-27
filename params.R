@@ -13,12 +13,14 @@ search_lfpse <- F
 search_steis <- F
 
 
-#type of data extract - "data" for full tables, "summary" for summary
+#type of data extract - "data" for full tables, "summary" for summary, "both" for both
+#Note: if "both" is selected, any sampling will apply to both the data and summary tables 
 type_of_output<- "data"
 
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
 # or you can just have one element
+#Year and Month variables can be used
 # summary_categories_nrls <- list(c(expr(`MD02 Med Error Category`)),
 #                                 c(expr(`PD09 Degree of harm (severity)`), expr(Year)))
 # summary_categories_lfpse <- list(c(expr(`CL001 - Event Type`)),

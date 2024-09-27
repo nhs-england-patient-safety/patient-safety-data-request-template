@@ -134,10 +134,19 @@ writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 for (i in file_list) {
   database_name <- str_split_i(i, "_", 1)
+  sheet_name <- str_extract(i, "^([^_])+") |> 
+    toupper() |> 
+    str_replace("STEIS", "StEIS") 
+  
   if (type_of_output =="data"){
-    wb<-add_data_sheet(wb, i, title)
-  }else{
-    wb<-add_summary_sheet(wb, i, title, database_name)
+    wb<-add_data_sheet(wb, i, title, sheet_name)
+  }else if (type_of_output=="summary"){
+    wb<-add_summary_sheet(wb, i, title, database_name, sheet_name)
+  }else if (type_of_output=="both"){
+    wb<-add_data_sheet(wb, i, title, str_glue("{sheet_name} - Data"))
+    wb<-add_summary_sheet(wb, i, title, database_name,  str_glue("{sheet_name} - Summary"))
+  } else{
+    print("type_of_output not valid")
   }
 }
 
