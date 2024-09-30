@@ -2,9 +2,8 @@
 
 library(DBI)
 
-
+# nrls ####
 if (search_nrls) {
-  # nrls ####
   con_nrls <- dbConnect(odbc::odbc(),
                         Driver = "ODBC Driver 17 for SQL Server",
                         Server = Sys.getenv("psims_server"),
@@ -54,8 +53,10 @@ if (search_nrls) {
   
   codes <- bind_rows(codes_ex_rm04, codes_rm04)
   
-  } else if (search_lfpse) {
-    # lfpse ####
+  } 
+
+# lfpse ####
+if (search_lfpse) {
     
     con_lfpse <- dbConnect(odbc::odbc(),
                            Driver = "ODBC Driver 17 for SQL Server",
