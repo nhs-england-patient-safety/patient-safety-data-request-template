@@ -52,7 +52,7 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
 #sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
 #record time to keep track of query speeds
-tic <- Sys.time()
+tic_lfpse <- Sys.time()
 
 lfpse_filtered_categorical <- lfpse_parsed|>
   filter(between(date_filter, start_date, end_date),
@@ -61,9 +61,11 @@ lfpse_filtered_categorical <- lfpse_parsed|>
   # collecting here so that we can apply text filters later
   collect()  
 
-toc <- Sys.time()
+toc_lfpse <- Sys.time()
 
-print(toc-tic)
+time_diff_lfpse <- toc_lfpse-tic_lfpse
+
+print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"))
 
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 

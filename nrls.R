@@ -25,13 +25,20 @@ nrls_parsed <- nrls |>
   )
 
 # categorical filters ####
-
+tic_nrls <- Sys.time()
+  
 nrls_filtered_categorical <- nrls_parsed |>
   # apply categorical filters here
   filter(between(date_filter, start_date, end_date)) |>
   filter(nrls_categorical) |>
   # collecting here so that we can apply text filters later
   collect()
+
+toc_nrls <- Sys.time()
+
+time_diff_nrls <- toc_nrls-tic_nrls
+
+print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {attr(time_diff_nrls, 'units')}"))
 
 print(glue("- {dataset} categorical filters retrieved {nrow(nrls_filtered_categorical)} incidents."))
 
