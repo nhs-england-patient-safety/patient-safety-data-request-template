@@ -1,11 +1,24 @@
+
+#' get code text
+#' 
+#' this function takes a column code and a value code 
+#' and uses the appropriate lookup table to turn the value into a more informative value
+#'
+#' @param column The column code (string) 
+#' @param code The value code to be converted to actual value (string)
+#' @param dataset either steis, lfpse or nrls (string)
+#'
+#' @return value as text
 get_code_text <-function(column, code, dataset){
-  
+  #no steis lookup table, so this returns the code value input
   if (dataset=="steis"){
     return(code)
+    
   }else if(dataset=="nrls"){
     code_text_df<-codes |> 
       filter(col_name==column, SASCODE== code) |>
       select(OPTIONTEXT)
+    
   } else if(dataset=="lfpse"){
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
@@ -13,18 +26,30 @@ get_code_text <-function(column, code, dataset){
       select(ResponseText) %>%
       distinct(ResponseText)
   }
+  # only returns value if exactly one possible code_text is found
   if (nrow(code_text_df) == 1) {
     code_text <- pull(code_text_df)
+    return(code_text)
   } else {
-    code_text<-  code
     print(str_glue("{code} was not found in {column} column in lookup table for {dataset}. (or it was found with duplicates)"))
+    return(code)
   }
-  return(code_text)
 }
 
+#' get column text
+#' 
+#' this function takes a column code
+#' and uses the appropriate lookup table to turn the value into the more informative column name
+#'
+#' @param column The column code (string) 
+#' @param dataset either steis, lfpse or nrls (string)
+#'
+#' @return value as text
 get_column_text<-function(column, dataset){
+  #no steis lookup table, so this returns the code value input
   if (dataset=="steis"){
     return(column)
+    
   } else if (dataset=="lfpse"){
     column_text_df<-QuestionReference |> 
       filter(QuestionId==column) |>
@@ -36,11 +61,13 @@ get_column_text<-function(column, dataset){
       filter(NAME==column) %>% 
       select(LABEL)
   }
+  # only returns value if exactly one possible column_new is found
   if (nrow(column_text_df) == 1){
     column_new <- pull(column_text_df)
+    return(column_new)
   } else{
-    column_new <- column
     print(str_glue("{column} column was not found in lookup table for {dataset}"))
+    return(column)
   }
   
   return(column_new)   
@@ -50,10 +77,18 @@ get_column_text<-function(column, dataset){
 
 
 
+#' expand categorical filters
+#' This function takes a string representing the categorical filters,
+#' and converts it into a more informative and readable string
+#'
+#' @param string categorical filters (string)
+#' @param dataset lfpse, nrls or steis (string)
+#'
+#' @return new string (string)
 expand_categorical_filters <- function(string,
                                        dataset) {
   
-  #create a list of filters starting with dataset name _filter
+  #look in environment for filters starting with dataset name _filter, and convert to string
   vector_of_filters <-   apropos(str_glue("{dataset}_filter_"))
   list_of_filters <- vector_of_filters %>%
     set_names() %>%
@@ -71,13 +106,15 @@ expand_categorical_filters <- function(string,
   for (i in list_of_filters) {
    string_formatted<- replace_filter(string_formatted, i, dataset)
   }
+  
   #replace |, & , ==, like and %in% with more understandable phrases
   string_formatted<- string_formatted %>%  
     str_replace_all("\\|", "OR") %>%
     str_replace_all("&", "AND") %>%
     str_replace_all("==", "EQUALS") %>%
     str_replace_all("!=", "IS NOT ") %>%
-    str_replace_all("%in%", "IN") %>%
+    str_replace_all("!%in%", "IS NOT IN") %>%
+    str_replace_all("%in%", "IS IN") %>%
     str_replace_all("%LIKE%", "CONTAINS")
   
   return(string_formatted)
@@ -85,59 +122,61 @@ expand_categorical_filters <- function(string,
 
 
 
+#' replace filter
+#' This function takes the a string of categorical filters and a filter from the environment
+#' It converts the string to a more informative string 
+# and returns the modified string of categorical filters
+#'
+#' @param string_formatted string of categorical filters
+#' @param i  filter from the environment 
+#' @param dataset dataset that the categorical filters refer to
+#'
+#' @return string formatted with "i" replaced with a more informative string 
 replace_filter<-function(string_formatted, i, dataset){
-  
+  #Logic is different for the different filter categories - e.g. A001 %in% c(1,2,3) will be converted differently to !is.na(A001)
+  # so this step categorises the filter. Categories are in , not_in, equals, multi and filter_na
   filter_category<-find_filter_category(i)
-  
   if (filter_category=="in" | filter_category=="not_in"){
-    #split each filter into column, value and operator
-    
+    #as the filters are "calls" , they need to be converted to a character vector
     if(filter_category=="in"){
+      # the second element is the column name
       column <- as.character(i[2])
-      value <- i[[3]]
-    }else if(filter_category=="not_in"){
-      column <- str_split_i(str_replace_all(i2," ",""),"%in%",1)
-      value <- str_split_i(str_replace_all(i2," ",""),"%in%",2)
-    }
+      # the third element is the c(1,2,3)
     
-    operator <- "%in%"
+      value_string <- str_replace_all(as.character(i[[3]]),'\\s|\"',"")
+      value_string <- value_string[value_string!="c"]
+      value_string <- str_c(value_string, collapse=",")
+      not_string<-""
+    }else{
+      #the first element is the ! so the second element has the "in"
+      i_second <- as.character(i)[2]
+      i_second <- str_replace_all(i_second,'c\\(|\\)|\\s|\"',"")
+      #pull out the column name (lhs of %in%)
+      column <- str_split_i(i_second,"%in%",1)
+      #pull out the c(1,2,3) (rhs of %in%)
+      value_string <- str_split_i(i_second,"%in%",2)
+      not_string <- "!"
+    }
+    print(value_string)
+    # split into vector
+    value_vec_old <- str_split(value_string, ",")[[1]]
+    value_vec_old <-as.character(value_vec_old)
+    #find column name
     column_new <- get_column_text(column, dataset)  
-    #create vector for value
-    value_old <- c()
-    value_new <- c()
-    
-    # get value descriptions
-    # loop through each element in the vector (so can handle 1 or c(1,2,3))
-    
-    for (j in 1:length(value)) {
-      #this is required because value is of the type class when it is in c(1,2,3) form
-    
-        if (value[[j]]!="c"){
-        j_value<- value[[j]]
+    #find the new values 
+    value_vec_new <- map_chr(value_vec_old, ~get_code_text(column, .x, dataset))
 
-        #add old value to vector
-        value_old <- append(value_old, j_value)
-        #get text for this element of value 
-        code_text <- get_code_text(column, j_value, dataset)
-        #append this value to a vector of values
-        value_new <- append(value_new, code_text)
-      }
-    }
-    
     #convert from vector to string
-    value_old <- str_c(value_old, collapse = ", ")
-    value_new_string <- str_c(value_new, collapse = ", ")
-    
-    #formatting is a little different when value has one or more elements
-    if (length(value_new) > 1) {
-      # add brackets to either side of value_old - to allow matching to occur
-      value_old <- str_c("\\(", value_old, "\\)")
-      # add brackets to either side of value_new_string- helpful for clarity
-      value_new_string <- str_c("(", value_new_string, ")")
-    }
+    value_str_new<-str_c(value_vec_new, collapse = ", ")
+    value_str_old<- str_c(value_vec_old, collapse = ", ")
+    # add brackets to either side of value_old - to allow matching to occur
+    value_old <- str_c("\\(", value_str_old, "\\)")
+    # add brackets to either side of value_new_string- helpful for clarity
+    value_new <- str_c("(", value_str_new, ")")
     #recreate the filter by combining column, operator and value old
-    filter_initial <- str_c(column, operator, value_old , sep = " ")
-    filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
+    
+    filter_initial <- str_c(not_string, column, " ", "%in% ", value_old)
+    filter_nice <- str_c(column_new, " ", not_string, "%in% ", value_new)
   
   }else if (filter_category=="equals"){
     
@@ -145,7 +184,6 @@ replace_filter<-function(string_formatted, i, dataset){
     column_new <- get_column_text(column, dataset)  
     value_old <- i[[3]]
     operator <- as.character(i[1])
-    
     value_new_string <- get_code_text(column, value_old, dataset)
     #recreate the filter by combining column, operator and value old
     filter_initial <- str_c(column, operator, value_old , sep = " ")
@@ -194,10 +232,13 @@ replace_filter<-function(string_formatted, i, dataset){
 
 
 find_filter_category<- function(i){
-  
+  print(i)
   like_present <-sum(str_detect(as.character(i), "%LIKE%")) == 1
   space_number_space_present <- sum(str_detect(as.character(i), "% \\d+ %")) == 1 
   space_colname_space_present <- sum(str_detect(as.character(i), '" " *\\+ *\\w+ *\\+ *" "')) == 1
+  space_colname_space_present <- sum(str_detect(as.character(i), '" " *\\+ *\\w+ *\\+ *" "')) == 1
+  
+  print(space_colname_space_present)
   vector_present <- sum(str_detect(as.character(i), "c\\(")) == 1
   in_present <- sum(str_detect(as.character(i), "%in%")) == 1
   not_at_start <- sum(as.character(i)=="!")==1
@@ -271,9 +312,6 @@ add_summary_sheet<- function(wb, i, title, database_name, sheet){
   start_row = 7
 
   for(category in summary_categories_list){
-    print("category")
-      print(category)
-      print(length(category))
     if (length(category)==1){
         one_variable= TRUE
         category[[2]]= category[[1]]
