@@ -7,11 +7,13 @@ library(glue)
 library(Microsoft365R)
 library(readxl)
 
+# connect to (relevant) data bases and bring corresponding look ups 
+source("connections.R")
+
 # datasets to be searched (T/F)
 search_nrls <- T
-search_lfpse <- F
+search_lfpse <- T
 search_steis <- F
-
 
 #type of data extract - "data" for full tables, "summary" for summary, "both" for both
 #Note: if "both" is selected, any sampling will apply to both the data and summary tables 
@@ -33,7 +35,7 @@ summary_categories_steis <- list(c(expr(0)))
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-01-01"
+end_date <- "2024-03-01"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -88,11 +90,6 @@ steis_categorical <- 0
 #example: 
 steis_filename <- ''
 
-
-
-
-
 # Flow  -------------------------------------------------------------------
 source("functions.R")
-source("connections.R")
 source("flow.R")

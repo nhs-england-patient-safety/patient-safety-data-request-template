@@ -19,4 +19,7 @@ dr$upload(
 print(glue('Workbook saved at https://nhsengland.sharepoint.com/:f:/r/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
 
 toc <- Sys.time()
-print(glue('Query time (s): {toc-tic}'))
+
+time_diff <- (toc-tic)
+
+print(glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))

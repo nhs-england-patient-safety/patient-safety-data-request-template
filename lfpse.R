@@ -6,62 +6,66 @@ if(lfpse_categorical==0){
   lfpse_categorical <- expr(1==1)
 }
 
-# reading reference tables
-QuestionReference <- tbl(con_lfpse, "QuestionReference") |> collect()
-ResponseReference <- tbl(con_lfpse, "ResponseReference") |> collect()
+#set latest revision table from events
+latest_revision_table <- tbl(con_lfpse, in_schema("analysis", "Events")) |>
+  group_by(Reference) |>
+  summarise(Revision = max(Revision), #i.e., the most up to date version of a record 
+            reported_date = min(SubmissionDate)
+  ) |>
+  ungroup() 
 
-
+#gather analysis tables
 analysis_table_names <- c(
   "Metadata_Responses",
-  "Incident_Responses",
+  "Incident_Responses", 
   "Risk_Responses",
   "Outcome_Responses",
   "GoodCare_Responses",
   "EventDetails_Responses",
   "EventTime_Responses",
   "Location_Responses",
-  "Patient_Responses",
+  "Events",
+  "Patient_Responses", 
   "Medication_Responses",
   "Devices_Responses",
   "Reporter_Responses",
   "Governance_Responses" # ,
   # "Findings_Responses"#, 
   # "DmdMedication_Responses"
+  )
+
+#bring all tables together
+analysis_tables <- lapply(analysis_table_names, function(x){
+  tbl(con_lfpse, in_schema("analysis", x)) }
 )
 
-#create table for all tables except events
-analysis_tables_non_event <- lapply(analysis_table_names, function(x){
-  tbl(con_lfpse, in_schema("analysis", x)) 
-})
-
-#create table for events, filter for most recent revision
-event_table<- tbl(con_lfpse, in_schema("analysis","Events")) %>%
-  group_by(Reference) |>
-  mutate(reported_date = min(SubmissionDate),
-         max_revision = max(Revision)) %>%
-  ungroup() %>%
-  filter(Revision == max_revision)
-
-#combine event table and non event tables into one
-analysis_tables<- c(list(event_table), analysis_tables_non_event)
+lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
-lfpse_parsed <- reduce(analysis_tables, left_join, by = c("Reference", "Revision")) |>
-  rename(occurred_date = T005,
-         revision_date = SubmissionDate) |>
+lfpse_parsed <- reduce(lfpse_analysis_tables, 
+                       left_join, by = c("Reference", "Revision")) |>
+  rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
-  mutate(P004_years = as.numeric(P004))
+  mutate(P004_days = as.numeric(P004))
 
 #sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
-lfpse_filtered_categorical<- lfpse_parsed|>
+#record time to keep track of query speeds
+tic_lfpse <- Sys.time()
+
+lfpse_filtered_categorical <- lfpse_parsed|>
   filter(between(date_filter, start_date, end_date),
          #apply categorical filters here
-         lfpse_categorical)  |>
-         # collecting here so that we can apply text filters later
-         collect()  
+         lfpse_categorical) |>
+  # collecting here so that we can apply text filters later
+  collect()  
 
+toc_lfpse <- Sys.time()
+
+time_diff_lfpse <- toc_lfpse-tic_lfpse
+
+print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"))
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
 # text filters ####
