@@ -247,6 +247,8 @@ replace_filter <- function(string_formatted, i, dataset) {
       #replace initial filter with the formatted filter
       str_replace_all(filter_initial, filter_nice)
     
+  }else{
+    print("Filter category was not recognised")
   }
   return(string_formatted)
 }
@@ -283,24 +285,12 @@ find_filter_category <- function(i) {
                           space_colname_space_present, 1, 0)
   
   #set filter category if meet ONLY ONE category
-  if (type_equals == 1 & sum(type_in, type_not_in, type_na, type_multi) == 0) {
-    filter_category = "equals"
-  }
-  else if (type_in == 1  & sum(type_not_in, type_equals, type_na, type_multi) == 0) {
-    filter_category = "in"
-  }
-  else if (type_not_in == 1 & sum(type_in, type_equals, type_na, type_multi) == 0) {
-    filter_category = "not_in"
-  }
-  else if (type_na == 1 & sum(type_in, type_not_in, type_equals, type_multi) == 0) {
-    filter_category = "filter_na"
-  }
-  else if (type_multi == 1 & sum(type_in, type_not_in, type_na, type_equals) == 0) {
-    filter_category = "multi"
-  } else{
-    filter_category = NA 
-    print("Filter category not found")
-  }
+  filter_category <- case_when((type_equals == 1 & sum(type_in, type_not_in, type_na, type_multi) == 0) ~ "equals",
+                              (type_in == 1  & sum(type_not_in, type_equals, type_na, type_multi) == 0) ~ "in",
+                              (type_not_in == 1 & sum(type_in, type_equals, type_na, type_multi) == 0) ~ "not_in",
+                              (type_na == 1 & sum(type_in, type_not_in, type_equals, type_multi) == 0) ~ "filter_na",
+                              (type_multi == 1 & sum(type_in, type_not_in, type_na, type_equals) == 0) ~ "multi",
+                              TRUE ~ NA)
   return(filter_category)
 }
 
@@ -388,13 +378,23 @@ add_summary_sheet <- function(wb, i, title, database_name, sheet) {
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents", nrow(df), sep = ": "),
+    paste("Number of Incidents in sample", nrow(df), sep = ": "),
     startCol = 1,
     startRow = 5
   )
   
+  # write number of incidents
+  writeData(
+    wb,
+    sheet,
+    paste("Note: These summary tables are counts of the data after sampling has occured", nrow(df), sep = ": "),
+    startCol = 1,
+    startRow = 6
+  )
+  
+  
   #set start row for summary tables
-  start_row = 7
+  start_row = 8
   
   # loop through list- each item of list is one table
   for (category in summary_categories_list) {
