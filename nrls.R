@@ -11,46 +11,6 @@ if(nrls_categorical==0){
 
 nrls <- tbl(con_nrls, in_schema("art", "vw_clean"))
 
-sascodes <- tbl(con_nrls, in_schema("art", "sascodes")) |>
-  collect()
-
-codes_ex_rm04 <- sascodes |>
-  # fixing in03 lvl1 which is incorrect in the table
-  mutate(OPTIONTEXT = str_replace_all(OPTIONTEXT, "Treatment  ", "Treatment ")) |>
-  group_by(REFERENCECODE) |>
-  mutate(
-    n_levels = max(DEPTH) + 1,
-    col_name = ifelse(n_levels > 1,
-                      paste0(REFERENCECODE, "_LVL", DEPTH + 1),
-                      REFERENCECODE
-    )
-  ) |>
-  ungroup() |>
-  distinct(col_name, SASCODE, OPTIONTEXT) |>
-  # removing these vals which aren't required
-  filter(!col_name %in% c(
-    "PD01-B",
-    "DV08",
-    "IN01-A-0",
-    "IN02-A-01",
-    "IN02-A-02",
-    "DE10",
-    "DE11",
-    # these cols have duplicates but don't appear in the data
-    "IN06",
-    "MD03",
-    "PD10_LVL1",
-    "PD10_LVL2"
-  ))
-
-codes_rm04 <- data.frame(
-  col_name = rep("RM04", times = 4),
-  SASCODE = c(3, 4, 8, 9, 10, 50, 51, 60),
-  OPTIONTEXT = c("LRMS", "Comm - Pharmacy", "nww - eForm", "www - eForm", "OA - eForm", "GPOOH", "GP - eForm", "ASB")
-)
-
-codes <- bind_rows(codes_ex_rm04, codes_rm04)
-
 organisations <- tbl(con_nrls, in_schema("art", "trust_details")) |>
   collect()
 
@@ -65,13 +25,20 @@ nrls_parsed <- nrls |>
   )
 
 # categorical filters ####
-
+tic_nrls <- Sys.time()
+  
 nrls_filtered_categorical <- nrls_parsed |>
   # apply categorical filters here
   filter(between(date_filter, start_date, end_date)) |>
   filter(nrls_categorical) |>
   # collecting here so that we can apply text filters later
   collect()
+
+toc_nrls <- Sys.time()
+
+time_diff_nrls <- toc_nrls-tic_nrls
+
+print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {attr(time_diff_nrls, 'units')}"))
 
 print(glue("- {dataset} categorical filters retrieved {nrow(nrls_filtered_categorical)} incidents."))
 
