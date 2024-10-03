@@ -113,12 +113,14 @@ if(cols_to_extract == 'all'){
 }
 
 print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
+
 deparsed_steis_string<- deparse(steis_categorical,width.cutoff = 500)
 
 if (length(deparsed_steis_string)==1){
   steis_full_string<-expand_categorical_filters(deparsed_steis_string, "steis" )
 }else{
-  steis_full_string <- "Query to long. Please generate manually"
+  print("Query to long. Please generate manually")
+  steis_full_string <- deparsed_steis_string
 }
 
 source('formatter.R')

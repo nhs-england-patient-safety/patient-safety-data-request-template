@@ -192,7 +192,8 @@ deparsed_lfpse_string<- deparse(lfpse_categorical,width.cutoff = 500)
 if (length(deparsed_lfpse_string)==1){
 lfpse_full_string<-expand_categorical_filters(deparsed_lfpse_string, "lfpse")
 }else{
-  lfpse_full_string <- "Query to long. Please generate manually"
+  lfpse_full_string <- deparsed_lfpse_string
+  print("Query to long. Please generate manually")
 }
 dbDisconnect(con_lfpse)
 
