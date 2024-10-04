@@ -66,7 +66,6 @@ toc_lfpse <- Sys.time()
 time_diff_lfpse <- toc_lfpse-tic_lfpse
 
 print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"))
-
 print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
 
 # text filters ####
@@ -187,10 +186,19 @@ lfpse_for_release <- lfpse_sampled |>
     "A016_Other - BuildingsInfrastructure (other)" = A016_Other
     # TODO: add age columns once DQ issues resolved
   )) |>
-  remove_empty("cols") 
+  remove_empty("cols") %>%
+  ungroup()
 
 print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
 
+deparsed_lfpse_string<- deparse(lfpse_categorical,width.cutoff = 500)
+
+if (length(deparsed_lfpse_string)==1){
+lfpse_full_string<-expand_categorical_filters(deparsed_lfpse_string, "lfpse")
+}else{
+  lfpse_full_string <- deparsed_lfpse_string
+  print("Query to long. Please generate manually")
+}
 dbDisconnect(con_lfpse)
 
 if (search_steis) {
