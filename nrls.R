@@ -40,7 +40,7 @@ time_diff_nrls <- toc_nrls-tic_nrls
 
 print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {attr(time_diff_nrls, 'units')}"))
 
-print(glue("- {dataset} categorical filters retrieved {nrow(nrls_filtered_categorical)} incidents."))
+print(glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
 if (!is.na(text_terms)) {
@@ -49,11 +49,28 @@ if (!is.na(text_terms)) {
   nrls_filtered_text <- nrls_filtered_categorical |>
     filter(if_any(c(IN07,IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~str_detect(.,text_terms)))
 
-  print(glue("{dataset} text search retrieved {nrow(nrls_filtered_text)} incidents."))
+  print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
 }
+
+# check whether the text search generated results 
+if(nrow(nrls_filtered_text) == 0){
+  print(glue('**The search criteria has produced no results in the {dataset}**'))
+  print(glue('Moving on...'))
+  
+  if (search_lfpse) {
+    source("lfpse.R")
+  } else if (search_steis) {
+    source("steis.R")
+  } else {
+    source("formatter.R")
+  }
+  
+  #don't carry on with sampling, etc. below when there's no hits
+  stop(glue('nrls_for_release was not written'))
+} 
 
 # sampling ####
 # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
