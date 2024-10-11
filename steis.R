@@ -69,15 +69,7 @@ if (!is.na(text_terms)) {
 }
 
 # check whether the text search generated results 
-if(nrow(steis_filtered_text) == 0){
-  print(glue('**The search criteria has produced no results in the {dataset}**'))
-  print(glue('Moving on...'))
-  
-  source("formatter.R")
-  
-  #don't carry on with the sampling, etc. below when there's no hits
-  stop(glue('steis_for_release was not written'))
-}
+if(nrow(steis_filtered_text) != 0){
 
 # columns for release ####
 if(cols_to_extract == 'all'){
@@ -124,5 +116,10 @@ if(cols_to_extract == 'all'){
 }
 
 print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
+
+} else {
+print(glue('**The search criteria has produced no results in {dataset}**'))
+print(glue('Moving on...'))
+}
 
 source('formatter.R')

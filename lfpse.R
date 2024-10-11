@@ -1,7 +1,7 @@
 # lfpse
 dataset <- "LFPSE"
 print(glue("Running {dataset} search..."))
-
+ 
 if(lfpse_categorical==0){
   lfpse_categorical <- expr(1==1)
 }
@@ -83,19 +83,7 @@ if (!is.na(text_terms)) {
 }
 
 # check whether the text search generated results 
-if(nrow(lfpse_filtered_text) == 0){
-  print(glue('**The search criteria has produced no results in the {dataset}**'))
-  print(glue('Moving on...'))
-  
-  if (search_steis) {
-    source("steis.R")
-  } else {
-    source("formatter.R")
-  }
-  
-  #don't carry on with the sampling, etc. below when there's no hits
-  stop(glue('lfpse_for_release was not written'))
-}
+if(nrow(lfpse_filtered_text) != 0){
 
 # sampling ####
 # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
@@ -205,6 +193,11 @@ lfpse_for_release <- lfpse_sampled |>
   remove_empty("cols") 
 
 print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
+
+} else {
+  print(glue('**The search criteria has produced no results in {dataset}**'))
+  print(glue('Moving on...'))
+}
 
 dbDisconnect(con_lfpse)
 
