@@ -83,7 +83,7 @@ if (!is.na(text_terms)) {
 }
 
 # check whether the text search generated results 
-if(nrow(lfpse_filtered_text) == 0){
+if(nrow(lfpse_filtered_text) != 0){
 
 # sampling ####
 # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
