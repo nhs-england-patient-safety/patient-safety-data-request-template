@@ -57,7 +57,7 @@ tic_lfpse <- Sys.time()
 lfpse_filtered_categorical <- lfpse_parsed|>
   filter(between(date_filter, start_date, end_date),
          #apply categorical filters here
-         lfpse_categorical) |>
+         lfpse_categorical) |> 
   # collecting here so that we can apply text filters later
   collect()  
 
@@ -67,7 +67,7 @@ time_diff_lfpse <- toc_lfpse-tic_lfpse
 
 print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"))
 
-print(glue("- {dataset} categorical filters retrieved {nrow(lfpse_filtered_categorical)} incidents."))
+print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
 if (!is.na(text_terms)) {
@@ -76,10 +76,25 @@ if (!is.na(text_terms)) {
   lfpse_filtered_text <- lfpse_filtered_categorical |>
     filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~str_detect(.,text_terms)))
   #A002 may need to be added for a medication incident
-  print(glue("{dataset} text search retrieved {nrow(lfpse_filtered_text)} incidents."))
+  print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
   lfpse_filtered_text <- lfpse_filtered_categorical
+}
+
+# check whether the text search generated results 
+if(nrow(lfpse_filtered_text) == 0){
+  print(glue('**The search criteria has produced no results in the {dataset}**'))
+  print(glue('Moving on...'))
+  
+  if (search_steis) {
+    source("steis.R")
+  } else {
+    source("formatter.R")
+  }
+  
+  #don't carry on with the sampling, etc. below when there's no hits
+  stop(glue('lfpse_for_release was not written'))
 }
 
 # sampling ####
@@ -143,7 +158,7 @@ lfpse_for_release <- lfpse_sampled |>
     names_from = name,
     values_from = ResponseText,
     # collapse multi-responses into single row per entity
-    values_fn = list(ResponseText = ~paste(., collapse = "; "))) |> 
+    values_fn = list(ResponseText = ~str_c(., collapse = "; "))) |> 
   group_by(Reference) |>  
   mutate(npatient = max(EntityId)) |> 
   # select the columns for release

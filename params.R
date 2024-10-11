@@ -32,7 +32,7 @@ steis_categorical <- 0
 steis_filename <- ''
 
 # text terms
-text_terms <- NA
+text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
 
 # sampling strategy (default/none)
 # TODO: custom

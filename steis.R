@@ -45,7 +45,7 @@ steis_filtered_categorical <- steis_parsed |>
   filter(between(!! date_filter, start_date, end_date)) |>
   filter(!! steis_categorical)
 
-print(glue("- {dataset} categorical filters retrieved {nrow(steis_filtered_categorical)} incidents."))
+print(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
 
 print(glue("- No sampling for StEIS since no harm grading."))
 
@@ -61,11 +61,22 @@ if (!is.na(text_terms)) {
                     type_of_incident_other),
                   ~str_detect(.,text_terms)))
   
-  print(glue("{dataset} text search retrieved {nrow(steis_filtered_text)} incidents."))
+  print(glue("{dataset} text search retrieved {{format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
   
 } else {
   print('- No text terms supplied. Skipping text search...')
   steis_filtered_text <- steis_filtered_categorical
+}
+
+# check whether the text search generated results 
+if(nrow(steis_filtered_text) == 0){
+  print(glue('**The search criteria has produced no results in the {dataset}**'))
+  print(glue('Moving on...'))
+  
+  source("formatter.R")
+  
+  #don't carry on with the sampling, etc. below when there's no hits
+  stop(glue('steis_for_release was not written'))
 }
 
 # columns for release ####

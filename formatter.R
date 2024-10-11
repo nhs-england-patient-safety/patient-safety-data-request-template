@@ -1,7 +1,12 @@
+file_list <- apropos('for_release')
+
+#there's no need to carry on if there are no objects for release
+if(is_empty(file_list)){
+  stop("There's no data to write in Excel")
+}
+
 # Formatting Excel workbook
 print('Formatting Excel workbook...')
-
-file_list <- apropos('for_release')
 
 # Create a new workbook
 wb <- createWorkbook()
