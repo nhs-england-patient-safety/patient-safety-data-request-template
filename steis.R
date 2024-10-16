@@ -61,7 +61,7 @@ if (!is.na(text_terms)) {
                     type_of_incident_other),
                   ~str_detect(.,text_terms)))
   
-  print(glue("{dataset} text search retrieved {{format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
+  print(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
   
 } else {
   print('- No text terms supplied. Skipping text search...')
