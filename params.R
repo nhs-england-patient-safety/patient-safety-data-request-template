@@ -34,8 +34,8 @@ steis_filename <- ''
 # text terms
 text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
 
-# sampling strategy (default/none)
+# sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "default"
+sampling_strategy <- "FOI"
 
 source("flow.R")
