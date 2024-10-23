@@ -47,7 +47,9 @@ if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
 
   nrls_filtered_text <- nrls_filtered_categorical |>
-    filter(if_any(c(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~ str_detect(., text_terms)))
+    filter(str_detect(paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10,
+                            MD05, MD06, MD30, MD31, DE01_TEXT, DE03, 
+                            sep=" "), text_terms))
 
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {

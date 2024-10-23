@@ -79,7 +79,7 @@ if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
 
   lfpse_filtered_text <- lfpse_filtered_categorical |>
-    filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~ str_detect(., text_terms)))
+    filter(str_detect(paste(F001, AC001, OT003, A008_Other, A008, sep=" "), text_terms))
   # A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {

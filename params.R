@@ -15,8 +15,8 @@ search_steis <- F
 source("connections.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
-end_date <- "2024-03-01"
+start_date <- "2023-01-01"
+end_date <- "2023-01-02"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -32,10 +32,10 @@ steis_categorical <- 0
 steis_filename <- ''
 
 # text terms
-text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
+text_terms <- "\\binsulin"
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "FOI"
+sampling_strategy <- "default"
 
 source("flow.R")

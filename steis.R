@@ -54,12 +54,12 @@ if (!is.na(text_terms)) {
   print(glue("Running {dataset} text search..."))
   
   steis_filtered_text <- steis_filtered_categorical |>
-    filter(if_any(c(description_of_what_happened,
+    filter(str_detect(paste(description_of_what_happened,
                     immediate_action_taken,
                     key_findings,
                     how_will_lessons_be_disseminated_to_interested_parties,
-                    type_of_incident_other),
-                  ~str_detect(.,text_terms)))
+                    type_of_incident_other, sep=" "),
+                  text_terms))
   
   print(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
   
