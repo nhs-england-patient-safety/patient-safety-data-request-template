@@ -204,6 +204,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       "A016_Other - BuildingsInfrastructure (other)" = A016_Other
       # TODO: add age columns once DQ issues resolved
     )) |>
+    ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped
     remove_empty("cols")
 
   print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
