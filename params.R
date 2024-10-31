@@ -16,7 +16,7 @@ source("connections.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-03-01"
+end_date <- "2024-01-01"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -32,10 +32,16 @@ steis_categorical <- 0
 steis_filename <- ''
 
 # text terms
-text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
+#example below- not real example
+# text_terms <- list(group_A= c("(?i)\\bfall", "(?i)\\bslip", "(?i)\\bfall") ,
+#                    group_B = c("(i)\\bslips trips and falls"),
+#                    group_C= c("(?i)\\bwet floor"))
+# text_filter <- expr((match_group_A | match_group_B) & match_group_C)
+text_terms<- list()
+text_filter<- expr(0)
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "FOI"
+sampling_strategy <- "default"
 
 source("flow.R")

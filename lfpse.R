@@ -75,12 +75,35 @@ print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {
 print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
-
-  lfpse_filtered_text <- lfpse_filtered_categorical |>
-    filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~ str_detect(., text_terms)))
-  # A002 may need to be added for a medication incident
+  
+  lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
+  
+  for (i in 1:length(text_terms)) {
+    term_vec <- text_terms[[i]]
+    col_to_add <- names(text_terms[i])
+    temp_df <- lfpse_filtered_text_precursor
+    for (j in term_vec) {
+      temp_df <- temp_df %>%
+        select(Reference, EntityId, concat_col, starts_with("matches_")) %>%
+        mutate("matches_{j}" := str_detect(concat_col, j))
+    }
+    matching_group_i <- temp_df %>%
+      mutate(sum=rowSums(across(starts_with("matches_")))) %>%
+      mutate("match_{col_to_add}" := sum>0) %>%
+      select(Reference, EntityId, starts_with("match_"))
+    
+    lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor %>%
+      left_join(matching_group_i,by=c("Reference","EntityId")) 
+  }
+  
+  lfpse_filtered_text<- lfpse_filtered_text_precursor %>%
+    filter(!!text_filter)
+  
+  
+  #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")

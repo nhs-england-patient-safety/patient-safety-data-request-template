@@ -43,12 +43,44 @@ print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {a
 print(glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
-
-  nrls_filtered_text <- nrls_filtered_categorical |>
-    filter(if_any(c(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~ str_detect(., text_terms)))
-
+  
+  #combine all text columns
+  nrls_filtered_text_precursor<- nrls_filtered_categorical |>
+    mutate(concat_col=paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03, sep=" "))
+  
+  # iterate through each group
+  for (i in 1:length(text_terms)) {
+    #get vector of terms
+    term_vec <- text_terms[[i]]
+    #get name of term (e.g group A)
+    col_to_add <- names(text_terms[i])
+    #create temporary dataframe to search for each match in vector of terms 
+    temp_df <- nrls_filtered_text_precursor
+    
+    #iterate through each term in terms vector
+    for (j in term_vec) {
+      # look for term in concat col
+      temp_df <- temp_df %>%
+        select(INCIDENTID, concat_col, starts_with("matches_")) %>%
+        mutate("matches_{j}" := str_detect(concat_col, j))
+    }
+    matching_group_i <- temp_df %>%
+      # count how many matches were found
+      mutate(sum=rowSums(across(starts_with("matches_")))) %>%
+      # flag columns where a match was found in term_vec
+      mutate("match_{col_to_add}" := sum>0) %>%
+      select(INCIDENTID, starts_with("match_"))
+    
+    #add information about matching to nrls_filtered_text_precursor
+    nrls_filtered_text_precursor <- nrls_filtered_text_precursor %>% 
+      left_join(matching_group_i,by="INCIDENTID") 
+  }
+  
+  nrls_filtered_text<- nrls_filtered_text_precursor %>% 
+    filter(!!text_filter)
+  
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
