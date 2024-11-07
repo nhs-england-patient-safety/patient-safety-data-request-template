@@ -135,7 +135,91 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_sampled <- lfpse_filtered_text
   }
 
-
+#fix number of rows
+  lfpse_for_summary_table <- lfpse_filtered_text |>
+    mutate(
+      Year = year(occured_date),
+      Month = month(occured_date, label = TRUE, abbr = TRUE)
+    ) 
+    group_by(Reference) 
+    #remove patient columns- as risk giving misrepresentative info
+    
+  # to do get maximum physical harm
+    summarise(OT001= as.character(max(as.numeric(OT001))),
+              OT002= as.character(max(as.numeric(OT002))))
+  # to do get maximum psychological harm
+  # to do get maximum harm- note- this won't join
+    pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
+    # arrange so that multi-responses appear alphabetised later
+    arrange(value) |>
+    # bring through the value labels
+    left_join(ResponseReference, by = c(
+      "name" = "QuestionId",
+      "value" = "ResponseCode",
+      "TaxonomyVersion" = "TaxonomyVersion"
+    )) |>
+    # remove the unnecessary columns
+    select(!c(value, Property, LastUpdated, IsActive)) |>
+    # pivot back into columns
+    pivot_wider(
+      id_cols = !any_of(ResponseReference$QuestionId),
+      names_from = name,
+      values_from = ResponseText,
+      # collapse multi-responses into single row per entity
+      values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
+    ) |>
+    # select the columns for release
+    select(c(
+      Reference,
+      TaxonomyVersion,
+      Revision,
+      OccurredOrganisationCode,
+      ReporterOrganisationCode,
+      reported_date,
+      "Number of patients" = npatient,
+      "Patient no." = EntityId,
+      "T005 - Event date" = occurred_date,
+      # TODO: check whether these are needed
+      # "T005 - Event year" = year(T005),
+      # "T005 - Event moth" = month(T005),
+      "F001 - Describe what happened" = F001,
+      "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
+      "OT003 - What was the clinical outcome for the patient?" = OT003,
+      "A008 - Device Type" = A008,
+      "A008 - Device Type (Other)" = A008_Other,
+      "A001 - Involved Agents" = A001,
+      "AC001 - Immediate Actions" = AC001,
+      "CL001 - Event Type" = CL001,
+      "CL021 - Reference Number (Optional)" = CL021,
+      "CL022 - From Online Forms" = CL022,
+      "L001 - Organisation Known" = L001,
+      "L002 - Organisation" = L002,
+      "L003 - Service Area" = L003,
+      "L004 - Location Within Service" = L004,
+      "L006 - Specialty" = L006,
+      "L006_Other - Specialty (Other)" = L006_Other,
+      "R006 - Reporter Organisation" = R006,
+      "R006_Other - Reporter Organisation (Other)" = R006_Other,
+      "RI003 - Is there imminent risk of severe harm or death?" = RI003,
+      "OT001 - Physical harm" = OT001,
+      "OT002 - Psychological harm " = OT002,
+      "OT008 - Outcome Type" = OT008,
+      "A002 - Medicine types involved" = A002,
+      "A016 - BuildingsInfrastructure" = A016,
+      "A016_Other - BuildingsInfrastructure (other)" = A016_Other
+      # TODO: add age columns once DQ issues resolved
+    )) |>
+      # mutate(
+    #   `OT001 - Physical harm` = fct_relevel(
+    #     `OT001 - Physical harm`,
+    #     "No physical harm",
+    #     "Low physical harm",
+    #     "Moderate physical harm",
+    #     "Severe physical harm",
+    #     "Fatal"
+    #     )
+    #   )
+  
   # columns for release ####
 
   lfpse_for_release <- lfpse_sampled |>
