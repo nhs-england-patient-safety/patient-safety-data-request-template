@@ -95,9 +95,11 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_filtered_text
   }
 
-  # columns for release ####
-
-  nrls_pre_release <- nrls_sampled |>
+  nrls_for_summary_table <- nrls_filtered_text %>%
+    mutate(
+      Year = year(occurred_date),
+      Month = month(occurred_date, label = TRUE, abbr = TRUE)
+    ) %>%
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
       "name" = "col_name",
@@ -107,9 +109,59 @@ if (nrow(nrls_filtered_text) != 0) {
     pivot_wider(
       names_from = name,
       values_from = OPTIONTEXT
-    )
-
-  nrls_for_release <- nrls_pre_release |>
+    )|>
+    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
+    select(
+      `RP01 Unique Incident ID` = INCIDENTID,
+      `Local Trust incident ID` = TRUSTINCIDENTID,
+      `RP02 Care Setting of Occurrence` = RP02,
+      `RP07 NHS Organisation Code` = RP07,
+      `Organisation Name` = ORGANISATIONNAME,
+       Year,
+       Month,
+      `IN03 Location (lvl1)` = IN03_LVL1,
+      `IN03 Location (lvl2)` = IN03_LVL2,
+      `IN03 Location (lvl3)` = IN03_LVL3,
+      `IN04 Country` = IN04,
+      `IN05 Incident Category - Lvl1` = IN05_LVL1,
+      `IN05 Incident Category - Lvl2` = IN05_LVL2,
+      `PD05 Specialty - Lvl 1` = PD05_LVL1,
+      `PD05 Specialty - Lvl 2` = PD05_LVL2,
+      `PD09 Degree of harm (severity)` = PD09,
+      `RM04 Source of Notification` = RM04,
+      `MD01 Med Process` = MD01,
+      `MD02 Med Error Category` = MD02,
+      `PD02 Patient Sex` = PD02,
+      `PD04 Adult/Paediatrics Specialty` = PD04,
+      `PD20 Paediatric ward/department/unit` = PD20, # Changed this from PD04 to PD20
+      `DE01 Type of Device` = DE01,
+      `Date incident received by NRLS` = reported_date,
+      #keep matching information if it is present
+      starts_with("match_")
+    ) |>
+    mutate(
+      `PD09 Degree of harm (severity)` = fct_relevel(
+        `PD09 Degree of harm (severity)`,
+        "No Harm",
+        "Low",
+        "Moderate",
+        "Severe",
+        "Death"
+      ))
+  
+  
+  # columns for release ####
+  nrls_for_release <- nrls_sampled |>
+    pivot_longer(cols = any_of(codes$col_name)) |>
+    left_join(codes, by = c(
+      "name" = "col_name",
+      "value" = "SASCODE"
+    )) |>
+    select(!value) |>
+    pivot_wider(
+      names_from = name,
+      values_from = OPTIONTEXT
+    )|>
     left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
     select(
       `RP01 Unique Incident ID` = INCIDENTID,
@@ -148,7 +200,9 @@ if (nrow(nrls_filtered_text) != 0) {
       `MD31 Proprietary Name (Drug 2)` = MD31,
       `DE01 Type of Device` = DE01,
       `DE01 Type of device - free text` = DE01_TEXT,
-      `Date incident received by NRLS` = reported_date
+      `Date incident received by NRLS` = reported_date,
+      #keep matching information if it is present
+      starts_with("match_")
     ) |>
     remove_empty("cols")
 

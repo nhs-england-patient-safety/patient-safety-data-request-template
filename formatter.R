@@ -1,4 +1,4 @@
-file_list <- apropos('for_release')
+file_list <- apropos('_filtered_text')
 
 #there's no need to carry on if there are no objects for release
 if(is_empty(file_list)){
@@ -122,19 +122,21 @@ writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 # Add worksheets
 
 for (i in file_list) {
+  
   database_name <- str_split_i(i, "_", 1)
+  print(database_name)
   
   sheet_name <- str_extract(i, "^([^_])+") |> 
     toupper() |> 
     str_replace("STEIS", "StEIS") 
   
   if (type_of_output =="data"){
-    wb<-add_data_sheet(wb, i, title, sheet_name)
+    wb<-add_data_sheet(wb, title, database_name, sheet_name)
   }else if (type_of_output=="summary"){
-    wb<-add_summary_sheet(wb, i, title, database_name, sheet_name)
+    wb<-add_summary_sheet(wb, title, database_name, sheet_name)
   }else if (type_of_output=="both"){
-    wb<-add_data_sheet(wb, i, title, str_glue("{sheet_name} - Data"))
-    wb<-add_summary_sheet(wb, i, title, database_name,  str_glue("{sheet_name} - Summary"))
+    wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_name} - Data"))
+    wb<-add_summary_sheet(wb, title, database_name,  str_glue("{sheet_name} - Summary"))
   } else{
     print("type_of_output not valid")
   }

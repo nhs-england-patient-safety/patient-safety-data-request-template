@@ -135,17 +135,20 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_sampled <- lfpse_filtered_text
   }
 
+#  lfpse_date<- lfpse_filtered_text %>% mutate(date_length=str_length(occurred_date)) %>% filter(date_length==7)
 
+  
   lfpse_for_summary_table <- lfpse_filtered_text |>
     mutate(
-      Year = year(occurred_date),
-      Month = month(occurred_date, label = TRUE, abbr = TRUE)
-    ) |>
+      Year = as.integer(str_sub(occurred_date, 1,4)),
+      Month = month.abb[as.integer(str_sub(occurred_date, 6,7))]
+    )  |>
     group_by(Reference)  |>
     mutate(OT001= min_safe(as.numeric(OT001)), #calculate the worst physical harm per incident
            OT002= min_safe(as.numeric(OT002)), # calculate the worst psychological harm per incident
            OT002_plus_one = OT002 + 1, #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
            npatient = max(EntityId)) |>
+    ungroup()|>
     #remove patient columns- as distinct function will take the top result for any duplicates
     select(-OT003, -P004, -P007, -P009, -P027, -P028, -ST001, -P009A, -P010, -EntityId)|>
     distinct(Reference, .keep_all = TRUE) |>
@@ -204,7 +207,9 @@ if (nrow(lfpse_filtered_text) != 0) {
       "OT002 - Largest Psychological harm" = OT002,
       "Largest harm" = max_harm_level,
       "OT008 - Outcome Type" = OT008,
-      "A016 - BuildingsInfrastructure" = A016
+      "A016 - BuildingsInfrastructure" = A016,
+      #keep matching information if it is present
+      starts_with("match_")
     )) |>
     #relevel harm in order of severity
     mutate(
@@ -231,6 +236,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         "Severe harm",
         "Fatal"
       ))
+  
   
   # columns for release ####
 
@@ -293,11 +299,13 @@ if (nrow(lfpse_filtered_text) != 0) {
       "R006_Other - Reporter Organisation (Other)" = R006_Other,
       "RI003 - Is there imminent risk of severe harm or death?" = RI003,
       "OT001 - Physical harm" = OT001,
-      "OT002 - Psychological harm " = OT002,
+      "OT002 - Psychological harm" = OT002,
       "OT008 - Outcome Type" = OT008,
       "A002 - Medicine types involved" = A002,
       "A016 - BuildingsInfrastructure" = A016,
-      "A016_Other - BuildingsInfrastructure (other)" = A016_Other
+      "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
+      #keep matching information if it is present
+      starts_with("match_")
       # TODO: add age columns once DQ issues resolved
     )) |>
     ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped

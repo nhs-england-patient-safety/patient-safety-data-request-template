@@ -9,54 +9,24 @@ min_safe<- function(vec){
 #'creates summary tables from the columns specified by this object
 #'
 #' @param wb workbook (workbook class)
-#' @param i name of dataset (string)
 #' @param title title of sheet
 #' @param database_name name of database (i.e. lfpse, steis or nrls)
 #' @param sheet sheet name
 #'
 #' @return workbook with summary tables added
-add_summary_sheet <- function(wb, i, title, database_name, sheet) {
+add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
   
-  df <- get(i) #get dataset from environment
-  # add extra columns to df, depending on database name - refactor harm levels
-  if (database_name == "lfpse") {
-    
-    
-  } else if (database_name == "nrls") {
-    df <- df %>%
-      mutate(
-        Year = year(`Date of Incident`),
-        Month = month(`Date of Incident`, label = TRUE, abbr = TRUE)
-      ) %>%
-      mutate(
-        `PD09 Degree of harm (severity)` = fct_relevel(
-          `PD09 Degree of harm (severity)`,
-          "No Harm",
-          "Low",
-          "Moderate",
-          "Severe",
-          "Death"
-        )
-      )
-    
-  } else if (database_name == "steis") {
-    print("steis")
-    df <- df %>%
-      mutate(
-        Year = year(`Created on`),
-        Month = month(`Created on`, label = TRUE, abbr = TRUE)
-      )
-    
-  }
+  df <- get(str_glue("{database_name}_for_summary_table"))
+
   addWorksheet(wb, sheet, gridLines = FALSE) 
   
   # set column widths
   setColWidths(wb, sheet = sheet, cols = 1, widths = 50)
   
   #Add text style
-  addStyle(wb, sheet = sheet,  textStyle, rows = 1:6, cols = 1:1)
+  addStyle(wb, sheet = sheet,  textStyle, rows = 1:7, cols = 1:1)
   
   # Write title
   writeData( wb, 
@@ -73,23 +43,27 @@ add_summary_sheet <- function(wb, i, title, database_name, sheet) {
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents in sample", nrow(df), sep = ": "),
+    paste("Number of Incidents", nrow(df), sep = ": "),
     startCol = 1,
     startRow = 5
   )
+  
+  note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
+           "Note: Where a question can have multiple answers, these have been seperated out so will sum to a larger number than the number of incidents.")
+  
   
   # write number of incidents
   writeData(
     wb,
     sheet,
-    paste("Note: These summary tables are counts of the data after sampling has occured", nrow(df), sep = ": "),
+    note,
     startCol = 1,
-    startRow = 6
+    startRow = 6,
   )
   
   
   #set start row for summary tables
-  start_row = 8
+  start_row = 9
   
   # loop through list- each item of list is one table
   for (category in summary_categories_list) {
@@ -103,6 +77,9 @@ add_summary_sheet <- function(wb, i, title, database_name, sheet) {
     
     #work out counts
     summary_table <- df %>%
+      #seperate delimited columns (this will do nothing if column does not have {~@~} delimiter)
+      separate_rows(!!category[[1]], sep = " {~@~} ") |>
+      separate_rows(!!category[[2]], sep = " {~@~} ") |>
       count(!!category[[1]], !!category[[2]])
     
     # if 2 variables add row and column totals
@@ -155,7 +132,7 @@ add_summary_sheet <- function(wb, i, title, database_name, sheet) {
       wb,
       sheet = sheet,
       rows = start_row:(start_row + nrow(summary_table)),
-      heights = 34
+      heights = 44
     )
     # increment start row to allow next table to be further down on page
     start_row <- start_row + nrow(summary_table) + 3
@@ -169,13 +146,14 @@ add_summary_sheet <- function(wb, i, title, database_name, sheet) {
 #' add data to sheet and style it
 #'
 #' @param wb workbook (workbook class)
-#' @param i name of dataset (string)
 #' @param title title of sheet
+#' @param database_name name of database (i.e. lfpse, steis or nrls)
 #' @param sheet sheet name
 #'
 #' @return workbook with data added
-add_data_sheet <- function(wb, i, title, sheet) {
-  df <- get(i)
+add_data_sheet <- function(wb, title, database_name, sheet) {
+  
+  df <- get(str_glue("{database_name}_for_release"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
@@ -237,7 +215,7 @@ add_data_sheet <- function(wb, i, title, sheet) {
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents", nrow(df), sep = ": "),
+    paste("Number of Incidents in sample", nrow(df), sep = ": "),
     startCol = 1,
     startRow = 5
   )
