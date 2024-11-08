@@ -74,12 +74,25 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     } else{
       one_variable = FALSE
     }
+
+    #work out if there is multi-select options in category 1 or 2
     
-    #work out counts
-    summary_table <- df %>%
-      #seperate delimited columns (this will do nothing if column does not have {~@~} delimiter)
-      separate_rows(!!category[[1]], sep = " {~@~} ") |>
-      separate_rows(!!category[[2]], sep = " {~@~} ") |>
+     cat_1_multi <- df %>% mutate(cat_1_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_1_delim) %>% summarise(sum(cat_1_delim)>0) %>% pull()
+     cat_2_multi <- df %>% mutate(cat_2_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_2_delim) %>% summarise(sum(cat_2_delim)>0) %>% pull()
+    
+     summary_table <- df
+     
+     #separate rows if there are multi select options present
+     if (cat_1_multi){
+       summary_table <- summary_table %>%
+         separate_rows(!!category[[1]], sep = " {~@~} ") 
+     }
+     if (cat_2_multi){
+       summary_table <- summary_table %>%
+         separate_rows(!!category[[2]], sep = " {~@~} ") 
+     }
+     
+    summary_table <- summary_table |>
       count(!!category[[1]], !!category[[2]])
     
     # if 2 variables add row and column totals
