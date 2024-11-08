@@ -21,18 +21,21 @@ date_type <- "occurring"
 
 #type of data extract - "data" for full tables, "summary" for summary, "both" for both
 #Note: if "both" is selected, any sampling will apply to both the data and summary tables 
-type_of_output<- "data"
+type_of_output<- "both"
 
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
 # or you can just have one element
 #Year and Month variables can be used
-# summary_categories_nrls <- list(c(expr(`MD02 Med Error Category`)),
-#                                 c(expr(`PD09 Degree of harm (severity)`), expr(Year)))
-# summary_categories_lfpse <- list(c(expr(`CL001 - Event Type`)),
-#                                  c(expr(`OT001 - Physical harm`), expr(Year)))
-# summary_categories_steis <- list(c(expr(`Type of Incident`)))
-
+#see lfpse_for_summary_table, nrls_for_summary_table and steis_for_summary_table
+ # summary_categories_nrls <- list(c(expr(`MD02 Med Error Category`)),
+ #                                  c(expr(`PD09 Degree of harm (severity)`), expr(Year)))
+ # summary_categories_lfpse <- list(c(expr(`CL001 - Event Type`)),
+ #                                  c(expr(`Largest harm`), expr(Year)),
+ #                                  c(expr(`OT001 - Largest Physical harm`), expr(Year)),
+ #                                   c(expr(`OT002 - Largest Psychological harm`), expr(Year)),
+ #                                   c(expr(`A001 - Involved Agents`)))
+ # summary_categories_steis <- list(c(expr(`Type of Incident`)))
 summary_categories_nrls <- list(c(expr(0)))
 summary_categories_lfpse <- list(c(expr(0)))
 summary_categories_steis <- list(c(expr(0)))
@@ -42,19 +45,19 @@ summary_categories_steis <- list(c(expr(0)))
 cols_to_extract <- "default"
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- 0
+nrls_categorical <- expr(0)
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- 0
-
+lfpse_categorical <- expr(0)
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- 0
 steis_filename <- ''
 
 # text terms
-text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
+text_terms <- NA
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "FOI"
+sampling_strategy <- "default"
 
+source("functions.R")
 source("flow.R")

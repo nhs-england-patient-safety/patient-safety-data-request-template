@@ -135,9 +135,7 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_sampled <- lfpse_filtered_text
   }
 
-#  lfpse_date<- lfpse_filtered_text %>% mutate(date_length=str_length(occurred_date)) %>% filter(date_length==7)
 
-  
   lfpse_for_summary_table <- lfpse_filtered_text |>
     mutate(
       Year = as.integer(str_sub(occurred_date, 1,4)),
