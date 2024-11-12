@@ -1,9 +1,9 @@
 # write to sharepoint
 print('Saving to Sharepoint...')
 
-site_url <- "https://nhsengland.sharepoint.com/sites/MED/ps2/it/mit"
+site_url <- "https://nhs.sharepoint.com/sites/MED/ps2/it/mit/"
 
-site <- get_sharepoint_site(site_url = site_url)
+site <- get_sharepoint_site(site_url = site_url, tenant = "nhs")
 
 # Write to a folder within Restricted Library / Data Requests
 
@@ -16,7 +16,7 @@ dr$upload(
   dest = glue('{title}/{workbook_title}')
 )
 
-print(glue('Workbook saved at https://nhsengland.sharepoint.com/:f:/r/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
+print(glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
 
 toc <- Sys.time()
 
