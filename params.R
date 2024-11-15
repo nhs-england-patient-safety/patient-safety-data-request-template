@@ -19,9 +19,8 @@ start_date <- "2024-01-01"
 end_date <- "2024-03-01"
 date_type <- "occurring"
 
-#type of data extract - "data" for full tables, "summary" for summary, "both" for both
-#Note: if "both" is selected, any sampling will apply to both the data and summary tables 
-type_of_output<- "both"
+#type of data extract -"summary" for summary, "summary_plus_incident_level" for summary and incident level
+type_of_output<- "summary_plus_incident_level"
 
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns

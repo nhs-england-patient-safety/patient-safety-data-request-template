@@ -130,11 +130,10 @@ for (i in file_list) {
     toupper() |> 
     str_replace("STEIS", "StEIS") 
   
-  if (type_of_output =="data"){
-    wb<-add_data_sheet(wb, title, database_name, sheet_name)
-  }else if (type_of_output=="summary"){
+
+  if (type_of_output=="summary"){
     wb<-add_summary_sheet(wb, title, database_name, sheet_name)
-  }else if (type_of_output=="both"){
+  }else if (type_of_output=="summary_plus_incident_level"){
     wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_name} - Data"))
     wb<-add_summary_sheet(wb, title, database_name,  str_glue("{sheet_name} - Summary"))
   } else{
