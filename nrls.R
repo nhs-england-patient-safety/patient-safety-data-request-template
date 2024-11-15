@@ -32,7 +32,9 @@ nrls_filtered_categorical <- nrls_parsed |>
   filter(between(date_filter, start_date, end_date)) |>
   filter(nrls_categorical) |>
   # collecting here so that we can apply text filters later
-  collect()
+  collect() |>
+  mutate(year_of_incident = year(occurred_date),
+         month_of_incident = month(occurred_date, label = TRUE, abbr = TRUE))
 
 toc_nrls <- Sys.time()
 
@@ -54,6 +56,82 @@ if (!is.na(text_terms)) {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
 }
+
+
+convert_to_for_release<- function(df){
+  a=Sys.time()
+  # columns for release ####
+  df <- df |>
+    pivot_longer(cols = any_of(codes$col_name)) |>
+    left_join(codes, by = c(
+      "name" = "col_name",
+      "value" = "SASCODE"
+    )) |>
+    select(!value) |>
+    pivot_wider(
+      names_from = name,
+      values_from = OPTIONTEXT
+    )|>
+    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
+    select(
+      `RP01 Unique Incident ID` = INCIDENTID,
+      `Local Trust incident ID` = TRUSTINCIDENTID,
+      `RP02 Care Setting of Occurrence` = RP02,
+      `RP07 NHS Organisation Code` = RP07,
+      `Organisation Name` = ORGANISATIONNAME,
+      `Date of Incident` = occurred_date,
+      `Month of Incident` = month_of_incident,
+      `Year of Incident` = year_of_incident,
+      `IN03 Location (lvl1)` = IN03_LVL1,
+      `IN03 Location (lvl2)` = IN03_LVL2,
+      `IN03 Location (lvl3)` = IN03_LVL3,
+      `IN03 Location - Free Text` = IN03_TEXT,
+      `IN04 Country` = IN04,
+      `IN05 Incident Category - Lvl1` = IN05_LVL1,
+      `IN05 Incident Category - Lvl2` = IN05_LVL2,
+      `IN05 Incident Category - Free Text` = IN05_TEXT,
+      `IN07 Description of what happened` = IN07,
+      `IN10 Actions Preventing Reoccurrence` = IN10,
+      `IN11 Apparent Causes` = IN11,
+      `Age at time of Incident (years)` = AGE_AT_INCIDENT,
+      `PD05 Specialty - Lvl 1` = PD05_LVL1,
+      `PD05 Specialty - Lvl 2` = PD05_LVL2,
+      `PD05 Speciality - Free Text` = PD05_TEXT,
+      `PD09 Degree of harm (severity)` = PD09,
+      `RM04 Source of Notification` = RM04,
+      `MD01 Med Process` = MD01,
+      `MD01 Med Process Free Text` = MD01_TEXT,
+      `MD02 Med Error Category` = MD02,
+      `MD02 Med Error Category Free Text` = MD02_TEXT,
+      `MD05 Approved Name (Drug 1)` = MD05,
+      `MD06 Proprietary Name (Drug 1)` = MD06,
+      `PD02 Patient Sex` = PD02,
+      `PD04 Adult/Paediatrics Specialty` = PD04,
+      `PD20 Paediatric ward/department/unit` = PD20, # Changed this from PD04 to PD20
+      `MD30 Approved Name (Drug 2)` = MD30,
+      `MD31 Proprietary Name (Drug 2)` = MD31,
+      `DE01 Type of Device` = DE01,
+      `DE01 Type of device - free text` = DE01_TEXT,
+      `Date incident received by NRLS` = reported_date,
+      #keep matching information if it is present
+      starts_with("match_")
+    ) |>
+    mutate(
+      `PD09 Degree of harm (severity)` = fct_relevel(
+        `PD09 Degree of harm (severity)`,
+        "No Harm",
+        "Low",
+        "Moderate",
+        "Severe",
+        "Death"
+      ))|>
+  remove_empty("cols")
+  print(a-Sys.time())
+  return(df)
+}  
+
+
+
 
 # check whether the text search generated results
 if (nrow(nrls_filtered_text) != 0) {
@@ -94,119 +172,22 @@ if (nrow(nrls_filtered_text) != 0) {
     print("- Skipping sampling...")
     nrls_sampled <- nrls_filtered_text
   }
-
-  nrls_for_summary_table <- nrls_filtered_text %>%
-    mutate(
-      Year = year(occurred_date),
-      Month = month(occurred_date, label = TRUE, abbr = TRUE)
-    ) %>%
-    pivot_longer(cols = any_of(codes$col_name)) |>
-    left_join(codes, by = c(
-      "name" = "col_name",
-      "value" = "SASCODE"
-    )) |>
-    select(!value) |>
-    pivot_wider(
-      names_from = name,
-      values_from = OPTIONTEXT
-    )|>
-    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
-    select(
-      `RP01 Unique Incident ID` = INCIDENTID,
-      `Local Trust incident ID` = TRUSTINCIDENTID,
-      `RP02 Care Setting of Occurrence` = RP02,
-      `RP07 NHS Organisation Code` = RP07,
-      `Organisation Name` = ORGANISATIONNAME,
-       Year,
-       Month,
-      `IN03 Location (lvl1)` = IN03_LVL1,
-      `IN03 Location (lvl2)` = IN03_LVL2,
-      `IN03 Location (lvl3)` = IN03_LVL3,
-      `IN04 Country` = IN04,
-      `IN05 Incident Category - Lvl1` = IN05_LVL1,
-      `IN05 Incident Category - Lvl2` = IN05_LVL2,
-      `PD05 Specialty - Lvl 1` = PD05_LVL1,
-      `PD05 Specialty - Lvl 2` = PD05_LVL2,
-      `PD09 Degree of harm (severity)` = PD09,
-      `RM04 Source of Notification` = RM04,
-      `MD01 Med Process` = MD01,
-      `MD02 Med Error Category` = MD02,
-      `PD02 Patient Sex` = PD02,
-      `PD04 Adult/Paediatrics Specialty` = PD04,
-      `PD20 Paediatric ward/department/unit` = PD20, # Changed this from PD04 to PD20
-      `DE01 Type of Device` = DE01,
-      `Date incident received by NRLS` = reported_date,
-      #keep matching information if it is present
-      starts_with("match_")
-    ) |>
-    mutate(
-      `PD09 Degree of harm (severity)` = fct_relevel(
-        `PD09 Degree of harm (severity)`,
-        "No Harm",
-        "Low",
-        "Moderate",
-        "Severe",
-        "Death"
-      ))
+  
+  nrls_for_release_all <-convert_to_for_release(nrls_filtered_text) 
+  
+  if(nrow(nrls_sampled)==nrow(nrls_filtered_text)){
+    nrls_for_release_incident <- nrls_for_release_all
+  }else{
+    nrls_for_release_incident <- convert_to_for_release(nrls_sampled)
+  }
+  
+  nrls_for_release_summary <- nrls_for_release_all 
   
   
-  # columns for release ####
-  nrls_for_release <- nrls_sampled |>
-    pivot_longer(cols = any_of(codes$col_name)) |>
-    left_join(codes, by = c(
-      "name" = "col_name",
-      "value" = "SASCODE"
-    )) |>
-    select(!value) |>
-    pivot_wider(
-      names_from = name,
-      values_from = OPTIONTEXT
-    )|>
-    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
-    select(
-      `RP01 Unique Incident ID` = INCIDENTID,
-      `Local Trust incident ID` = TRUSTINCIDENTID,
-      `RP02 Care Setting of Occurrence` = RP02,
-      `RP07 NHS Organisation Code` = RP07,
-      `Organisation Name` = ORGANISATIONNAME,
-      `Date of Incident` = occurred_date,
-      `IN03 Location (lvl1)` = IN03_LVL1,
-      `IN03 Location (lvl2)` = IN03_LVL2,
-      `IN03 Location (lvl3)` = IN03_LVL3,
-      `IN03 Location - Free Text` = IN03_TEXT,
-      `IN04 Country` = IN04,
-      `IN05 Incident Category - Lvl1` = IN05_LVL1,
-      `IN05 Incident Category - Lvl2` = IN05_LVL2,
-      `IN05 Incident Category - Free Text` = IN05_TEXT,
-      `IN07 Description of what happened` = IN07,
-      `IN10 Actions Preventing Reoccurrence` = IN10,
-      `IN11 Apparent Causes` = IN11,
-      `Age at time of Incident (years)` = AGE_AT_INCIDENT,
-      `PD05 Specialty - Lvl 1` = PD05_LVL1,
-      `PD05 Specialty - Lvl 2` = PD05_LVL2,
-      `PD05 Speciality - Free Text` = PD05_TEXT,
-      `PD09 Degree of harm (severity)` = PD09,
-      `RM04 Source of Notification` = RM04,
-      `MD01 Med Process` = MD01,
-      `MD01 Med Process Free Text` = MD01_TEXT,
-      `MD02 Med Error Category` = MD02,
-      `MD02 Med Error Category Free Text` = MD02_TEXT,
-      `MD05 Approved Name (Drug 1)` = MD05,
-      `MD06 Proprietary Name (Drug 1)` = MD06,
-      `PD02 Patient Sex` = PD02,
-      `PD04 Adult/Paediatrics Specialty` = PD04,
-      `PD20 Paediatric ward/department/unit` = PD20, # Changed this from PD04 to PD20
-      `MD30 Approved Name (Drug 2)` = MD30,
-      `MD31 Proprietary Name (Drug 2)` = MD31,
-      `DE01 Type of Device` = DE01,
-      `DE01 Type of device - free text` = DE01_TEXT,
-      `Date incident received by NRLS` = reported_date,
-      #keep matching information if it is present
-      starts_with("match_")
-    ) |>
-    remove_empty("cols")
-
-  print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release)} incidents."))
+  print(glue("- Final summary {dataset} dataset contains {nrow(nrls_for_release_summary)} incidents."))
+  print(glue("- Final incident level {dataset} dataset contains {nrow(nrls_for_release_incident)} incidents."))
+  
+  
 } else {
   print(glue("**The search criteria has produced no results in {dataset}**"))
   print(glue("Moving on..."))

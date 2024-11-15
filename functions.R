@@ -18,7 +18,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
   
-  df <- get(str_glue("{database_name}_for_summary_table"))
+  df <- get(str_glue("{database_name}_for_release_summary"))
 
   addWorksheet(wb, sheet, gridLines = FALSE) 
   
@@ -166,7 +166,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
 #' @return workbook with data added
 add_data_sheet <- function(wb, title, database_name, sheet) {
   
-  df <- get(str_glue("{database_name}_for_release"))
+  df <- get(str_glue("{database_name}_for_release_incident"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   

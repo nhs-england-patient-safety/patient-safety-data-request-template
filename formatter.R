@@ -1,4 +1,4 @@
-file_list <- apropos('_filtered_text')
+file_list <- apropos('_for_release_all')
 
 #there's no need to carry on if there are no objects for release
 if(is_empty(file_list)){

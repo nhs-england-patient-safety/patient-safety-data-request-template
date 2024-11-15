@@ -28,6 +28,8 @@ steis_parsed <- steis_deduped |>
          reported_date = created_on) |> 
   mutate(
     occurred_date = as.character(dmy(occurred_date)),
+    year_of_incident = year(occurred_date),
+    month_of_incident = month(occurred_date, label = TRUE, abbr = TRUE),
     reported_date = as.character(dmy_hms(reported_date)),
     year_of_incident = year(occurred_date),
     month_of_incident = month(occurred_date),
@@ -71,47 +73,11 @@ if (!is.na(text_terms)) {
 # check whether the text search generated results 
 if(nrow(steis_filtered_text) != 0){
 
-    steis_for_summary_table<- steis_filtered_text %>%
-      mutate(
-        Year = year(occurred_date),
-        Month = month(occurred_date, label = TRUE, abbr = TRUE)
-      ) |>
-      select(
-        `Log No` = log_no,
-        `Created on` = reported_date,
-        `Organisation reporting SI on STEIS` = organisation_reporting_si_on_steis,
-        `Organisation leading investigation` = organisation_leading_investigation,
-        `CCG/CSU Name` = ccg_csu_name,
-        `Region - Geography` = region_geography,
-        `Status` = status,
-        `Date of Incident:` = occurred_date,
-        `Year of Incident` = year_of_incident,
-        `Month of Incident` = month_of_incident,
-        `Site of Incident:` = site_of_incident,
-        `Location of Incident:` = location_of_incident,
-        `Care Sector` = care_sector,
-        `Clinical Area:` = clinical_area,
-        `Patient Type` = patient_type,
-        `Legal Status of Patient` = legal_status_of_patient,
-        `Type of Incident` = type_of_incident,
-        `Where is patient at time of reporting:` = where_is_patient_at_time_of_reporting,
-        `Internal Inverstigation Required` = internal_investigation_required,
-        `Non Health led Investigation Required` = non_health_led_investigation_required,
-        `Reason for Reporting` = reason_for_reporting,
-        `Case Summary` = case_summary,
-        #keep matching information if it is present
-        starts_with("match_")
-      )
-  
-  
-  
-  
-  
-  # columns for release ####
+   # columns for release ####
   if(cols_to_extract == 'all'){
     steis_for_release <- steis_filtered_text
   } else if (cols_to_extract == 'default'){
-    steis_for_release <- steis_filtered_text |>
+    steis_for_release_all <- steis_filtered_text |>
       # select columns to be released
       select(
         `Log No` = log_no,
@@ -150,6 +116,8 @@ if(nrow(steis_filtered_text) != 0){
         #keep matching information if it is present
         starts_with("group")
       )
+    steis_for_release_summary <- steis_for_release_all
+    steis_for_release_incident <- steis_for_release_all
   }
 
 print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
