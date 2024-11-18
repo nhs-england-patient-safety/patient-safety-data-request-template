@@ -9,7 +9,7 @@ library(Microsoft365R)
 # datasets to be searched (T/F)
 search_nrls <- T
 search_lfpse <- T
-search_steis <- F
+search_steis <- T
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
@@ -29,13 +29,16 @@ lfpse_categorical <- 0
 
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- 0
-steis_filename <- ''
+steis_filename <- 'SUI_2_75717 (1).csv'
 
 # text terms
-text_terms <- "(?i)\\boxbr(y|i)ta|\\bvoxelotor"
+text_terms <- NA
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "FOI"
+sampling_strategy <- "default"
+
+# neopaed logic (neonate/paed/none)
+is_neopaed <- "paed"
 
 source("flow.R")

@@ -87,30 +87,132 @@ if (!is.na(text_terms)) {
   lfpse_filtered_text <- lfpse_filtered_categorical
 }
 
+# Moving this here to facilitate the neonpaeds
+# Adding in field names
+lfpse_pre_release <- lfpse_filtered_text |>
+  # pivot the coded columns
+  pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
+  # separate the multi-responses into single row per selection
+  separate_rows(value, sep = " {~@~} ") |>
+  # arrange so that multi-responses appear alphabetised later
+  arrange(value) |>
+  # bring through the value labels
+  left_join(ResponseReference, by = c(
+    "name" = "QuestionId",
+    "value" = "ResponseCode",
+    "TaxonomyVersion" = "TaxonomyVersion"
+  )) |>
+  # remove the unnecessary columns
+  select(!c(value, Property, LastUpdated, IsActive)) |>
+  # pivot back into columns
+  pivot_wider(
+    id_cols = !any_of(ResponseReference$QuestionId),
+    names_from = name,
+    values_from = ResponseText,
+    # collapse multi-responses into single row per entity
+    values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
+  ) |>
+  group_by(Reference) |>
+  mutate(npatient = max(EntityId)) |>
+  ungroup()
+
+# Testing neonate logic
+if (is_neopaed == "neonate") {
+  print("- Running neonate strategy...")
+  lfpse_neopaed <- lfpse_pre_release |>
+    filter(
+      # First condition: Age between 0 and 28 days OR Age Range between 0-28 days
+      (
+        (P004_days > 0 & P004_days <= 28) |
+          (P007 %in% c("0-14 days", "15-28 days"))
+      ) |
+        (P004_days == 0 &
+           (grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) |
+              (
+                grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", paste(`F001 - Describe what happened`, `AC001 - Immediate Actions`, `OT003 - What was the clinical outcome for the patient?`, `A008 - Device Type (Other)`, `A008 - Device Type`, `L006 - Specialty`, `L006_Other - Specialty (Other)`, sep = "")) &
+                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
+              )
+           )
+        )
+      # Second condition: Age is missing and text conditions apply
+      | 
+        # Second condition: Age is missing and grepl conditions apply
+        (
+          is.na(P004_days) & is.na(P007) & 
+            (
+              grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) |
+                (
+                  grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", paste(`F001 - Describe what happened`, `AC001 - Immediate Actions`, `OT003 - What was the clinical outcome for the patient?`, `A008 - Device Type (Other)`, `A008 - Device Type`, `L006 - Specialty`, `L006_Other - Specialty (Other)`, sep = "")) &
+                    !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
+                )
+            )
+        )
+    )
+} else if (is_neopaed == "paed") {
+  print("- Running paediatric strategy")
+  lfpse_neopaed <- lfpse_pre_release |>
+    filter(
+      # First condition: Age between 0 and 3 months and PD04 must be pediatric if age is 0
+      (
+        (P004_days > 0 & P004_days < 6575) | (P007 > "D0" & P007 < "Y18")
+      ) 
+       |
+        (
+          (P004_days == 0 | P007 == "D0") & 
+            grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) |
+            (
+              grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
+                    paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, sep = "")
+              ) &
+                !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
+            )
+        )
+      # Second condition: Age is missing and text conditions apply
+      |
+        (
+          (
+            is.na(P004_days) | is.na(P007)
+          ) & 
+            (
+              grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) |
+                (
+                  grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
+                        paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, sep = "")
+                  ) &
+                    !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
+                )
+            )
+        )
+    )
+} else if (is_neopaed == "none") {
+  print("- Skipping neopaeds strategy...")
+  lfpse_neopaed <- lfpse_pre_release
+}
+
 # check whether the text search generated results
-if (nrow(lfpse_filtered_text) != 0) {
+if (nrow(lfpse_neopaed) != 0) {
   # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
   if (sampling_strategy == "default") {
-    if (nrow(lfpse_filtered_text) > 300) {
+    if (nrow(lfpse_neopaed) > 300) {
       print("- Sampling according to default strategy...")
-      lfpse_death_severe <- lfpse_filtered_text |>
+      lfpse_death_severe <- lfpse_neopaed |>
         # deaths or severe physical / psychological harm
-        filter(OT001 %in% c("1", "2") |
-          OT002 == "1")
+        filter(OT001 %in% c("Fatal", "Severe physical harm") |
+          OT002 == "Severe psychological harm")
 
       set.seed(123)
-      lfpse_moderate <- lfpse_filtered_text |>
+      lfpse_moderate <- lfpse_neopaed |>
         # moderate physical / psychological harm
-        filter(OT001 == "3" | OT002 == "2") |>
+        filter(OT001 == "Moderate physical harm" | OT002 == "Moderate psychological harm") |>
         collect() |>
         sample_n(min(n(), 100))
 
       set.seed(123)
-      lfpse_low_no_other <- lfpse_filtered_text |>
+      lfpse_low_no_other <- lfpse_neopaed |>
         filter(
-          !OT001 %in% c("1", "2", "3"),
-          !OT002 %in% c("1", "2")
+          !OT001 %in% c("Fatal", "Severe physical harm", "Moderate physical harm"),
+          !OT002 %in% c("Severe psychological harm", "Moderate psychological harm")
         ) |>
         collect() |>
         sample_n(min(n(), 100))
@@ -122,47 +224,22 @@ if (nrow(lfpse_filtered_text) != 0) {
       )
     } else {
       print("- Sampling not required, default threshold not met.")
-      lfpse_sampled <- lfpse_filtered_text
+      lfpse_sampled <- lfpse_neopaed
     }
   } else if (sampling_strategy == "FOI") {
     print("- Extracting a sample of 30 incidents for redaction...")
     set.seed(123)
-    lfpse_sampled <- lfpse_filtered_text |>
+    lfpse_sampled <- lfpse_neopaed |>
       distinct(Reference, .keep_all = T) |>
       sample_n(min(n(), 30))
   } else if (sampling_strategy == "none") {
     print("- Skipping sampling...")
-    lfpse_sampled <- lfpse_filtered_text
+    lfpse_sampled <- lfpse_neopaed
   }
 
 
   # columns for release ####
-
-  lfpse_for_release <- lfpse_sampled |>
-    # pivot the coded columns
-    pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
-    # separate the multi-responses into single row per selection
-    separate_rows(value, sep = " {~@~} ") |>
-    # arrange so that multi-responses appear alphabetised later
-    arrange(value) |>
-    # bring through the value labels
-    left_join(ResponseReference, by = c(
-      "name" = "QuestionId",
-      "value" = "ResponseCode",
-      "TaxonomyVersion" = "TaxonomyVersion"
-    )) |>
-    # remove the unnecessary columns
-    select(!c(value, Property, LastUpdated, IsActive)) |>
-    # pivot back into columns
-    pivot_wider(
-      id_cols = !any_of(ResponseReference$QuestionId),
-      names_from = name,
-      values_from = ResponseText,
-      # collapse multi-responses into single row per entity
-      values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
-    ) |>
-    group_by(Reference) |>
-    mutate(npatient = max(EntityId)) |>
+lfpse_for_release <- lfpse_sampled |>
     # select the columns for release
     select(c(
       Reference,
@@ -177,6 +254,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       # TODO: check whether these are needed
       # "T005 - Event year" = year(T005),
       # "T005 - Event moth" = month(T005),
+      "P004 - Age in days" = P004_days, 
+      "P007 - Age Range" = P007,
       "F001 - Describe what happened" = F001,
       "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
       "OT003 - What was the clinical outcome for the patient?" = OT003,
@@ -204,7 +283,6 @@ if (nrow(lfpse_filtered_text) != 0) {
       "A016_Other - BuildingsInfrastructure (other)" = A016_Other
       # TODO: add age columns once DQ issues resolved
     )) |>
-    ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped
     remove_empty("cols")
 
   print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))

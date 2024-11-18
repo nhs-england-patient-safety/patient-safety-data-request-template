@@ -43,7 +43,7 @@ steis_parsed <- steis_deduped |>
 
 steis_filtered_categorical <- steis_parsed |> 
   filter(between(!! date_filter, start_date, end_date)) |>
-  filter(!! steis_categorical)
+  filter(!!steis_categorical)
 
 print(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
 
@@ -68,14 +68,54 @@ if (!is.na(text_terms)) {
   steis_filtered_text <- steis_filtered_categorical
 }
 
+# Neonate Search
+if (is_neopaed == "neonate") {
+  print( "- Running neonate strategy...")
+steis_neonate <- steis_filtered_text |>
+  filter(
+    (patient_age_years < 1)
+    | 
+      (
+        is.na(patient_age_years) &
+          (
+            grepl("(?i)\\bneonat|\\bbaby", paste(type_of_incident_other, clinical_area_other, care_sector_other, sep = "")) |
+              (
+                grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", paste(care_sector_other, type_of_incident_other, clinical_area_other, description_of_what_happened, immediate_action_taken, key_findings, case_summary, how_will_lessons_be_disseminated_to_interested_parties, sep = "")) &
+                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(care_sector_other, clinical_area_other, type_of_incident_other, sep = "")) 
+              )
+          )
+      )
+  ) 
+} else if (is_neopaed == "paed") {
+  print("- Running paed strategy...")
+steis_neonate <- steis_filtered_text |>
+  filter(
+    (patient_age_years < 18)
+    | 
+      (
+        is.na(patient_age_years) &
+          (
+            grepl("(?i)\\bpaed|\\bchild", paste(type_of_incident_other, clinical_area_other, care_sector_other, sep = "")) |
+              (
+                grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", paste(care_sector_other, type_of_incident_other, clinical_area_other, description_of_what_happened, immediate_action_taken, key_findings, case_summary, how_will_lessons_be_disseminated_to_interested_parties, sep = "")) &
+                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(care_sector_other, clinical_area_other, type_of_incident_other, sep = "")) 
+              )
+          )
+      )
+  ) 
+} else if (is_neopaed == "none") {
+  print("- Skipping neopaed strategy...")
+  steis_neonate <- steis_filtered_text
+}
+
 # check whether the text search generated results 
-if(nrow(steis_filtered_text) != 0){
+if(nrow(steis_neonate) != 0){
 
 # columns for release ####
 if(cols_to_extract == 'all'){
-  steis_for_release <- steis_filtered_text
+  steis_for_release <- steis_neonate
 } else if (cols_to_extract == 'default'){
-  steis_for_release <- steis_filtered_text |>
+  steis_for_release <- steis_neonate |>
     # select columns to be released
     select(
       `Log No` = log_no,
