@@ -135,7 +135,7 @@ if (sum(!is.na(text_terms))>0) {
 
 
 convert_to_for_release_lfpse <- function(df){
-  a=Sys.time()
+  start_of_function <- Sys.time()
   df<-df |>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
@@ -239,7 +239,9 @@ convert_to_for_release_lfpse <- function(df){
         `Month of Incident`,
         month.abb
       ))
-  print(a-Sys.time())
+  end_of_function<-Sys.time()
+  time_diff_function<- start_of_function - end_of_function
+  print(glue("conversion to for release dataset: {round(time_diff_function[[1]], 2)} {attr(time_diff_function, 'units')}"))
   return(df)
   
 } 

@@ -82,7 +82,7 @@ if (sum(!is.na(text_terms)) > 0) {
 
 
 convert_to_for_release_nrls<- function(df){
-  a=Sys.time()
+  start_of_function<- Sys.time()
   # columns for release ####
   df <- df |>
     pivot_longer(cols = any_of(codes$col_name)) |>
@@ -148,7 +148,9 @@ convert_to_for_release_nrls<- function(df){
         "Death"
       ))|>
   remove_empty("cols")
-  print(a-Sys.time())
+  end_of_function <-Sys.time()
+  time_diff_function<- start_of_function - end_of_function
+  print(glue("conversion to for release dataset: {round(time_diff_function[[1]], 2)} {attr(time_diff_function, 'units')}"))
   return(df)
 }  
 
