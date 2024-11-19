@@ -28,9 +28,9 @@ steis_parsed <- steis_deduped |>
          reported_date = created_on) |> 
   mutate(
     occurred_date = as.character(dmy(occurred_date)),
-    reported_date = as.character(dmy_hms(reported_date)),
     year_of_incident = year(occurred_date),
-    month_of_incident = month(occurred_date),
+    month_of_incident = month(occurred_date, label = TRUE, abbr = TRUE),
+    reported_date = as.character(dmy_hms(reported_date)),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
     patient_age_months = ifelse(patient_age_years < 2,
@@ -91,51 +91,59 @@ if (sum(!is.na(text_terms))>0) {
 # check whether the text search generated results 
 if(nrow(steis_filtered_text) != 0){
 
-# columns for release ####
-if(cols_to_extract == 'all'){
-  steis_for_release <- steis_filtered_text
-} else if (cols_to_extract == 'default'){
-  steis_for_release <- steis_filtered_text |>
-    # select columns to be released
-    select(
-      `Log No` = log_no,
-      `Created on` = reported_date,
-      `Organisation reporting SI on STEIS` = organisation_reporting_si_on_steis,
-      `Organisation leading investigation` = organisation_leading_investigation,
-      `CCG/CSU Name` = ccg_csu_name,
-      `Region - Geography` = region_geography,
-      `Status` = status,
-      `Date of Incident:` = occurred_date,
-      `Year of Incident` = year_of_incident,
-      `Month of Incident` = month_of_incident,
-      `Time of Incident:` = time_of_incident,
-      `Site of Incident:` = site_of_incident,
-      `Location of Incident:` = location_of_incident,
-      `Location of Incident (Other):` = location_of_incident_other,
-      `Care Sector` = care_sector,
-      `Care Sector (Other)` = care_sector_other,
-      `Clinical Area:` = clinical_area,
-      `Clinical Area (Other)` = clinical_area_other,
-      `Patient Age (years)` = patient_age_years,
-      `Patient Age (months)` = patient_age_months,
-      `Patient Type` = patient_type,
-      `Legal Status of Patient` = legal_status_of_patient,
-      `Type of Incident` = type_of_incident,
-      `Type of Incident (Other)` = type_of_incident_other,
-      `Where is patient at time of reporting:` = where_is_patient_at_time_of_reporting,
-      `Internal Inverstigation Required` = internal_investigation_required,
-      `Non Health led Investigation Required` = non_health_led_investigation_required,
-      `Description of what happened:` = description_of_what_happened,
-      `Reason for Reporting` = reason_for_reporting,
-      `Immediate action taken` = immediate_action_taken,
-      `Case Summary` = case_summary,
-      `Key Findings` = key_findings,
-      `How will lessons be disseminated to interested parties` = how_will_lessons_be_disseminated_to_interested_parties,
-      starts_with("group")
-    )
-}
+   # columns for release ####
+  if(cols_to_extract == 'all'){
+    steis_for_release_all <- steis_filtered_text
+  } else if (cols_to_extract == 'default'){
+    steis_for_release_all <- steis_filtered_text |>
+      # select columns to be released
+      select(
+        `Log No` = log_no,
+        `Created on` = reported_date,
+        `Organisation reporting SI on STEIS` = organisation_reporting_si_on_steis,
+        `Organisation leading investigation` = organisation_leading_investigation,
+        `CCG/CSU Name` = ccg_csu_name,
+        `Region - Geography` = region_geography,
+        `Status` = status,
+        `Date of Incident` = occurred_date,
+        `Year of Incident` = year_of_incident,
+        `Month of Incident` = month_of_incident,
+        `Time of Incident` = time_of_incident,
+        `Site of Incident` = site_of_incident,
+        `Location of Incident` = location_of_incident,
+        `Location of Incident (Other)` = location_of_incident_other,
+        `Care Sector` = care_sector,
+        `Care Sector (Other)` = care_sector_other,
+        `Clinical Area` = clinical_area,
+        `Clinical Area (Other)` = clinical_area_other,
+        `Patient Age (years)` = patient_age_years,
+        `Patient Age (months)` = patient_age_months,
+        `Patient Type` = patient_type,
+        `Legal Status of Patient` = legal_status_of_patient,
+        `Type of Incident` = type_of_incident,
+        `Type of Incident (Other)` = type_of_incident_other,
+        `Where is patient at time of reporting` = where_is_patient_at_time_of_reporting,
+        `Internal Inverstigation Required` = internal_investigation_required,
+        `Non Health led Investigation Required` = non_health_led_investigation_required,
+        `Description of what happened` = description_of_what_happened,
+        `Reason for Reporting` = reason_for_reporting,
+        `Immediate action taken` = immediate_action_taken,
+        `Case Summary` = case_summary,
+        `Key Findings` = key_findings,
+        `How will lessons be disseminated to interested parties` = how_will_lessons_be_disseminated_to_interested_parties,
+        #keep matching information if it is present
+        starts_with("group")
+      )
+    steis_for_release_summary <- steis_for_release_all
+    steis_for_release_incident <- steis_for_release_all
+  }
+  
+  
+  print(glue("- Final summary {dataset} dataset contains {nrow(steis_for_release_summary)} incidents."))
+  print(glue("- Final incident level {dataset} dataset contains {nrow(steis_for_release_incident)} incidents."))
 
-print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
+print(glue("- Final {dataset} dataset contains {nrow(steis_for_release_all)} incidents."))
+print(glue("- Final {dataset} dataset contains {nrow(steis_for_release_all)} incidents."))
 
 } else {
 print(glue('**The search criteria has produced no results in {dataset}**'))

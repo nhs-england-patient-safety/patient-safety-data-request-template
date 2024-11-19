@@ -50,7 +50,7 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
   rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
-  mutate(P004_days = as.numeric(P004))
+  mutate(P004_days = as.numeric(P004)) 
 
 # sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
@@ -63,9 +63,38 @@ lfpse_filtered_categorical <- lfpse_parsed |>
     # apply categorical filters here
     lfpse_categorical
   ) |>
+  mutate(year_of_incident = as.numeric(substr(as.character(occurred_date), 1, 4)),
+         month_of_incident = as.numeric(substr(as.character(occurred_date), 6, 7)))|>
+  group_by(Reference)  |>
+   mutate(OT001_min= min(as.numeric(OT001)), #calculate the worst physical harm per incident
+          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
+          npatient = max(EntityId)) |>
+   ungroup() |>
   # collecting here so that we can apply text filters later
-  collect()
-
+  collect() |>
+  mutate(month_of_incident= month.abb[month_of_incident],
+         OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
+         )|>
+  rowwise() |>
+  mutate(max_harm= min_safe(c(OT001_min, OT002_min_plus_one))) |>
+  ungroup() |>
+  mutate(max_harm_level= case_when(max_harm==1 ~ "Fatal",
+                                   max_harm==2 ~ "Severe harm",
+                                   max_harm==3 ~ "Moderate harm",
+                                   max_harm==4 ~ "Low harm",
+                                   max_harm==5 ~ "No harm"),
+         max_physical_harm_level= case_when(OT001_min==1 ~ "Fatal",
+                                            OT001_min==2 ~ "Severe physical harm",
+                                            OT001_min==3 ~ "Moderate physical harm",
+                                            OT001_min==4 ~ "Low physical harm",
+                                            OT001_min==5 ~ "No physical harm"),
+         max_psychological_harm_level= case_when(OT002_min==1 ~ "Severe psychological harm",
+                                                 OT002_min==2 ~ "Moderate psychological harm",
+                                                 OT002_min==3 ~ "Low psychological harm",
+                                                 OT002_min==4 ~ "No psychological harm")
+  ) |>
+  select(-OT001_min,- OT002_min, -OT002_min_plus_one, -max_harm)
+  
 toc_lfpse <- Sys.time()
 
 time_diff_lfpse <- toc_lfpse - tic_lfpse
@@ -104,58 +133,10 @@ if (sum(!is.na(text_terms))>0) {
   lfpse_filtered_text <- lfpse_filtered_categorical
 }
 
-# check whether the text search generated results
-if (nrow(lfpse_filtered_text) != 0) {
-  # sampling ####
-  # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
-  if (sampling_strategy == "default") {
-    if (nrow(lfpse_filtered_text) > 300) {
-      print("- Sampling according to default strategy...")
-      lfpse_death_severe <- lfpse_filtered_text |>
-        # deaths or severe physical / psychological harm
-        filter(OT001 %in% c("1", "2") |
-                 OT002 == "1")
-      
-      set.seed(123)
-      lfpse_moderate <- lfpse_filtered_text |>
-        # moderate physical / psychological harm
-        filter(OT001 == "3" | OT002 == "2") |>
-        collect() |>
-        sample_n(min(n(), 100))
-      
-      set.seed(123)
-      lfpse_low_no_other <- lfpse_filtered_text |>
-        filter(
-          !OT001 %in% c("1", "2", "3"),
-          !OT002 %in% c("1", "2")
-        ) |>
-        collect() |>
-        sample_n(min(n(), 100))
-      
-      lfpse_sampled <- bind_rows(
-        lfpse_death_severe,
-        lfpse_moderate,
-        lfpse_low_no_other
-      )
-    } else {
-      print("- Sampling not required, default threshold not met.")
-      lfpse_sampled <- lfpse_filtered_text
-    }
-  } else if (sampling_strategy == "FOI") {
-    print("- Extracting a sample of 30 incidents for redaction...")
-    set.seed(123)
-    lfpse_sampled <- lfpse_filtered_text |>
-      distinct(Reference, .keep_all = T) |>
-      sample_n(min(n(), 30))
-  } else if (sampling_strategy == "none") {
-    print("- Skipping sampling...")
-    lfpse_sampled <- lfpse_filtered_text
-  }
-  
-  
-  # columns for release ####
-  
-  lfpse_for_release <- lfpse_sampled |>
+
+convert_to_for_release_lfpse <- function(df){
+  start_of_function <- Sys.time()
+  df<-df |>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
     # separate the multi-responses into single row per selection
@@ -191,6 +172,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       "Number of patients" = npatient,
       "Patient no." = EntityId,
       "T005 - Event date" = occurred_date,
+      "Month of Incident" = month_of_incident,
+      "Year of Incident" = year_of_incident,
       # TODO: check whether these are needed
       # "T005 - Event year" = year(T005),
       # "T005 - Event moth" = month(T005),
@@ -214,18 +197,125 @@ if (nrow(lfpse_filtered_text) != 0) {
       "R006_Other - Reporter Organisation (Other)" = R006_Other,
       "RI003 - Is there imminent risk of severe harm or death?" = RI003,
       "OT001 - Physical harm" = OT001,
-      "OT002 - Psychological harm " = OT002,
+      "OT002 - Psychological harm" = OT002,
       "OT008 - Outcome Type" = OT008,
       "A002 - Medicine types involved" = A002,
       "A016 - BuildingsInfrastructure" = A016,
       "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
-      starts_with("group")
+      "Largest physical or psychological harm (across all patients in incident)" =  max_harm_level,
+      "Largest psychological harm (across all patients in incident)" =  max_psychological_harm_level,
+      "Largest physical harm (across all patients in incident)" =  max_physical_harm_level,
+      #keep matching information if it is present
+      starts_with("group_")
       # TODO: add age columns once DQ issues resolved
     )) |>
     ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped
-    remove_empty("cols")
+    remove_empty("cols")   |>
+    mutate(
+      `Largest physical harm (across all patients in incident)` = fct_relevel(
+        `Largest physical harm (across all patients in incident)`,
+        "No physical harm",
+        "Low physical harm",
+        "Moderate physical harm",
+        "Severe physical harm",
+        "Fatal"
+      ),
+      `Largest psychological harm (across all patients in incident)` = fct_relevel(
+        `Largest psychological harm (across all patients in incident)`,
+        "No psychological harm",
+        "Low psychological harm",
+        "Moderate psychological harm",
+        "Severe psychological harm"
+      ),
+      `Largest physical or psychological harm (across all patients in incident)` = fct_relevel(
+        `Largest physical or psychological harm (across all patients in incident)`,
+        "No harm",
+        "Low harm",
+        "Moderate harm",
+        "Severe harm",
+        "Fatal"
+      ),
+      `Month of Incident` = fct_relevel(
+        `Month of Incident`,
+        month.abb
+      ))
+  end_of_function<-Sys.time()
+  time_diff_function<- start_of_function - end_of_function
+  print(glue("conversion to for release dataset: {round(time_diff_function[[1]], 2)} {attr(time_diff_function, 'units')}"))
+  return(df)
   
-  print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
+} 
+ 
+
+
+
+
+# check whether the text search generated results
+if (nrow(lfpse_filtered_text) != 0) {
+  # sampling ####
+  # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
+  if (sampling_strategy == "default") {
+    if (nrow(lfpse_filtered_text) > 300) {
+      print("- Sampling according to default strategy...")
+      lfpse_death_severe <- lfpse_filtered_text |>
+        # deaths or severe physical / psychological harm
+        filter(OT001 %in% c("1", "2") |
+          OT002 == "1")
+
+      set.seed(123)
+      lfpse_moderate <- lfpse_filtered_text |>
+        # moderate physical / psychological harm
+        filter(OT001 == "3" | OT002 == "2") |>
+        collect() |>
+        sample_n(min(n(), 100))
+
+      set.seed(123)
+      lfpse_low_no_other <- lfpse_filtered_text |>
+        filter(
+          !OT001 %in% c("1", "2", "3"),
+          !OT002 %in% c("1", "2")
+        ) |>
+        collect() |>
+        sample_n(min(n(), 100))
+
+      lfpse_sampled <- bind_rows(
+        lfpse_death_severe,
+        lfpse_moderate,
+        lfpse_low_no_other
+      )
+    } else {
+      print("- Sampling not required, default threshold not met.")
+      lfpse_sampled <- lfpse_filtered_text
+    }
+  } else if (sampling_strategy == "FOI") {
+    print("- Extracting a sample of 30 incidents for redaction...")
+    set.seed(123)
+    lfpse_sampled <- lfpse_filtered_text |>
+      distinct(Reference, .keep_all = T) |>
+      sample_n(min(n(), 30))
+  } else if (sampling_strategy == "none") {
+    print("- Skipping sampling...")
+    lfpse_sampled <- lfpse_filtered_text
+  }
+
+lfpse_for_release_all <-convert_to_for_release_lfpse(lfpse_filtered_text) 
+
+if(nrow(lfpse_sampled)==nrow(lfpse_filtered_text)){
+  lfpse_for_release_incident <- lfpse_for_release_all
+}else{
+  lfpse_for_release_incident <- convert_to_for_release_lfpse(lfpse_sampled)
+}
+
+lfpse_for_release_summary <- lfpse_for_release_all |> 
+  select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
+  distinct(Reference, .keep_all = TRUE) 
+
+  # columns for release ####
+
+  print(glue("- Final summary {dataset} dataset contains {nrow(lfpse_for_release_summary)} incidents."))
+  print(glue("- Final incident level {dataset} dataset contains {nrow(lfpse_for_release_incident)} incidents."))
+
+
 } else {
   print(glue("**The search criteria has produced no results in {dataset}**"))
   print(glue("Moving on..."))
