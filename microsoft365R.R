@@ -16,7 +16,7 @@ dr$upload(
   dest = glue('{title}/{workbook_title}')
 )
 
-print(glue('Workbook saved at https://nhsengland.sharepoint.com/:f:/r/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
+print(glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
 
 toc <- Sys.time()
 
