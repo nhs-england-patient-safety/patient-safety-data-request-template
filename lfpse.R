@@ -44,8 +44,8 @@ lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
 lfpse_parsed <- reduce(lfpse_analysis_tables,
-  left_join,
-  by = c("Reference", "Revision")
+                       left_join,
+                       by = c("Reference", "Revision")
 ) |>
   rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
@@ -104,12 +104,29 @@ print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {
 print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
-
-  lfpse_filtered_text <- lfpse_filtered_categorical |>
-    filter(if_any(c(F001, AC001, OT003, A008_Other, A008), ~ str_detect(., text_terms)))
-  # A002 may need to be added for a medication incident
+  
+  lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
+  
+  groups <- names(text_terms)
+  for (group in groups) {
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
+    }
+    
+    lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
+  }
+  
+  lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
+    filter(!!text_filter) %>%
+    select(!c(contains("_term_"), concat_col))
+  
+  #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
@@ -189,7 +206,7 @@ convert_to_for_release_lfpse <- function(df){
       "Largest psychological harm (across all patients in incident)" =  max_psychological_harm_level,
       "Largest physical harm (across all patients in incident)" =  max_physical_harm_level,
       #keep matching information if it is present
-      starts_with("match_")
+      starts_with("group_")
       # TODO: add age columns once DQ issues resolved
     )) |>
     ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped
@@ -221,7 +238,6 @@ convert_to_for_release_lfpse <- function(df){
       `Month of Incident` = fct_relevel(
         `Month of Incident`,
         month.abb
-        
       ))
   print(a-Sys.time())
   return(df)
@@ -296,6 +312,7 @@ lfpse_for_release_summary <- lfpse_for_release_all |>
 
   print(glue("- Final summary {dataset} dataset contains {nrow(lfpse_for_release_summary)} incidents."))
   print(glue("- Final incident level {dataset} dataset contains {nrow(lfpse_for_release_incident)} incidents."))
+
 
 } else {
   print(glue("**The search criteria has produced no results in {dataset}**"))

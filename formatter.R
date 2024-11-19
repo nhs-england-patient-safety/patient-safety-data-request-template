@@ -106,13 +106,14 @@ metadata_answers <- c(
   "",
   date_range,
   "",
-  deparse(nrls_categorical),
+  deparse(nrls_categorical,width.cutoff = 500),
   "",
-  deparse(steis_categorical),
+  deparse(steis_categorical, width.cutoff = 500),
   "",
-  deparse(lfpse_categorical),
+  deparse(lfpse_categorical, width.cutoff = 500),
   "",
-  text_terms
+  deparse(text_terms,width.cutoff = 500),
+  deparse(text_filter, width.cutoff = 500)
 )
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)

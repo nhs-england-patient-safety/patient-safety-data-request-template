@@ -50,21 +50,41 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtere
 print(glue("- No sampling for StEIS since no harm grading."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
   
-  steis_filtered_text <- steis_filtered_categorical |>
-    filter(if_any(c(description_of_what_happened,
-                    immediate_action_taken,
-                    key_findings,
-                    how_will_lessons_be_disseminated_to_interested_parties,
-                    type_of_incident_other),
-                  ~str_detect(.,text_terms)))
+  steis_filtered_text_precursor<- steis_filtered_categorical |>
+    mutate(concat_col=paste(description_of_what_happened,
+                            immediate_action_taken,
+                            key_findings,
+                            how_will_lessons_be_disseminated_to_interested_parties,
+                            type_of_incident_other, sep=" "))
+  
+  # iterate through each group
+  groups <- names(text_terms)
+  for (group in groups) {
+    # iterate through each term
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      steis_filtered_text_precursor <- steis_filtered_text_precursor |>
+        # create column for term match
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
+    }
+    
+    steis_filtered_text_precursor <- steis_filtered_text_precursor |>
+      # create column for group match
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
+  }
+  
+  steis_filtered_text <- steis_filtered_text_precursor %>%
+    # apply text filter logic
+    filter(!!text_filter) %>%
+    # drop individual term columns
+    select(!c(contains("_term_"), concat_col))
   
   print(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
-  
 } else {
-  print('- No text terms supplied. Skipping text search...')
+  print("- No text terms supplied. Skipping text search...")
   steis_filtered_text <- steis_filtered_categorical
 }
 
