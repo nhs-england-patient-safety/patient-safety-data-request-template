@@ -117,7 +117,7 @@ if (!is.na(text_terms)) {
 }
 
 
-convert_to_for_release <- function(df){
+convert_to_for_release_lfpse <- function(df){
   a=Sys.time()
   df<-df |>
     # pivot the coded columns
@@ -217,6 +217,11 @@ convert_to_for_release <- function(df){
         "Moderate harm",
         "Severe harm",
         "Fatal"
+      ),
+      `Month of Incident` = fct_relevel(
+        `Month of Incident`,
+        month.abb
+        
       ))
   print(a-Sys.time())
   return(df)
@@ -275,18 +280,17 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_sampled <- lfpse_filtered_text
   }
 
-lfpse_for_release_all <-convert_to_for_release(lfpse_filtered_text) 
+lfpse_for_release_all <-convert_to_for_release_lfpse(lfpse_filtered_text) 
 
 if(nrow(lfpse_sampled)==nrow(lfpse_filtered_text)){
   lfpse_for_release_incident <- lfpse_for_release_all
 }else{
-  lfpse_for_release_incident <- convert_to_for_release(lfpse_sampled)
+  lfpse_for_release_incident <- convert_to_for_release_lfpse(lfpse_sampled)
 }
 
-lfpse_for_release_summary <- lfpse_for_release_all %>% 
-  distinct(Reference, .keep_all = TRUE) %>% 
-  select(-`Patient no.`,`OT001 - Physical harm`,`OT002 - Psychological harm`)
-
+lfpse_for_release_summary <- lfpse_for_release_all |> 
+  select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
+  distinct(Reference, .keep_all = TRUE) 
 
   # columns for release ####
 

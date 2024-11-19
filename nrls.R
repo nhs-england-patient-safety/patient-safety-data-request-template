@@ -58,7 +58,7 @@ if (!is.na(text_terms)) {
 }
 
 
-convert_to_for_release<- function(df){
+convert_to_for_release_nrls<- function(df){
   a=Sys.time()
   # columns for release ####
   df <- df |>
@@ -173,12 +173,12 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_filtered_text
   }
   
-  nrls_for_release_all <-convert_to_for_release(nrls_filtered_text) 
+  nrls_for_release_all <-convert_to_for_release_nrls(nrls_filtered_text) 
   
   if(nrow(nrls_sampled)==nrow(nrls_filtered_text)){
     nrls_for_release_incident <- nrls_for_release_all
   }else{
-    nrls_for_release_incident <- convert_to_for_release(nrls_sampled)
+    nrls_for_release_incident <- convert_to_for_release_nrls(nrls_sampled)
   }
   
   nrls_for_release_summary <- nrls_for_release_all 
