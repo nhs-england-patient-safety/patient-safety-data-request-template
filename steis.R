@@ -53,7 +53,6 @@ print(glue("- No sampling for StEIS since no harm grading."))
 if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
   
-  
   steis_filtered_text_precursor<- steis_filtered_categorical |>
     mutate(concat_col=paste(description_of_what_happened,
                             immediate_action_taken,
@@ -61,30 +60,31 @@ if (sum(!is.na(text_terms))>0) {
                             how_will_lessons_be_disseminated_to_interested_parties,
                             type_of_incident_other, sep=" "))
   
-  for (i in 1:length(text_terms)) {
-    term_vec <- text_terms[[i]]
-    col_to_add <- names(text_terms[i])
-    temp_df <- steis_filtered_text_precursor
-    for (j in term_vec) {
-      temp_df <- temp_df %>%
-        select(log_no, concat_col, starts_with("matches_")) %>%
-        mutate("matches_{j}" := str_detect(concat_col, j))
+  # iterate through each group
+  groups <- names(text_terms)
+  for (group in groups) {
+    # iterate through each term
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      steis_filtered_text_precursor <- steis_filtered_text_precursor |>
+        # create column for term match
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
     }
-    matching_group_i <- temp_df %>%
-      mutate(sum=rowSums(across(starts_with("matches_")))) %>%
-      mutate("match_{col_to_add}" := sum>0) %>%
-      select(log_no, starts_with("match_"))
-    steis_filtered_text_precursor <- steis_filtered_text_precursor %>% 
-      left_join(matching_group_i,by="log_no") 
+    
+    steis_filtered_text_precursor <- steis_filtered_text_precursor |>
+      # create column for group match
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
   }
   
-  steis_filtered_text<- steis_filtered_text_precursor %>%
-    filter(!!text_filter)
+  steis_filtered_text <- steis_filtered_text_precursor %>%
+    # apply text filter logic
+    filter(!!text_filter) %>%
+    # drop individual term columns
+    select(!c(contains("_term_"), concat_col))
   
   print(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
-  
 } else {
-  print('- No text terms supplied. Skipping text search...')
+  print("- No text terms supplied. Skipping text search...")
   steis_filtered_text <- steis_filtered_categorical
 }
 

@@ -81,26 +81,20 @@ if (sum(!is.na(text_terms))>0) {
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
     mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
   
-  # iterate through each group
   groups <- names(text_terms)
   for (group in groups) {
-    # iterate through each term
     terms <- text_terms[[group]]
     for (term in terms) {
       lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
-        # create column for term match
         mutate("{group}_term_{term}" := str_detect(concat_col, term))
     }
     
     lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
-      # create column for group match
       mutate("{group}" := rowSums(across(starts_with(group))) > 0)
   }
   
   lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
-    # apply text filter logic
     filter(!!text_filter) %>%
-    # drop individual term columns
     select(!contains("_term_"), !concat_col)
   
   #A002 may need to be added for a medication incident

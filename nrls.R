@@ -32,8 +32,7 @@ nrls_filtered_categorical <- nrls_parsed |>
   filter(between(date_filter, start_date, end_date)) |>
   filter(nrls_categorical) |>
   # collecting here so that we can apply text filters later
-  collect() |>
-  mutate(concat_col = paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03, sep = " "))
+  collect()
 
 toc_nrls <- Sys.time()
 
@@ -47,7 +46,8 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered
 if (sum(!is.na(text_terms)) > 0) {
   print(glue("Running {dataset} text search..."))
 
-  nrls_filtered_text_precursor <- nrls_filtered_categorical
+  nrls_filtered_text_precursor <- nrls_filtered_categorical |>
+    mutate(concat_col = paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03, sep = " "))
 
   # iterate through each group
   groups <- names(text_terms)
@@ -69,12 +69,13 @@ if (sum(!is.na(text_terms)) > 0) {
     # apply text filter logic
     filter(!!text_filter) %>%
     # drop individual term columns
-    select(!contains("_term_"))
+    select(!c(contains("_term_"), concat_col))
 
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
+    
 }
 
 # check whether the text search generated results
