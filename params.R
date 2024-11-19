@@ -7,8 +7,8 @@ library(glue)
 library(Microsoft365R)
 
 # datasets to be searched (T/F)
-search_nrls <- F
-search_lfpse <- F
+search_nrls <- T
+search_lfpse <- T
 search_steis <- T
 
 # connect to (relevant) data bases and bring corresponding look ups 

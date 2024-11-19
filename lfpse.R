@@ -218,7 +218,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       "OT008 - Outcome Type" = OT008,
       "A002 - Medicine types involved" = A002,
       "A016 - BuildingsInfrastructure" = A016,
-      "A016_Other - BuildingsInfrastructure (other)" = A016_Other
+      "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
+      starts_with("group")
       # TODO: add age columns once DQ issues resolved
     )) |>
     ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped

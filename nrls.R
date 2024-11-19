@@ -171,7 +171,8 @@ if (nrow(nrls_filtered_text) != 0) {
       `MD31 Proprietary Name (Drug 2)` = MD31,
       `DE01 Type of Device` = DE01,
       `DE01 Type of device - free text` = DE01_TEXT,
-      `Date incident received by NRLS` = reported_date
+      `Date incident received by NRLS` = reported_date,
+      starts_with("group")
     ) |>
     remove_empty("cols")
 
