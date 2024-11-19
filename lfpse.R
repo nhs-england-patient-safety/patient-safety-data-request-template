@@ -95,7 +95,7 @@ if (sum(!is.na(text_terms))>0) {
   
   lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
     filter(!!text_filter) %>%
-    select(!contains("_term_"), !concat_col)
+    select(!c(contains("_term_"), concat_col))
   
   #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
