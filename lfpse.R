@@ -44,8 +44,8 @@ lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
 lfpse_parsed <- reduce(lfpse_analysis_tables,
-  left_join,
-  by = c("Reference", "Revision")
+                       left_join,
+                       by = c("Reference", "Revision")
 ) |>
   rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
@@ -81,27 +81,27 @@ if (sum(!is.na(text_terms))>0) {
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
     mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
   
-  for (i in 1:length(text_terms)) {
-    term_vec <- text_terms[[i]]
-    col_to_add <- names(text_terms[i])
-    temp_df <- lfpse_filtered_text_precursor
-    for (j in term_vec) {
-      temp_df <- temp_df %>%
-        select(Reference, EntityId, concat_col, starts_with("matches_")) %>%
-        mutate("matches_{j}" := str_detect(concat_col, j))
+  # iterate through each group
+  groups <- names(text_terms)
+  for (group in groups) {
+    # iterate through each term
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
+        # create column for term match
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
     }
-    matching_group_i <- temp_df %>%
-      mutate(sum=rowSums(across(starts_with("matches_")))) %>%
-      mutate("match_{col_to_add}" := sum>0) %>%
-      select(Reference, EntityId, starts_with("match_"))
     
-    lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor %>%
-      left_join(matching_group_i,by=c("Reference","EntityId")) 
+    lfpse_filtered_text_precursor <- lfpse_filtered_text_precursor |>
+      # create column for group match
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
   }
   
-  lfpse_filtered_text<- lfpse_filtered_text_precursor %>%
-    filter(!!text_filter)
-  
+  lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
+    # apply text filter logic
+    filter(!!text_filter) %>%
+    # drop individual term columns
+    select(!contains("_term_"), !concat_col)
   
   #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
@@ -120,15 +120,15 @@ if (nrow(lfpse_filtered_text) != 0) {
       lfpse_death_severe <- lfpse_filtered_text |>
         # deaths or severe physical / psychological harm
         filter(OT001 %in% c("1", "2") |
-          OT002 == "1")
-
+                 OT002 == "1")
+      
       set.seed(123)
       lfpse_moderate <- lfpse_filtered_text |>
         # moderate physical / psychological harm
         filter(OT001 == "3" | OT002 == "2") |>
         collect() |>
         sample_n(min(n(), 100))
-
+      
       set.seed(123)
       lfpse_low_no_other <- lfpse_filtered_text |>
         filter(
@@ -137,7 +137,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         ) |>
         collect() |>
         sample_n(min(n(), 100))
-
+      
       lfpse_sampled <- bind_rows(
         lfpse_death_severe,
         lfpse_moderate,
@@ -157,10 +157,10 @@ if (nrow(lfpse_filtered_text) != 0) {
     print("- Skipping sampling...")
     lfpse_sampled <- lfpse_filtered_text
   }
-
-
+  
+  
   # columns for release ####
-
+  
   lfpse_for_release <- lfpse_sampled |>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
@@ -229,7 +229,7 @@ if (nrow(lfpse_filtered_text) != 0) {
     )) |>
     ungroup() |> # Added the ungroup() here, I was running into an error where I couldn't sample because the data was still grouped
     remove_empty("cols")
-
+  
   print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release)} incidents."))
 } else {
   print(glue("**The search criteria has produced no results in {dataset}**"))

@@ -7,8 +7,8 @@ library(glue)
 library(Microsoft365R)
 
 # datasets to be searched (T/F)
-search_nrls <- T
-search_lfpse <- F
+search_nrls <- F
+search_lfpse <- T
 search_steis <- F
 
 # connect to (relevant) data bases and bring corresponding look ups 
@@ -25,7 +25,7 @@ cols_to_extract <- "default"
 # nrls categorical filters (wrap in expr() or set to 0)
 nrls_categorical <- expr(IN05_lvl1 == 10)
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- 0
+lfpse_categorical <- expr(A001 == '4')
 
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- 0
