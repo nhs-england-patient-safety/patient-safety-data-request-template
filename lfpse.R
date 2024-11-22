@@ -116,78 +116,73 @@ lfpse_pre_release <- lfpse_filtered_text |>
   mutate(npatient = max(EntityId)) |>
   ungroup()
 
+
 # Testing neonate logic
+lfpse_with_category <- lfpse_pre_release %>%
+  mutate(
+    neonate_category = case_when(
+      # Neonate by age: age is between 0 and 28 days
+      (P004_days > 0 & P004_days <= 28) |
+        (P007 %in% c("0-14 days", "15-28 days")) ~ "neonates_by_age",
+      
+      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
+        grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) ~ "neonates_by_specialty",
+      
+      # Neonate by text: age is 0 or NA and text indicates neonate
+      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
+        str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""), 
+                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
+      
+      (str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not neonate-related
+      TRUE ~ "other"
+    ),
+    paediatric_category = case_when(
+      # Paediatrics by age: age is between 0 and 17 years
+      (P004_days > 28 & P004_days <= 6324) |
+        ( P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatrics_by_age",
+      
+      # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
+        grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) ~ "paediatrics_by_specialty",
+      
+      # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
+        str_detect(paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, OT008, sep = ""), 
+                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
+      
+      (str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not neonate/paediatrics-related
+      TRUE ~ "other"
+    )
+  )
+
+# Now filter based on `is_neopaed` parameter
 if (is_neopaed == "neonate") {
   print("- Running neonate strategy...")
-  lfpse_neopaed <- lfpse_pre_release |>
-    filter(
-      # First condition: Age between 0 and 28 days OR Age Range between 0-28 days
-      (
-        (P004_days > 0 & P004_days <= 28) |
-          (P007 %in% c("0-14 days", "15-28 days"))
-      ) |
-        (P004_days == 0 &
-           (grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) |
-              (
-                grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", paste(`F001 - Describe what happened`, `AC001 - Immediate Actions`, `OT003 - What was the clinical outcome for the patient?`, `A008 - Device Type (Other)`, `A008 - Device Type`, `L006 - Specialty`, `L006_Other - Specialty (Other)`, sep = "")) &
-                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
-              )
-           )
-        )
-      # Second condition: Age is missing and text conditions apply
-      | 
-        # Second condition: Age is missing and grepl conditions apply
-        (
-          is.na(P004_days) & is.na(P007) & 
-            (
-              grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) |
-                (
-                  grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", paste(`F001 - Describe what happened`, `AC001 - Immediate Actions`, `OT003 - What was the clinical outcome for the patient?`, `A008 - Device Type (Other)`, `A008 - Device Type`, `L006 - Specialty`, `L006_Other - Specialty (Other)`, sep = "")) &
-                    !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
-                )
-            )
-        )
-    )
+  
+  lfpse_neopaed <- lfpse_with_category %>%
+    filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text") &
+             neonate_category != "adult_specialty")
+  
 } else if (is_neopaed == "paed") {
-  print("- Running paediatric strategy")
-  lfpse_neopaed <- lfpse_pre_release |>
-    filter(
-      # First condition: Age between 0 and 3 months and PD04 must be pediatric if age is 0
-      (
-        (P004_days > 0 & P004_days < 6575) | (P007 > "D0" & P007 < "Y18")
-      ) 
-       |
-        (
-          (P004_days == 0 | P007 == "D0") & 
-            grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) |
-            (
-              grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
-                    paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, sep = "")
-              ) &
-                !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
-            )
-        )
-      # Second condition: Age is missing and text conditions apply
-      |
-        (
-          (
-            is.na(P004_days) | is.na(P007)
-          ) & 
-            (
-              grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) |
-                (
-                  grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
-                        paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, sep = "")
-                  ) &
-                    !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", paste(L006, L006_Other, sep = ""))
-                )
-            )
-        )
-    )
+  print("- Running paediatric strategy...")
+  
+  lfpse_neopaed <- lfpse_with_category %>%
+    filter(paediatric_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text") &
+             paediatric_category != "adult_specialty")
+  
 } else if (is_neopaed == "none") {
   print("- Skipping neopaeds strategy...")
+  
   lfpse_neopaed <- lfpse_pre_release
 }
+
 
 # check whether the text search generated results
 if (nrow(lfpse_neopaed) != 0) {
@@ -256,6 +251,10 @@ lfpse_for_release <- lfpse_sampled |>
       # "T005 - Event moth" = month(T005),
       "P004 - Age in days" = P004_days, 
       "P007 - Age Range" = P007,
+      "L003 - Service Area" = L003,
+      "L004 - Location Within Service" = L004,
+      "L006 - Specialty" = L006,
+      "L006_Other - Specialty (Other)" = L006_Other,
       "F001 - Describe what happened" = F001,
       "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
       "OT003 - What was the clinical outcome for the patient?" = OT003,
@@ -268,10 +267,6 @@ lfpse_for_release <- lfpse_sampled |>
       "CL022 - From Online Forms" = CL022,
       "L001 - Organisation Known" = L001,
       "L002 - Organisation" = L002,
-      "L003 - Service Area" = L003,
-      "L004 - Location Within Service" = L004,
-      "L006 - Specialty" = L006,
-      "L006_Other - Specialty (Other)" = L006_Other,
       "R006 - Reporter Organisation" = R006,
       "R006_Other - Reporter Organisation (Other)" = R006_Other,
       "RI003 - Is there imminent risk of severe harm or death?" = RI003,

@@ -69,88 +69,70 @@ nrls_pre_release <- nrls_filtered_text |>
   )
 
 # Testing neonate logic
-  if (is_neopaed == "neonate") {
-      print("- Running neonate strategy...")
-    nrls_neopaed <- nrls_pre_release |>
-      filter(
-        # First condition: Age between 1 and 28 days
-        (
-          (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) | 
-            (DV01 > "D0" & DV01 <= "W4")
-        ) |
-          # Second ondition: Age is 0 and text / specialty conditions apply
-          (
-            (AGE_AT_INCIDENT == 0 | DV01 == "D0") & 
-              grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) |
-              (
-                grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", 
-                      paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")
-                ) &
-                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", 
-                         paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""))
-              )
-          )
-        # Third condition: Age is missing and text / specialty conditions apply
-        |
-          (
-            (
-              is.na(AGE_AT_INCIDENT) & is.na(DV01)
-            ) & 
-              (
-                grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) |
-                  (
-                    grepl("(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby", 
-                          paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")
-                    ) &
-                      !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", 
-                             paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""))
-                  )
-              )
-          )
-      )
-  } else if (is_neopaed == "paed") {
-    print("- Running paediatric strategy")
-    nrls_neopaed <- nrls_pre_release |>
-      filter(
-        # First condition: Age between 1 and 18 years 
-        (
-          (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT < 18) | 
-            (DV01 > "D0" & DV01 < "Y18")
-        ) |
-          # Second condition: Age is 0 and text / specialty conditions apply
-          (
-            (AGE_AT_INCIDENT == 0 | DV01 == "D0") & 
-              grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) |
-              (
-                grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
-                      paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")
-                ) &
-                  !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", 
-                         paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""))
-              )
-          )
-        # Third condition: Age is missing and text / specialty conditions apply
-        |
-          (
-            (
-              is.na(AGE_AT_INCIDENT) | is.na(DV01)
-            ) & 
-              (
-                grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) |
-                  (
-                    grepl("(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bpaed|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bschool|\\binfant|\\bchild", 
-                          paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")
-                    ) &
-                      !grepl("(?i)\\badult|\\bold|\\belderly|\\bgeriat", 
-                             paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""))
-                  )
-              )
-          )
-      )
-  } else if (is_neopaed == "none") {
-    print("- Skipping neopaeds strategy...")
-    nrls_neopaed <- nrls_pre_release
-  }
+nrls_with_category <- nrls_pre_release %>%
+  mutate(
+    neonate_category = case_when(
+      # Neonate by age: age is between 0 and 28 days
+      (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
+        (DV01 > "D0" & (DV01 <= "D9" | DV01 == "W4")) ~ "neonates_by_age",
+      
+      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "neonates_by_specialty",
+      
+      # Neonate by text: age is 0 or NA and text indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not neonate-related
+      TRUE ~ "other"
+    ),
+    paediatric_category = case_when(
+      # Paediatrics by age: age is between 0 and 17 years
+      (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
+        (DV01 > "D9" & (DV01 <= "Y1" | DV01 %in% c("Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9", "Y10", "Y11", "Y12", "Y13", "Y14", "Y15", "Y16", "Y17"))) ~ "paediatrics_by_age",
+      
+      # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "paediatrics_by_specialty",
+      
+      # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not paediatrics-related
+      TRUE ~ "other"
+    )
+  )
+
+# Now filter based on `is_neopaed` parameter
+if (is_neopaed == "neonate") {
+  print("- Running neonate strategy...")
+  
+  nrls_neopaed <- nrls_with_category %>%
+    filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text") &
+             neonate_category != "adult_specialty")
+  
+} else if (is_neopaed == "paed") {
+  print("- Running paediatric strategy...")
+  
+  nrls_neopaed <- nrls_with_category %>%
+    filter(paediatric_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text") &
+             paediatric_category != "adult_specialty")
+  
+} else if (is_neopaed == "none") {
+  print("- Skipping neopaeds strategy...")
+  
+  nrls_neopaed <- nrls_pre_release
+}
 
 # check whether the text search generated results
 if (nrow(nrls_neopaed) != 0) {
@@ -210,13 +192,14 @@ if (nrow(nrls_neopaed) != 0) {
       `IN05 Incident Category - Lvl1` = IN05_LVL1,
       `IN05 Incident Category - Lvl2` = IN05_LVL2,
       `IN05 Incident Category - Free Text` = IN05_TEXT,
-      `IN07 Description of what happened` = IN07,
-      `IN10 Actions Preventing Reoccurrence` = IN10,
-      `IN11 Apparent Causes` = IN11,
       `Age at time of Incident (years)` = AGE_AT_INCIDENT,
+      `DV01 Age Range` = DV01,
       `PD05 Specialty - Lvl 1` = PD05_LVL1,
       `PD05 Specialty - Lvl 2` = PD05_LVL2,
       `PD05 Speciality - Free Text` = PD05_TEXT,
+      `IN07 Description of what happened` = IN07,
+      `IN10 Actions Preventing Reoccurrence` = IN10,
+      `IN11 Apparent Causes` = IN11,
       `PD09 Degree of harm (severity)` = PD09,
       `RM04 Source of Notification` = RM04,
       `MD01 Med Process` = MD01,
