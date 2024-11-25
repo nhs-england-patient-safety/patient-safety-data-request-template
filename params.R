@@ -16,7 +16,7 @@ source("connections.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-03-01"
+end_date <- "2024-01-31"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -39,6 +39,6 @@ text_terms <- NA
 sampling_strategy <- "default"
 
 # neopaed logic (neonate/paed/none)
-is_neopaed <- "paed"
+is_neopaed <- "neonate"
 
 source("flow.R")
