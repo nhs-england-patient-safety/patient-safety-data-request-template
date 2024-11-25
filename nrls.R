@@ -74,7 +74,7 @@ nrls_with_category <- nrls_pre_release %>%
     neonate_category = case_when(
       # Neonate by age: age is between 0 and 28 days
       (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
-        (DV01 > "D0" & (DV01 <= "D9" | DV01 == "W4")) ~ "neonates_by_age",
+        (str_detect(DV01, "^[D][1-9]$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
       
       # Neonate by specialty: age is 0 or NA and specialty indicates neonate
       (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
@@ -92,9 +92,9 @@ nrls_with_category <- nrls_pre_release %>%
       TRUE ~ "other"
     ),
     paediatric_category = case_when(
-      # Paediatrics by age: age is between 0 and 17 years
+      # Paediatrics by age: age is between 28 days and 17 years
       (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
-        (DV01 > "D9" & (DV01 <= "Y1" | DV01 %in% c("Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9", "Y10", "Y11", "Y12", "Y13", "Y14", "Y15", "Y16", "Y17"))) ~ "paediatrics_by_age",
+        (str_detect(DV01, "^[D]([2][8-9])|3[0-1])$") | str_detect(DV01, "^[W][1-5][0-9]$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
       
       # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
       (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
