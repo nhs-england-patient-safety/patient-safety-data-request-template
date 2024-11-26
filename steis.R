@@ -136,9 +136,9 @@ if(nrow(steis_neopaed) != 0){
 
 # columns for release ####
 if(cols_to_extract == 'all'){
-  steis_for_release <- steis_neonate
+  steis_for_release <- steis_neopaed
 } else if (cols_to_extract == 'default'){
-  steis_for_release <- steis_neonate |>
+  steis_for_release <- steis_neopaed |>
     # select columns to be released
     select(
       `Log No` = log_no,
