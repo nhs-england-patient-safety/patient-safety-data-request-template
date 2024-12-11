@@ -94,7 +94,7 @@ nrls_with_category <- nrls_pre_release %>%
     paediatric_category = case_when(
       # Paediatrics by age: age is between 28 days and 17 years
       (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
-        (str_detect(DV01, "^[D]([2][9])|3[0-1])$") | str_detect(DV01, "^[W]([5-9]|[1-4][0-9]|5[0-2])$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
+        (str_detect(DV01, "^[D]([2][9]|3[0-1])$") | str_detect(DV01, "^[W]([5-9]|[1-4][0-9]|5[0-2])$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
       
       # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
       (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
