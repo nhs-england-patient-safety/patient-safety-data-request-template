@@ -30,7 +30,7 @@ tic_nrls <- Sys.time()
 nrls_filtered_categorical <- nrls_parsed |>
   # apply categorical filters here
   filter(between(date_filter, start_date, end_date)) |>
-  filter(nrls_categorical) |>
+  filter(!!nrls_categorical) |>
   # collecting here so that we can apply text filters later
   collect()
 
@@ -78,25 +78,104 @@ if (sum(!is.na(text_terms)) > 0) {
     
 }
 
+# MW: Moving this here to facilitate the neopaeds
+nrls_pre_release <- nrls_filtered_text |>
+  pivot_longer(cols = any_of(codes$col_name)) |>
+  left_join(codes, by = c(
+    "name" = "col_name",
+    "value" = "SASCODE"
+  )) |>
+  select(!value) |>
+  pivot_wider(
+    names_from = name,
+    values_from = OPTIONTEXT
+  )
+
+# Testing neonate logic
+nrls_with_category <- nrls_pre_release %>%
+  mutate(
+    neonate_category = case_when(
+      # Neonate by age: age is between 0 and 28 days
+      (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
+        (str_detect(DV01, "^[D][1-9]$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
+      
+      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "neonates_by_specialty",
+      
+      # Neonate by text: age is 0 or NA and text indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not neonate-related
+      TRUE ~ "other"
+    ),
+    paediatric_category = case_when(
+      # Paediatrics by age: age is between 28 days and 17 years
+      (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
+        (str_detect(DV01, "^[D]([2][9]|3[0-1])$") | str_detect(DV01, "^[W]([5-9]|[1-4][0-9]|5[0-2])$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
+      
+      # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "paediatrics_by_specialty",
+      
+      # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not paediatrics-related
+      TRUE ~ "other"
+    )
+  )
+
+# Now filter based on `is_neopaed` parameter
+if (is_neopaed == "neonate") {
+  print("- Running neonate strategy...")
+  
+  nrls_neopaed <- nrls_with_category %>%
+    filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text") &
+             neonate_category != "adult_specialty")
+  
+} else if (is_neopaed == "paed") {
+  print("- Running paediatric strategy...")
+  
+  nrls_neopaed <- nrls_with_category %>%
+    filter(paediatric_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text") &
+             paediatric_category != "adult_specialty")
+  
+} else if (is_neopaed == "none") {
+  print("- Skipping neopaeds strategy...")
+  
+  nrls_neopaed <- nrls_pre_release
+}
+
 # check whether the text search generated results
-if (nrow(nrls_filtered_text) != 0) {
+if (nrow(nrls_neopaed) != 0) {
   # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
   if (sampling_strategy == "default") {
-    if (nrow(nrls_filtered_text) > 300) {
+    if (nrow(nrls_neopaed) > 300) {
       print("- Sampling according to default strategy...")
-      nrls_death_severe <- nrls_filtered_text |>
-        filter(PD09 %in% c("5", "4"))
+      nrls_death_severe <- nrls_neopaed |>
+        filter(PD09 %in% c("Death", "Severe"))
 
       set.seed(123)
-      nrls_moderate <- nrls_filtered_text |>
-        filter(PD09 == "3") |>
+      nrls_moderate <- nrls_neopaed |>
+        filter(PD09 == "Moderate") |>
         # sample 100, or if fewer than 100, bring all
         sample_n(min(n(), 100))
 
       set.seed(123)
-      nrls_low_no_other <- nrls_filtered_text |>
-        filter(!PD09 %in% c("3", "4", "5")) |>
+      nrls_low_no_other <- nrls_neopaed |>
+        filter(!PD09 %in% c("Moderate", "Severe", "Death")) |>
         sample_n(min(n(), 100))
 
       nrls_sampled <- bind_rows(
@@ -106,33 +185,20 @@ if (nrow(nrls_filtered_text) != 0) {
       )
     } else {
       print("- Sampling not required, default threshold not met.")
-      nrls_sampled <- nrls_filtered_text
+      nrls_sampled <- nrls_neopaed
     }
   } else if (sampling_strategy == "FOI") {
     print("- Extracting a sample of 30 incidents for redaction...")
     set.seed(123)
-    nrls_sampled <- nrls_filtered_text |>
+    nrls_sampled <- nrls_neopaed |>
       sample_n(min(n(), 30))
   } else if (sampling_strategy == "none") {
     print("- Skipping sampling...")
-    nrls_sampled <- nrls_filtered_text
+    nrls_sampled <- nrls_neopaed
   }
 
   # columns for release ####
-
-  nrls_pre_release <- nrls_sampled |>
-    pivot_longer(cols = any_of(codes$col_name)) |>
-    left_join(codes, by = c(
-      "name" = "col_name",
-      "value" = "SASCODE"
-    )) |>
-    select(!value) |>
-    pivot_wider(
-      names_from = name,
-      values_from = OPTIONTEXT
-    )
-
-  nrls_for_release <- nrls_pre_release |>
+  nrls_for_release <- nrls_sampled |>
     left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
     select(
       `RP01 Unique Incident ID` = INCIDENTID,
@@ -149,13 +215,14 @@ if (nrow(nrls_filtered_text) != 0) {
       `IN05 Incident Category - Lvl1` = IN05_LVL1,
       `IN05 Incident Category - Lvl2` = IN05_LVL2,
       `IN05 Incident Category - Free Text` = IN05_TEXT,
-      `IN07 Description of what happened` = IN07,
-      `IN10 Actions Preventing Reoccurrence` = IN10,
-      `IN11 Apparent Causes` = IN11,
       `Age at time of Incident (years)` = AGE_AT_INCIDENT,
+      `DV01 Age Range` = DV01,
       `PD05 Specialty - Lvl 1` = PD05_LVL1,
       `PD05 Specialty - Lvl 2` = PD05_LVL2,
       `PD05 Speciality - Free Text` = PD05_TEXT,
+      `IN07 Description of what happened` = IN07,
+      `IN10 Actions Preventing Reoccurrence` = IN10,
+      `IN11 Apparent Causes` = IN11,
       `PD09 Degree of harm (severity)` = PD09,
       `RM04 Source of Notification` = RM04,
       `MD01 Med Process` = MD01,

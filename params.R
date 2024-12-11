@@ -15,7 +15,8 @@ search_steis <- T
 source("connections.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2021-01-01"
+
+start_date <- "2024-01-01"
 end_date <- "2024-01-31"
 date_type <- "occurring"
 
@@ -46,5 +47,9 @@ text_filter <- expr((group_A | group_B) & group_C)
 # sampling strategy (default/FOI/none)
 # TODO: custom
 sampling_strategy <- "default"
+
+# neopaed logic (neonate/paed/none)
+is_neopaed <- "neonate"
+
 
 source("flow.R")
