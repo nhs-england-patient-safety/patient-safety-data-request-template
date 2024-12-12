@@ -13,10 +13,10 @@ search_steis <- T
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
-
+source("functions.R")
 # date filter (type is occurring/reported)
 start_date <- "2021-01-01"
-end_date <- "2024-01-31"
+end_date <- "2022-01-01"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -40,8 +40,9 @@ text_terms <- list(
 )
  
 text_filter <- expr((group_A | group_B) & group_C)
-# text_terms<- list()
-# text_filter<- expr(0)
+
+ text_terms<- list()
+ text_filter<- expr(0)
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
