@@ -83,7 +83,7 @@ if (sum(!is.na(text_terms)) > 0) {
 
 
 # check whether the text search generated results
-if (nrow(nrls_pre_release) != 0) {
+if (nrow(nrls_filtered_text) != 0) {
   # MW: Moving this here to facilitate the neopaeds
   nrls_pre_release <- nrls_filtered_text |>
     pivot_longer(cols = any_of(codes$col_name)) |>
