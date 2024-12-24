@@ -97,7 +97,7 @@ nrls_with_category <- nrls_pre_release %>%
     neonate_category = case_when(
       # Neonate by age: age is between 0 and 28 days
       (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
-        (str_detect(DV01, "^[D][1-9]$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
+        (str_detect(DV01, "^[D]([1-9]|1[0-9]|2[0-8])$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
       
       # Neonate by specialty: age is 0 or NA and specialty indicates neonate
       (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
