@@ -16,18 +16,10 @@ min_safe<- function(vec){
 #'
 #' @return workbook with summary tables added
 add_summary_sheet <- function(wb, title, database_name, sheet) {
-  
+
   summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
   
-  df <- get(str_glue("{database_name}_for_release_for_summary"))
-  
   addWorksheet(wb, sheet, gridLines = FALSE) 
-  
-  # set column widths
-  setColWidths(wb, sheet = sheet, cols = 1, widths = 50)
-  
-  #Add text style
-  addStyle(wb, sheet = sheet,  textStyle, rows = 1:7, cols = 1:1)
   
   # Write title
   writeData( wb, 
@@ -39,32 +31,46 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   #write subtitle
   writeData(wb, sheet, title, startCol = 1, startRow = 3)
+
+  content_start_row = 5
   
-  # write number of incidents
-  writeData(
-    wb,
-    sheet,
-    paste("Number of Incidents", nrow(df), sep = ": "),
-    startCol = 1,
-    startRow = 5
-  )
+  #add caveats to lfpse tab
+  if (database_name == "lfpse"){
   
-  note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
+    note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
            "Note: Where a question can have multiple answers, these have been seperated out so will sum to a larger number than the number of incidents.")
+    
+    # write note
+    writeData(
+      wb,
+      sheet,
+      note,
+      startCol = 1,
+      startRow = content_start_row,
+    )
   
+    content_start_row <- content_start_row + 3
+  }
+  
+  #get data
+  df_full <- get(str_glue("{database_name}_for_release_full_for_summary"))
   
   # write number of incidents
   writeData(
     wb,
     sheet,
-    note,
+    paste("Number of Incidents in Full Dataset", nrow(df_full), sep = ": "),
     startCol = 1,
-    startRow = 6,
+    startRow = content_start_row
   )
   
-  
+    
   #set start row for summary tables
-  start_row = 9
+  table_start_row = content_start_row + 2 
+  
+  #Add text style
+  addStyle(wb, sheet = sheet,  textStyle, rows = 1:(table_start_row - 1), cols = 1)
+  
   
   # loop through list- each item of list is one table
   for (category in summary_categories_list) {
@@ -78,10 +84,10 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     
     #work out if there is multi-select options in category 1 or 2
     
-    cat_1_multi <- df %>% mutate(cat_1_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_1_delim) %>% summarise(sum(cat_1_delim)>0) %>% pull()
-    cat_2_multi <- df %>% mutate(cat_2_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_2_delim) %>% summarise(sum(cat_2_delim)>0) %>% pull()
+    cat_1_multi <- df_full %>% mutate(cat_1_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_1_delim) %>% summarise(sum(cat_1_delim)>0) %>% pull()
+    cat_2_multi <- df_full %>% mutate(cat_2_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_2_delim) %>% summarise(sum(cat_2_delim)>0) %>% pull()
     
-    summary_table <- df
+    summary_table <- df_full
     
     #separate rows if there are multi select options present
     if (cat_1_multi){
@@ -109,25 +115,26 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
         mutate(percent = scales::percent(n / sum(n))) %>%
         adorn_totals('row')
     }
-    
-    print(summary_table)
+  
     #add summary table to sheet
-    writeData(wb, sheet, summary_table, startRow = start_row)
+    writeData(wb, sheet, summary_table, startRow = table_start_row)
     
-    # style table - header
+
+    # style table - header 
     addStyle(
       wb,
       sheet = sheet,
       headerStyle,
-      rows = start_row,
-      cols = 1:(ncol(summary_table))
+      rows = table_start_row,
+      cols = 1:ncol(summary_table)
     )
-    # style table- row titles
+    
+    # style table- row titles 
     addStyle(
       wb,
       sheet = sheet,
       rowTitleStyle,
-      rows = (start_row + 1):(nrow(summary_table) + start_row),
+      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
       cols = 1
     )
     #style table - main body
@@ -135,7 +142,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
       wb,
       sheet = sheet,
       bodyStyle,
-      rows = (start_row + 1):(nrow(summary_table) + start_row),
+      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
       cols = 2:(ncol(summary_table)),
       gridExpand = T
     )
@@ -145,13 +152,19 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     setRowHeights(
       wb,
       sheet = sheet,
-      rows = start_row:(start_row + nrow(summary_table)),
-      heights = 44
+      rows = table_start_row:(table_start_row + nrow(summary_table)),
+      heights = 50
     )
     # increment start row to allow next table to be further down on page
-    start_row <- start_row + nrow(summary_table) + 3
+    table_start_row <- table_start_row + nrow(summary_table) + 3
     
   }
+  
+  setColWidths(wb,
+               sheet = sheet,
+               cols = 1:15,
+               widths = 20)
+  
   return(wb)
 }
 

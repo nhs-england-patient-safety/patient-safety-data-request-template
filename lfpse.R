@@ -289,12 +289,12 @@ lfpse_pre_release <- lfpse_filtered_text |>
   
   lfpse_for_release_incident_level<- lfpse_sampled
   
-  lfpse_for_release_for_summary <- lfpse_pre_release |> 
+  lfpse_for_release_full_for_summary <- lfpse_pre_release |> 
     select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
     distinct(Reference, .keep_all = TRUE)
-                   
+  
   print(glue("- Final sampled {dataset} dataset contains {nrow(lfpse_for_release_incident_level)} incidents."))
-  print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_for_summary)} incidents."))
+  print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_full_for_summary)} incidents."))
   }else{
   print(glue("**The search criteria has produced no results in {dataset}**"))
   print(glue("Moving on..."))

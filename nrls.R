@@ -187,12 +187,11 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_pre_release
   }
 
-  
   nrls_for_release_incident_level<- nrls_sampled
-  nrls_for_release_for_summary <- nrls_pre_release
+  nrls_for_release_full_for_summary <- nrls_pre_release
   
   print(glue("- Final sampled {dataset} dataset contains {nrow(nrls_for_release_incident_level)} incidents."))
-  print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_for_summary)} incidents."))
+  print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_full_for_summary)} incidents."))
 } else {
   print(glue("**The search criteria has produced no results in {dataset}**"))
   print(glue("Moving on..."))

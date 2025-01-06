@@ -161,4 +161,3 @@ saveWorkbook(wb,
              overwrite = T)
 
 source('microsoft365R.R')
-

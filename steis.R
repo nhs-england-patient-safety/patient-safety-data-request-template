@@ -135,10 +135,10 @@ if(nrow(steis_filtered_text) != 0){
       )
     
     steis_for_release_incident_level<- steis_for_release
-    steis_for_release_for_summary <- steis_for_release
+    steis_for_release_full_for_summary <- steis_for_release
   }
   
-  print(glue("- Final {dataset} dataset contains {nrow(steis_for_release)} incidents."))
+  print(glue("- Final {dataset} dataset contains {nrow(steis_for_release_incident_level)} incidents."))
   
 } else {
   print(glue('**The search criteria has produced no results in {dataset}**'))
