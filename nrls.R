@@ -43,16 +43,39 @@ print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {a
 print(glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms)) > 0) {
   print(glue("Running {dataset} text search..."))
 
-  nrls_filtered_text <- nrls_filtered_categorical |>
-    filter(if_any(c(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~ str_detect(., text_terms)))
+  nrls_filtered_text_precursor <- nrls_filtered_categorical |>
+    mutate(concat_col = paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03, sep = " "))
+
+  # iterate through each group
+  groups <- names(text_terms)
+  for (group in groups) {
+    # iterate through each term
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      nrls_filtered_text_precursor <- nrls_filtered_text_precursor |>
+        # create column for term match
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
+    }
+
+    nrls_filtered_text_precursor <- nrls_filtered_text_precursor |>
+      # create column for group match
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
+  }
+
+  nrls_filtered_text <- nrls_filtered_text_precursor %>%
+    # apply text filter logic
+    filter(!!text_filter) %>%
+    # drop individual term columns
+    select(!c(contains("_term_"), concat_col))
 
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
+    
 }
 
 # label #### 
@@ -76,6 +99,7 @@ nrls_age_categorised <- nrls_labelled %>%
     concat_col = paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "_"),
     neopaeds_category = case_when(
       # Neonate by age: age is between 0 and 28 days
+<<<<<<< HEAD
       PD01_b == 1 | between(AGE_AT_INCIDENT, 0, 28/365) ~ 'neonates_by_age',
       # Neonate by specialty: neonatology
       PD05_lvl2 == 'Neonatology' ~ 'neonates_by_specialty',
@@ -89,6 +113,45 @@ nrls_age_categorised <- nrls_labelled %>%
       (PD04 == 'A paediatrics specialty' | PD20 == 'Yes') & str_detect(concat_col, paed_terms) ~ 'paeds_by_text'
       # otherwise other
       .default = "other"
+=======
+      (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
+        (str_detect(DV01, "^[D]([1-9]|1[0-9]|2[0-8])$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
+      
+      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "neonates_by_specialty",
+      
+      # Neonate by text: age is 0 or NA and text indicates neonate
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not neonate-related
+      TRUE ~ "other"
+    ),
+    paediatric_category = case_when(
+      # Paediatrics by age: age is between 28 days and 17 years
+      (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
+        (str_detect(DV01, "^[D]([2][9]|3[0-1])$") | str_detect(DV01, "^[W]([5-9]|[1-4][0-9]|5[0-2])$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
+      
+      # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "paediatrics_by_specialty",
+      
+      # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
+        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
+                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
+      
+      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
+                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
+      
+      # Default: not paediatrics-related
+      TRUE ~ "other"
+>>>>>>> 8fdedd64a7146e63b0ad1115b97e1bba239bd185
     )
   )
 
@@ -192,7 +255,8 @@ if (nrow(nrls_neopaed) != 0) {
       `MD31 Proprietary Name (Drug 2)` = MD31,
       `DE01 Type of Device` = DE01,
       `DE01 Type of device - free text` = DE01_TEXT,
-      `Date incident received by NRLS` = reported_date
+      `Date incident received by NRLS` = reported_date,
+      starts_with("group")
     ) |>
     remove_empty("cols")
 
