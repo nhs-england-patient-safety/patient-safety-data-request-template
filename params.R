@@ -13,11 +13,12 @@ search_steis <- T
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
+source("neopaeds.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
-end_date <- "2024-01-31"
-date_type <- "occurring"
+start_date <- "2022-03-26"
+end_date <- "2022-04-28"
+date_type <- "reported"
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"

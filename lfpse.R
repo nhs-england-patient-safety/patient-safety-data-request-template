@@ -87,9 +87,10 @@ if (!is.na(text_terms)) {
   lfpse_filtered_text <- lfpse_filtered_categorical
 }
 
-# Moving this here to facilitate the neonpaeds
+# labelling ####
+if (nrow(lfpse_filtered_text) != 0) {
 # Adding in field names
-lfpse_pre_release <- lfpse_filtered_text |>
+lfpse_labelled <- lfpse_filtered_text |>
   # pivot the coded columns
   pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
   # separate the multi-responses into single row per selection
@@ -117,70 +118,60 @@ lfpse_pre_release <- lfpse_filtered_text |>
   ungroup()
 
 
-# Testing neonate logic
-lfpse_with_category <- lfpse_pre_release %>%
+
+lfpse_age_classified <- lfpse_labelled %>%
   mutate(
-    neonate_category = case_when(
-      # Neonate by age: age is between 0 and 28 days
-      (P004_days > 0 & P004_days <= 28) |
-        (P007 %in% c("0-14 days", "15-28 days")) ~ "neonates_by_age",
-      
-      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
-      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
-        grepl("(?i)\\bneonat|\\bbaby", paste(L006, L006_Other, sep = "")) ~ "neonates_by_specialty",
-      
-      # Neonate by text: age is 0 or NA and text indicates neonate
-      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
-        str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""), 
-                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
-      
-      (str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""),
-                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
-      
-      # Default: not neonate-related
-      TRUE ~ "other"
+    concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
+    age_category = case_when(
+      (P004_days > 0 & P004_days <= 28) | (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
+      (P004_days > 28 & P004_days < 6696) | (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+     !is.na(P007) ~ 'adult estimated',
+     (P004 == 0 | is.na(P004)) ~ 'unknown',
+     .default = 'other' # includes those where age is below zero / above believable threshold
     ),
-    paediatric_category = case_when(
-      # Paediatrics by age: age is between 0 and 17 years
-      (P004_days > 28 & P004_days <= 6324) |
-        ( P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatrics_by_age",
+    neopaeds_category = case_when(
       
+      # Neonate by age: age is between 0 and 28 days
+      (age_category == 'neonate') ~ "neonate_by_age",
+      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+      (age_category == 'unknown' & str_detect(L006, neonatal_specialty_terms)) ~ "neonate_by_specialty",
+      # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
+      (age_category == 'unknown' & str_detect(concat_col, neonatal_terms) & !(str_detect(L006, adult_specialty_terms))) ~ "neonate_by_text",
+    
+      # Paediatrics by age: age is older than 1 month and younger than 18 years
+      age_category == 'paediatric' ~ "paediatric_by_age",
       # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
-      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
-        grepl("(?i)\\bpaed|\\bchild", paste(L006, L006_Other, sep = "")) ~ "paediatrics_by_specialty",
-      
+      (age_category == 'unknown' & str_detect(L006, neonatal_specialty_terms)) ~ "paediatric_by_specialty",
       # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-      (P004_days == 0 | is.na(P004_days) | is.na(P007)) &
-        str_detect(paste(F001, AC001, OT003, A008_Other, A008, L006, L006_Other, OT008, sep = ""), 
-                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
-      
-      (str_detect(paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = ""),
-                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
-      
+      (age_category == 'unknown' & str_detect(concat_col, paediatric_terms) & !(str_detect(L006, adult_specialty_terms))) ~ "paediatric_by_text",
       # Default: not neonate/paediatrics-related
-      TRUE ~ "other"
+      .default = NA
     )
   )
+
+} else {
+  print(glue("**Text filter produced no results in {dataset}**"))
+}
 
 # Now filter based on `is_neopaed` parameter
 if (is_neopaed == "neonate") {
   print("- Running neonate strategy...")
   
-  lfpse_neopaed <- lfpse_with_category %>%
+  lfpse_neopaed <- lfpse_age_classified %>%
     filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text") &
              neonate_category != "adult_specialty")
   
 } else if (is_neopaed == "paed") {
   print("- Running paediatric strategy...")
   
-  lfpse_neopaed <- lfpse_with_category %>%
+  lfpse_neopaed <- lfpse_age_classified %>%
     filter(paediatric_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text") &
              paediatric_category != "adult_specialty")
   
 } else if (is_neopaed == "none") {
   print("- Skipping neopaeds strategy...")
   
-  lfpse_neopaed <- lfpse_pre_release
+  lfpse_neopaed <- lfpse_age_classified
 }
 
 
@@ -231,7 +222,6 @@ if (nrow(lfpse_neopaed) != 0) {
     print("- Skipping sampling...")
     lfpse_sampled <- lfpse_neopaed
   }
-
 
   # columns for release ####
 lfpse_for_release <- lfpse_sampled |>

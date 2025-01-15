@@ -55,8 +55,8 @@ if (!is.na(text_terms)) {
   nrls_filtered_text <- nrls_filtered_categorical
 }
 
-# MW: Moving this here to facilitate the neopaeds
-nrls_pre_release <- nrls_filtered_text |>
+# label #### 
+nrls_labelled <- nrls_filtered_text |>
   pivot_longer(cols = any_of(codes$col_name)) |>
   left_join(codes, by = c(
     "name" = "col_name",
@@ -68,48 +68,27 @@ nrls_pre_release <- nrls_filtered_text |>
     values_from = OPTIONTEXT
   )
 
-# Testing neonate logic
-nrls_with_category <- nrls_pre_release %>%
+# Neonatal logic
+# AGE_AT_INCIDENT appears to be derived from DV01 so DV01 shouldn't need checking separately
+# it would be good to confirm this for PD01_b - if so, PD01_b references can be removed
+nrls_age_categorised <- nrls_labelled %>%
   mutate(
-    neonate_category = case_when(
+    concat_col = paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "_"),
+    neopaeds_category = case_when(
       # Neonate by age: age is between 0 and 28 days
-      (AGE_AT_INCIDENT > 0 & AGE_AT_INCIDENT <= 0.08) |
-        (str_detect(DV01, "^[D][1-9]$") | str_detect(DV01, "^[W][4]$")) ~ "neonates_by_age",
-      
-      # Neonate by specialty: age is 0 or NA and specialty indicates neonate
-      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
-        grepl("(?i)\\bneonat|\\bbaby", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "neonates_by_specialty",
-      
-      # Neonate by text: age is 0 or NA and text indicates neonate
-      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
-        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
-                   "(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bn(?:|\\W)n(?:|\\W)u\\b|\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b|\\bneonat|\\bbaby") ~ "neonates_by_text",
-      
-      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
-                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
-      
-      # Default: not neonate-related
-      TRUE ~ "other"
-    ),
-    paediatric_category = case_when(
-      # Paediatrics by age: age is between 28 days and 17 years
-      (AGE_AT_INCIDENT > 0.08 & AGE_AT_INCIDENT <= 17) |
-        (str_detect(DV01, "^[D]([2][9])|3[0-1])$") | str_detect(DV01, "^[W]([5-9]|[1-4][0-9]|5[0-2])$") | str_detect(DV01, "[Y]([1-9]|1[0-7])$")) ~ "paediatrics_by_age",
-      
-      # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
-      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
-        grepl("(?i)\\bpaed|\\bchild", paste(PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "")) ~ "paediatrics_by_specialty",
-      
-      # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-      (AGE_AT_INCIDENT == 0 | DV01 == "D0" | is.na(AGE_AT_INCIDENT) | is.na(DV01)) &
-        str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""), 
-                   "(?i)\\bp(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b|\\bc(?:|\\W)a(?:|\\W)m(?:|\\W)h(?:|\\W)s\\b|\\bpaed|\\binfant|\\bschool\\bchild") ~ "paediatrics_by_text",
-      
-      (str_detect(paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = ""),
-                  "(?i)\\badult|\\bold|\\belderly|\\bgeriat")) ~ "adult_specialty",
-      
-      # Default: not paediatrics-related
-      TRUE ~ "other"
+      PD01_b == 1 | between(AGE_AT_INCIDENT, 0, 28/365) ~ 'neonates_by_age',
+      # Neonate by specialty: neonatology
+      PD05_lvl2 == 'Neonatology' ~ 'neonates_by_specialty',
+      # Neonate by text: obs and gynae or paeds specialty and neo text terms found
+      (PD05_lvl1 == 'Obstetrics and gynaecology' | PD04 == 'A paediatrics specialty' | PD20 == 'Yes') & str_detect(concat_col, neo_terms) ~ 'neonates_by_text',
+      # paeds by age: between 28 days and 18 
+      (PD01_b > 1 & PD01_b <= 5) | (AGE_AT_INCIDENT >= (28/365) & AGE_AT_INCIDENT < 18) ~ 'paeds_by_age',
+      # paeds by specialty: camhs where age missing, or community paaeds / paedodontics
+      (PD05_lvl2 == 'Child and adolescent mental health' & (is.na(AGE_AT_INCIDENT) | is.na(PD01_b))) | PD05_lvl2 %in% c('Community paediatrics', 'Paedodontics') ~ 'paeds_by_specialty',
+      # paeds by text: paeds specialty and paeds terms found
+      (PD04 == 'A paediatrics specialty' | PD20 == 'Yes') & str_detect(concat_col, paed_terms) ~ 'paeds_by_text'
+      # otherwise other
+      .default = "other"
     )
   )
 
@@ -117,16 +96,14 @@ nrls_with_category <- nrls_pre_release %>%
 if (is_neopaed == "neonate") {
   print("- Running neonate strategy...")
   
-  nrls_neopaed <- nrls_with_category %>%
-    filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text") &
-             neonate_category != "adult_specialty")
+  nrls_neopaed <- nrls_age_categorised %>%
+    filter(neonate_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text"))
   
 } else if (is_neopaed == "paed") {
   print("- Running paediatric strategy...")
   
   nrls_neopaed <- nrls_with_category %>%
-    filter(paediatric_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text") &
-             paediatric_category != "adult_specialty")
+    filter(paediatric_category %in% c("paeds_by_age", "paeds_by_specialty", "paeds_by_text"))
   
 } else if (is_neopaed == "none") {
   print("- Skipping neopaeds strategy...")
