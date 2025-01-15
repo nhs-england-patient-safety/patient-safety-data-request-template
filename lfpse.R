@@ -239,12 +239,7 @@ if (nrow(lfpse_neopaed) != 0) {
     print("- Skipping sampling...")
     lfpse_sampled <- lfpse_neopaed
   }
-<<<<<<< HEAD
 
-=======
-  
-  
->>>>>>> 8fdedd64a7146e63b0ad1115b97e1bba239bd185
   # columns for release ####
 lfpse_for_release <- lfpse_sampled |>
     # select the columns for release
