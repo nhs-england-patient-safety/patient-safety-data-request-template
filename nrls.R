@@ -43,18 +43,40 @@ print(glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {a
 print(glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered_categorical), big.mark = ',')} incidents."))
 
 # text filters ####
-if (!is.na(text_terms)) {
+if (sum(!is.na(text_terms)) > 0) {
   print(glue("Running {dataset} text search..."))
-
-  nrls_filtered_text <- nrls_filtered_categorical |>
-    filter(if_any(c(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03), ~ str_detect(., text_terms)))
-
+  
+  nrls_filtered_text_precursor <- nrls_filtered_categorical |>
+    mutate(concat_col = paste(IN07, IN03_TEXT, IN05_TEXT, IN11, IN10, MD05, MD06, MD30, MD31, DE01_TEXT, DE03, sep = " "))
+  
+  # iterate through each group
+  groups <- names(text_terms)
+  for (group in groups) {
+    # iterate through each term
+    terms <- text_terms[[group]]
+    for (term in terms) {
+      nrls_filtered_text_precursor <- nrls_filtered_text_precursor |>
+        # create column for term match
+        mutate("{group}_term_{term}" := str_detect(concat_col, term))
+    }
+    
+    nrls_filtered_text_precursor <- nrls_filtered_text_precursor |>
+      # create column for group match
+      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
+  }
+  
+  nrls_filtered_text <- nrls_filtered_text_precursor %>%
+    # apply text filter logic
+    filter(!!text_filter) %>%
+    # drop individual term columns
+    select(!c(contains("_term_"), concat_col))
+  
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
+  
 }
-
 
 if(nrow(nrls_filtered_text) != 0){
 
