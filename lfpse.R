@@ -188,13 +188,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     print("- Running neonate strategy...")
     
     lfpse_neopaed <- lfpse_age_classified |>
-      filter(neopaeds_category %in% c("neonates_by_age", "neonates_by_specialty", "neonates_by_text"))
+      filter(neopaeds_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text"))
     
   } else if (is_neopaed == "paed") {
     print("- Running paediatric strategy...")
     
     lfpse_neopaed <- lfpse_age_classified |>
-      filter(neopaeds_category %in% c("paediatrics_by_age", "paediatrics_by_specialty", "paediatrics_by_text"))
+      filter(neopaeds_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text"))
     
   } else if (is_neopaed == "none") {
     print("- Skipping neopaeds strategy...")
@@ -292,7 +292,8 @@ if (nrow(lfpse_filtered_text) != 0) {
         "A002 - Medicine types involved" = A002,
         "A016 - BuildingsInfrastructure" = A016,
         "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
-        starts_with("group")
+        starts_with("group"),
+        `Categorisation (neonates, paediatric or other)` = neopaeds_category,
         # TODO: add age columns once DQ issues resolved
       )) |>
       remove_empty("cols")
