@@ -25,7 +25,7 @@ date_type <- "occurring"
 cols_to_extract <- "default"
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr(IN05_lvl1 == 10)
+nrls_categorical <- expr(IN05_LVL1 == 10)
 # lfpse categorical filters (wrap in expr() or set to 0)
 lfpse_categorical <- expr(A001 == '4')
 
@@ -42,6 +42,7 @@ text_terms <- list(
 )
  
 text_filter <- expr((group_A | group_B) & group_C)
+
 # text_terms<- list()
 # text_filter<- expr(0)
 
