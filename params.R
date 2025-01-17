@@ -52,5 +52,5 @@ sampling_strategy <- "default"
 # neopaed logic (neonate/paed/none)
 is_neopaed <- "neonate"
 
-
+source("functions.R")
 source("flow.R")
