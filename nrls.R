@@ -93,24 +93,26 @@ if(nrow(nrls_filtered_text) != 0){
   
   # Neonatal logic
   # AGE_AT_INCIDENT appears to be derived from DV01 so DV01 shouldn't need checking separately
-  # it would be good to confirm this for PD01_b - if so, PD01_b references can be removed
+  # Searching PD01_B doesn't contain any more information than  AGE_AT_INCIDENTS (from SQL searches)- presume derived field, and removed it
   nrls_age_categorised <- nrls_labelled %>%
     mutate(
       concat_col = paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = "_"),
       neopaeds_category = case_when(
         # Neonate by age: age is between 0 and 28 days
-        PD01_B == 1 | between(AGE_AT_INCIDENT, 0, 28/365) ~ 'neonates_by_age',
+        between(AGE_AT_INCIDENT, 0, 28/365) ~ 'neonates_by_age',
         # Neonate by specialty: neonatology
         PD05_LVL2 == 'Neonatology' ~ 'neonates_by_specialty',
         # Neonate by text: obs and gynae or paeds specialty and neo text terms found
         (PD05_LVL1 == 'Obstetrics and gynaecology' | PD04 == 'A paediatrics specialty' | PD20 == 'Yes') & str_detect(concat_col, neonatal_terms) ~ 'neonates_by_text',
+        
         # paeds by age: between 28 days and 18 
-        (PD01_B > 1 & PD01_B <= 5) | (AGE_AT_INCIDENT >= (28/365) & AGE_AT_INCIDENT < 18) ~ 'paeds_by_age',
+        (AGE_AT_INCIDENT >= (28/365) & AGE_AT_INCIDENT < 18) ~ 'paeds_by_age',
         # paeds by specialty: camhs where age missing, or community paaeds / paedodontics
-        (PD05_LVL2 == 'Child and adolescent mental health' & (is.na(AGE_AT_INCIDENT) | is.na(PD01_B))) | PD05_LVL2 %in% c('Community paediatrics', 'Paedodontics') ~ 'paeds_by_specialty',
+        (PD05_LVL2 == 'Child and adolescent mental health' & is.na(AGE_AT_INCIDENT) ) | PD05_LVL2 %in% c('Community paediatrics', 'Paedodontics') ~ 'paeds_by_specialty',
         # paeds by text: paeds specialty and paeds terms found
         (PD04 == 'A paediatrics specialty' | PD20 == 'Yes') & str_detect(concat_col, paediatric_terms) ~ 'paeds_by_text',
-        # otherwise other
+       
+         # otherwise other
         .default = "other"
       )
     )
