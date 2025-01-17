@@ -64,7 +64,10 @@ metadata <- c(
   "",
   "LFPSE categorical criteria:",
   "",
-  "Free text filters:"
+  "Free text filters:",
+  "",
+  "",
+  "Neopaeds logic:"
 )
 
 ref_no <- substr(title, 5, 8)
@@ -102,7 +105,9 @@ metadata_answers <- c(
   deparse(lfpse_categorical, width.cutoff = 500),
   "",
   deparse(text_terms,width.cutoff = 500),
-  deparse(text_filter, width.cutoff = 500)
+  deparse(text_filter, width.cutoff = 500),
+  "",
+  is_neopaed
 )
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
