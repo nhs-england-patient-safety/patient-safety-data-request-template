@@ -274,6 +274,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         "F001 - Describe what happened" = F001,
         "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
         "OT003 - What was the clinical outcome for the patient?" = OT003,
+        "WW001 - What could be done to reduce the risk or impact of this happening again" = WW001,
         "A008 - Device Type" = A008,
         "A008 - Device Type (Other)" = A008_Other,
         "A001 - Involved Agents" = A001,
