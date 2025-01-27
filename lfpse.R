@@ -4,7 +4,7 @@ print(glue("Running {dataset} search..."))
 
 if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
-}
+} 
 
 # set latest revision table from events
 latest_revision_table <- tbl(con_lfpse, in_schema("analysis", "Events")) |>
@@ -160,9 +160,9 @@ if (nrow(lfpse_filtered_text) != 0) {
       age_category = case_when(
         (P004_days_validated > 0 & P004_days_validated <= 28) | (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
         (P004_days_validated > 28 & P004_days_validated < 6696) | (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
-       !is.na(P007) ~ 'adult estimated',
-       (P004 == 0 | is.na(P004)) ~ 'unknown',
-       .default = 'other' # includes those where age is below zero / above believable threshold
+        (!is.na(P007)|!is.na(P004_days_validated)) ~ 'adult estimated',
+       is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
+       .default = 'other' 
       ),
       neopaeds_category = case_when(
         
