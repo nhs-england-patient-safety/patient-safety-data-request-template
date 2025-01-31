@@ -157,16 +157,13 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
        is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
        .default = 'other' 
       ),
+      L006 = if_else(is.na(L006),"", L006), #required for text search to work as expected
       neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
       neonate_terms_flag_no_baby = str_detect(concat_col, neonatal_terms_no_baby),
       adult_specialty_flag = str_detect(L006, adult_specialty_terms),
       paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
-      paediatric_term_flag = str_detect(concat_col, paediatric_terms)) #|>
-    # #for speed reasons, filter for relevant flags
-    # filter(age_category %in% c("neonate","paediatric") | 
-    #          neonate_specialty_flag | neonate_terms_flag| neonate_terms_flag_no_baby| 
-    #          paediatric_specialty_flag| paediatric_term_flag)
+      paediatric_term_flag = str_detect(concat_col, paediatric_terms))
   
   lfpse_age_classified_with_categorisation <- 
     lfpse_age_classified |>
@@ -185,7 +182,7 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
         (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not neonate/paediatrics-related
-        .default = NA
+        .default = "adult"
       ),
       neopaeds_category_without_baby = case_when(
         # Neonate by age: age is between 0 and 28 days
@@ -201,7 +198,7 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
         (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not neonate/paediatrics-related
-        .default = NA
+        .default = "adult"
       ),
       neopaeds_category_reorder = case_when(
         # Neonate by age: age is between 0 and 28 days
@@ -217,7 +214,7 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
         (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not neonate/paediatrics-related
-        .default = NA
+        .default = "adult"
       ),
       neopaeds_category_age_not_unknown = case_when(
         # Neonate by age: age is between 0 and 28 days
@@ -233,64 +230,153 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
         (paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not neonate/paediatrics-related
-        .default = NA
+        .default = "adult"
+      ),
+      neopaeds_category_not_well_baby= case_when(
+        # Neonate by age: age is between 0 and 28 days
+        age_category == 'neonate' ~ "neonate_by_age",
+        # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+        age_category == 'unknown' &  str_detect(L006, "(?i)\\bneonat") ~ "neonate_by_specialty",
+        # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
+        (age_category == 'unknown' & neonate_terms_flag_no_baby & ! adult_specialty_flag) ~ "neonate_by_text",
+        # Paediatrics by age: age is older than 1 month and younger than 18 years
+        age_category == 'paediatric' ~ "paediatric_by_age",
+        # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+        (age_category == 'unknown' & paediatric_specialty_flag) ~ "paediatric_by_specialty",
+        # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+        (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
+        # Default: not neonate/paediatrics-related
+        .default = "adult"
       )
-    )
-  
-  lfpse_without_baby<- lfpse_age_classified_with_categorisation %>%
-    filter(neopaeds_category!=neopaeds_category_without_baby)
-  write.csv(lfpse_without_baby, "data/lfpse_without_baby.csv")
-  
-  lfpse_without_baby %>%
-    count(neopaeds_category, neopaeds_category_without_baby)
-   #neonates by text categorised as paediatric by specialty or text
-  lfpse_without_baby %>%
-    count(neopaeds_category, neopaeds_category_without_baby, L006)
-  # these appear to be a mix of older babies and neonates (although most appear to be neonates)- is there a different set of terms to use instead of baby?
+      )
   
   
-  
-  set.seed(123)
-  sample_without_baby_ps <-lfpse_without_baby %>% 
-    select(L006, concat_col:neopaeds_category_age_not_unknown) %>% 
-    filter(neopaeds_category_without_baby == "paediatric_by_specialty") %>%
-    sample_n(50) 
-  sample_without_baby_pt <-lfpse_without_baby %>% 
-    select(L006, concat_col:neopaeds_category_age_not_unknown) %>% 
-    filter(neopaeds_category_without_baby == "paediatric_by_text") %>%
-    sample_n(50) 
-  
-  lfpse_age_not_unknown <-lfpse_age_classified_with_categorisation %>%
-    filter(neopaeds_category!=neopaeds_category_age_not_unknown) 
-  write.csv(lfpse_age_not_unknown, "data/lfpse_age_not_unknown.csv")
-  lfpse_age_not_unknown%>%
-    count(neopaeds_category, neopaeds_category_age_not_unknown, neopaeds_category_reorder)
-  # setting age to be unknown means more incidents are categorised as paediatric (would have been categorised as neonate otherwise)
+  #get counts 
   
   lfpse_age_classified_with_categorisation %>% 
-    count(neopaeds_category, neopaeds_category_without_baby, neopaeds_category_reorder, neopaeds_category_age_not_unknown, sort=T)
+    mutate(neopaeds_shorter= str_sub(neopaeds_category,1,6)) %>%
+    count(neopaeds_shorter)
+  lfpse_age_classified_with_categorisation %>% count(neopaeds_category)
   
   
-  lfpse_reorder <-lfpse_age_classified_with_categorisation %>%
-    filter(neopaeds_category != neopaeds_category_reorder)
+  # get counts with "baby"
+ neonate_by_text_baby<- lfpse_age_classified_with_categorisation %>%
+    filter(neopaeds_category=="neonate_by_text") %>%
+    mutate(nicu=str_detect(concat_col,"(?i)\\bn(?:|\\W)i(?:|\\W)c(?:|\\W)u\\b"),
+           nnu=str_detect(concat_col,"(?i)\\bn(?:|\\W)n(?:|\\W)u\\b"),
+           scbu= str_detect(concat_col,"(?i)\\bs(?:|\\W)c(?:|\\W)b(?:|\\W)u\\b"),
+           neonat=str_detect(concat_col,"(?i)\\bneonat"),
+           baby = str_detect(concat_col,"(?i)\\bbaby")) %>%
+    mutate(non_baby_flag=nicu + nnu + scbu + neonat)
   
-  write.csv(lfpse_reorder,"data/lfpse_reorder")
-  lfpse_reorder %>% count(neopaeds_category, neopaeds_category_reorder)
- # reordering means neonate by text are paediatric by specialty
   
-  lfpse_reorder %>% count(L006, neopaeds_category, neopaeds_category_reorder, sort=T)
-  # reordering means neonate by text are paediatric by specialty
+  neonate_by_text_baby %>% 
+    count(non_baby_flag>0, baby)
+  neonate_by_text_filter_baby_only<- neonate_by_text_baby %>% filter(non_baby_flag==0, baby)
   
-  sample_reorder <-lfpse_reorder    %>%
-    select(L006, concat_col:neopaeds_category_age_not_unknown) %>% 
-    sample_n(50) 
-  # mix of paeds and 
+  #what does removing "baby" do
+  neonate_by_text_baby %>% 
+    filter(neopaeds_category!=neopaeds_category_without_baby) %>%
+    count(neopaeds_category, neopaeds_category_without_baby)
   
-  lfpse_reorder %>% count(L006, sort=T)
+  lfpse_age_classified_with_categorisation %>% 
+    filter(neopaeds_category!=neopaeds_category_without_baby) %>%
+    count(neopaeds_category, neopaeds_category_without_baby)
+  #what does reordering do FOR THESE SPECIFIC INCIDENTS
+  neonate_by_text_baby %>% 
+    filter(neopaeds_category!=neopaeds_category_reorder) %>%
+    count(neopaeds_category, neopaeds_category_reorder)
+  #what would reordering do for all incidents
+  lfpse_age_classified_with_categorisation %>% 
+    filter(neopaeds_category!=neopaeds_category_reorder) %>%
+    count(neopaeds_category, neopaeds_category_reorder)
   
-  # would child and adolescent psychiatry ever be a neonate?
+  #neonate specialties
+  lfpse_age_classified_with_categorisation %>% 
+    filter(neopaeds_category=="neonate_by_specialty") %>%
+    count(L006)
   
-  well_baby_service<-lfpse_age_classified_with_categorisation %>% filter(str_detect(L006, "Well"))
- write.csv(well_baby_service, "data/well_baby_service.csv")
-  well_baby_service %>% count(neopaeds_category, neopaeds_category_reorder, neopaeds_category_without_baby, neopaeds_category_age_not_unknown, sort=T)  
-  # reordering doesn't effect - looks like filtering for age unknown is helping                          
+  #well baby filter
+  well_baby_neonate_specialty<-lfpse_age_classified_with_categorisation %>%
+    filter(neopaeds_category=="neonate_by_specialty") %>%
+    filter(str_detect(L006, "Well"))
+  
+  #effect of removing well baby clinic 
+  lfpse_age_classified_with_categorisation %>% 
+    filter(neopaeds_category!=neopaeds_category_not_well_baby)%>%
+    count(neopaeds_category, neopaeds_category_not_well_baby)
+ 
+   well_baby_neonate_specialty %>% 
+    filter(neopaeds_category!=neopaeds_category_not_well_baby)%>%
+    count(neopaeds_category, neopaeds_category_not_well_baby)
+  
+  #effecting of reordering for well baby specialty
+  well_baby_neonate_specialty %>% 
+    filter(neopaeds_category!=neopaeds_category_reorder)%>%
+    count(neopaeds_category, neopaeds_category_reorder)
+  
+  
+  #effect of unknown
+  
+  lfpse_age_classified_with_categorisation %>% 
+    filter(neopaeds_category!=neopaeds_category_age_not_unknown)%>%
+    count(neopaeds_category,neopaeds_category_age_not_unknown)
+  
+  
+  lfpse_age_classified_with_categorisation <- 
+    lfpse_age_classified_with_categorisation |>
+    mutate(
+      neonate_by_age = 
+        # Neonate by age: age is between 0 and 28 days
+        age_category == 'neonate' ,
+      neonate_by_specialty=
+        # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+        age_category == 'unknown' &  neonate_specialty_flag ,
+      neonate_by_text = 
+        # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
+        (age_category == 'unknown' & neonate_terms_flag & ! adult_specialty_flag),
+      paediatric_by_age= 
+        # Paediatrics by age: age is older than 1 month and younger than 18 years
+        age_category == 'paediatric' ,
+      paediatric_by_specialty=
+        # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+        (age_category == 'unknown' & paediatric_specialty_flag),
+      paediatrics_by_text = 
+        # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+        (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag)
+    )
+  
+
+  #how often are things categorised as neonate and paediatric
+  lfpse_age_classified_with_categorisation<-lfpse_age_classified_with_categorisation %>% 
+    mutate(neonate=neonate_by_age+ neonate_by_specialty+ neonate_by_text,
+           paediatric= paediatric_by_age + paediatric_by_specialty+ paediatrics_by_text) 
+  lfpse_age_classified_with_categorisation%>%
+    count(neonate>0 & paediatric>0) 
+  
+
+  #what are the categories when both neonate and paeditric
+  categories_neonate_and_paed<-lfpse_age_classified_with_categorisation %>%
+    filter(neonate>0 & paediatric>0) %>%
+    count(neonate_by_age, neonate_by_specialty, neonate_by_text,
+          paediatric_by_age, paediatric_by_specialty, paediatrics_by_text, sort=T)
+  
+  
+  
+  lfpse_age_classified_with_categorisation %>%
+     filter(neopaeds_category!=neopaeds_category_reorder) %>%
+     count(neopaeds_category, neopaeds_category_reorder)
+  
+  
+  #age validation
+  lfpse_age_classified_with_categorisation %>% filter(is.na(P004_days_validated)) %>%nrow()/  nrow(lfpse_age_classified_with_categorisation)
+  # % of incidents in lfpse with no valid age
+  lfpse_age_classified_with_categorisation %>% filter((!is.na(P004_days) & P004_days!=0) & is.na(P004_days_validated)) %>%nrow()/  nrow(lfpse_age_classified_with_categorisation)
+  # % of incidents with a value in P004 with an invalid age
+  lfpse_age_classified_with_categorisation %>% filter(!is.na(P004_days) & is.na(P004_days_validated)) %>%nrow()/  nrow(lfpse_age_classified_with_categorisation)
+  #% of incidents with a non 0 value in P004 with an invalid age
+  lfpse_age_classified_with_categorisation %>% filter(age_category=="unknown") %>%nrow() / nrow(lfpse_age_classified_with_categorisation)
+  #% of incidents with an unknown age category
+  
+
+  
