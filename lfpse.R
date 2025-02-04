@@ -213,33 +213,35 @@ lfpse_pre_release <- lfpse_filtered_text |>
     # TODO: add age columns once DQ issues resolved
   )) |>
   mutate(
-    `Largest physical harm (across all patients in incident)` = fct_relevel(
+    `Largest physical harm (across all patients in incident)` = factor(
       `Largest physical harm (across all patients in incident)`,
-      "No physical harm",
+      levels= c("No physical harm",
       "Low physical harm",
       "Moderate physical harm",
       "Severe physical harm",
-      "Fatal"
+      "Fatal")
     ),
-    `Largest psychological harm (across all patients in incident)` = fct_relevel(
-      `Largest psychological harm (across all patients in incident)`,
-      "No psychological harm",
-      "Low psychological harm",
-      "Moderate psychological harm",
-      "Severe psychological harm"
-    ),
-    `Largest physical or psychological harm (across all patients in incident)` = fct_relevel(
+  `Largest psychological harm (across all patients in incident)` = factor(
+    `Largest psychological harm (across all patients in incident)`,
+    levels= c("No psychological harm",
+    "Low psychological harm",
+    "Moderate psychological harm",
+    "Severe psychological harm")
+  ),
+    `Largest physical or psychological harm (across all patients in incident)` = factor(
       `Largest physical or psychological harm (across all patients in incident)`,
-      "No harm",
+     levels=c(
+       "No harm",
       "Low harm",
       "Moderate harm",
       "Severe harm",
-      "Fatal"
+      "Fatal")
     ),
     `Month of Incident` = fct_relevel(
       `Month of Incident`,
       month.abb
-    ))|>
+    )
+    )|>
   remove_empty("cols")
 # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)

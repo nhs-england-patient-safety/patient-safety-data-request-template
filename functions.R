@@ -100,7 +100,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     }
     
     summary_table <- summary_table |>
-      count(!!category[[1]], !!category[[2]])
+      count(!!category[[1]], !!category[[2]], .drop= FALSE)
     
     # if 2 variables add row and column totals
     if (!one_variable) {

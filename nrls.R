@@ -34,7 +34,7 @@ nrls_filtered_categorical <- nrls_parsed |>
   # collecting here so that we can apply text filters later
   collect() |>
   mutate(year_of_incident = year(occurred_date),
-                    month_of_incident = month(occurred_date, label = TRUE, abbr = TRUE))
+         month_of_incident = as.character(month(occurred_date, label = TRUE, abbr = TRUE)))
 
 toc_nrls <- Sys.time()
 
@@ -140,14 +140,17 @@ if (nrow(nrls_filtered_text) != 0) {
       starts_with("group_")
     ) |>
     mutate(
-      `PD09 Degree of harm (severity)` = fct_relevel(
-        `PD09 Degree of harm (severity)`,
-        "No Harm",
-        "Low",
-        "Moderate",
-        "Severe",
-        "Death"
-      ))|>
+      `PD09 Degree of harm (severity)`= factor(`PD09 Degree of harm (severity)`,
+                                               levels= c("No Harm",
+                                                         "Low",
+                                                         "Moderate",
+                                                         "Severe",
+                                                         "Death")),
+      `Month of Incident` = fct_relevel(
+        `Month of Incident`,
+        month.abb
+      )
+      )|>
     remove_empty("cols")
 # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
