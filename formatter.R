@@ -124,19 +124,17 @@ writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 for (i in file_list) {
   
   database_name <- str_split_i(i, "_", 1)
-  print(database_name)
-  
-  sheet_name <- str_extract(i, "^([^_])+") |> 
+
+  sheet_base_name <- str_extract(i, "^([^_])+") |> 
     toupper() |> 
     str_replace("STEIS", "StEIS") 
-  
-  if (type_of_output=="summary"){
-    wb<-add_summary_sheet(wb, title, database_name, sheet_name)
-  }else if (type_of_output=="summary_plus_incident_level"){
-    wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_name} - Data"))
-    wb<-add_summary_sheet(wb, title, database_name,  str_glue("{sheet_name} - Summary"))
-  } else{
-    print("type_of_output not valid")
+
+    wb<-add_summary_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Summary"))
+    
+    if (incident_level_required=="yes"){
+      wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Data"))
+    }else{
+      print("incident_level_required not valid. Only the summary sheet has been added.")
   }
   
 }

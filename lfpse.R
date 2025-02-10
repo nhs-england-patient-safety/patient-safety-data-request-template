@@ -103,10 +103,11 @@ print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {
 
 print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
-# text filters ####
+# text filters 
 if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
-  
+
+  #A002 may need to be added for a medication incident
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
     mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
   
@@ -126,7 +127,6 @@ if (sum(!is.na(text_terms))>0) {
     filter(!!text_filter) %>%
     select(!c(contains("_term_"), concat_col))
   
-  #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
   print("- No text terms supplied. Skipping text search...")
@@ -135,171 +135,173 @@ if (sum(!is.na(text_terms))>0) {
 
 # check whether the text search generated results
 if (nrow(lfpse_filtered_text) != 0) {
-  # Moving this here to facilitate the neonpaeds
-# Adding in field names
-lfpse_pre_release <- lfpse_filtered_text |>
-  # pivot the coded columns
-  pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
-  # separate the multi-responses into single row per selection
-  separate_rows(value, sep = " {~@~} ") |>
-  # arrange so that multi-responses appear alphabetised later
-  arrange(value) |>
-  # bring through the value labels
-  left_join(ResponseReference, by = c(
-    "name" = "QuestionId",
-    "value" = "ResponseCode",
-    "TaxonomyVersion" = "TaxonomyVersion"
-  )) |>
-  # remove the unnecessary columns
-  select(!c(value, Property, LastUpdated, IsActive)) |>
-  # pivot back into columns
-  pivot_wider(
-    id_cols = !any_of(ResponseReference$QuestionId),
-    names_from = name,
-    values_from = ResponseText,
-    # collapse multi-responses into single row per entity
-    values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
-  ) |>
-  group_by(Reference) |>
-  mutate(npatient = max(EntityId)) |>
-  ungroup()|>
-  # select the columns for release
-  select(c(
-    Reference,
-    TaxonomyVersion,
-    Revision,
-    OccurredOrganisationCode,
-    ReporterOrganisationCode,
-    reported_date,
-    "Month of Incident" = month_of_incident,
-    "Year of Incident" = year_of_incident,
-    "Number of patients" = npatient,
-    "Patient no." = EntityId,
-    "T005 - Event date" = occurred_date,
-    # TODO: check whether these are needed
-    # "T005 - Event year" = year(T005),
-    # "T005 - Event moth" = month(T005),
-    "P004 - Age in days" = P004_days, 
-    "P007 - Age Range" = P007,
-    "L003 - Service Area" = L003,
-    "L004 - Location Within Service" = L004,
-    "L006 - Specialty" = L006,
-    "L006_Other - Specialty (Other)" = L006_Other,
-    "F001 - Describe what happened" = F001,
-    "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
-    "OT003 - What was the clinical outcome for the patient?" = OT003,
-    "A008 - Device Type" = A008,
-    "A008 - Device Type (Other)" = A008_Other,
-    "A001 - Involved Agents" = A001,
-    "AC001 - Immediate Actions" = AC001,
-    "CL001 - Event Type" = CL001,
-    "CL021 - Reference Number (Optional)" = CL021,
-    "CL022 - From Online Forms" = CL022,
-    "L001 - Organisation Known" = L001,
-    "L002 - Organisation" = L002,
-    "R006 - Reporter Organisation" = R006,
-    "R006_Other - Reporter Organisation (Other)" = R006_Other,
-    "RI003 - Is there imminent risk of severe harm or death?" = RI003,
-    "OT001 - Physical harm" = OT001,
-    "OT002 - Psychological harm" = OT002,
-    "OT008 - Outcome Type" = OT008,
-    "A002 - Medicine types involved" = A002,
-    "A016 - BuildingsInfrastructure" = A016,
-    "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
-    "Largest physical or psychological harm (across all patients in incident)" =  max_harm_level,
-    "Largest psychological harm (across all patients in incident)" =  max_psychological_harm_level,
-    "Largest physical harm (across all patients in incident)" =  max_physical_harm_level,
-    starts_with("group")
-    # TODO: add age columns once DQ issues resolved
-  )) |>
-  mutate(
-    `Largest physical harm (across all patients in incident)` = factor(
-      `Largest physical harm (across all patients in incident)`,
-      levels= c("No physical harm",
-      "Low physical harm",
-      "Moderate physical harm",
-      "Severe physical harm",
-      "Fatal")
-    ),
-  `Largest psychological harm (across all patients in incident)` = factor(
-    `Largest psychological harm (across all patients in incident)`,
-    levels= c("No psychological harm",
-    "Low psychological harm",
-    "Moderate psychological harm",
-    "Severe psychological harm")
-  ),
-    `Largest physical or psychological harm (across all patients in incident)` = factor(
-      `Largest physical or psychological harm (across all patients in incident)`,
-     levels=c(
-       "No harm",
-      "Low harm",
-      "Moderate harm",
-      "Severe harm",
-      "Fatal")
-    ),
-    `Month of Incident` = fct_relevel(
-      `Month of Incident`,
-      month.abb
-    )
-    )|>
-  remove_empty("cols")
-# sampling ####
-  # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
-  if (sampling_strategy == "default") {
-    if (nrow(lfpse_pre_release) > 300) {
-      print("- Sampling according to default strategy...")
-      lfpse_death_severe <- lfpse_pre_release |>
-        # deaths or severe physical / psychological harm
-        filter(`OT001 - Physical harm` %in% c("Fatal", "Severe physical harm") |
-                 `OT002 - Psychological harm` == "Severe psychological harm")
-      
+    # Moving this here to facilitate the neonpaeds
+  # Adding in field names
+  lfpse_labelled <- lfpse_filtered_text |>
+    # pivot the coded columns
+    pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
+    # separate the multi-responses into single row per selection
+    separate_rows(value, sep = " {~@~} ") |>
+    # arrange so that multi-responses appear alphabetised later
+    arrange(value) |>
+    # bring through the value labels
+    left_join(ResponseReference, by = c(
+      "name" = "QuestionId",
+      "value" = "ResponseCode",
+      "TaxonomyVersion" = "TaxonomyVersion"
+    )) |>
+    # remove the unnecessary columns
+    select(!c(value, Property, LastUpdated, IsActive)) |>
+    # pivot back into columns
+    pivot_wider(
+      id_cols = !any_of(ResponseReference$QuestionId),
+      names_from = name,
+      values_from = ResponseText,
+      # collapse multi-responses into single row per entity
+      values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
+    ) |>
+    group_by(Reference) |>
+    mutate(npatient = max(EntityId),
+           max_physical_harm_level = factor(
+             max_physical_harm_level,
+             levels= c("No physical harm",
+                         "Low physical harm",
+                         "Moderate physical harm",
+                         "Severe physical harm",
+                         "Fatal")
+             ),
+           max_psychological_harm_level = factor(
+             max_psychological_harm_level,
+             levels= c("No psychological harm",
+                         "Low psychological harm",
+                         "Moderate psychological harm",
+                         "Severe psychological harm")
+             ),
+             max_harm_level = factor(
+                max_harm_level,
+                 levels=c(
+                  "No harm",
+                  "Low harm",
+                  "Moderate harm",
+                  "Severe harm",
+                  "Fatal")
+             ),
+           month_of_incident = fct_relevel(
+             month_of_incident,
+              month.abb
+             )) |>
+    ungroup()
+  
+  lfpse_selected_columns <- lfpse_labelled|>
+    # select the columns for release
+    select(c(
+      Reference,
+      TaxonomyVersion,
+      Revision,
+      OccurredOrganisationCode,
+      ReporterOrganisationCode,
+      reported_date,
+      "Month of Incident" = month_of_incident,
+      "Year of Incident" = year_of_incident,
+      "Number of patients" = npatient,
+      "Patient no." = EntityId,
+      "T005 - Event date" = occurred_date,
+      # TODO: check whether these are needed
+      # "T005 - Event year" = year(T005),
+      # "T005 - Event moth" = month(T005),
+      "P004 - Age in days" = P004_days, 
+      "P007 - Age Range" = P007,
+      "L003 - Service Area" = L003,
+      "L004 - Location Within Service" = L004,
+      "L006 - Specialty" = L006,
+      "L006_Other - Specialty (Other)" = L006_Other,
+      "F001 - Describe what happened" = F001,
+      "AC001 - What was done immediately to reduce harm caused by the event?" = AC001,
+      "OT003 - What was the clinical outcome for the patient?" = OT003,
+      "A008 - Device Type" = A008,
+      "A008 - Device Type (Other)" = A008_Other,
+      "A001 - Involved Agents" = A001,
+      "AC001 - Immediate Actions" = AC001,
+      "CL001 - Event Type" = CL001,
+      "CL021 - Reference Number (Optional)" = CL021,
+      "CL022 - From Online Forms" = CL022,
+      "L001 - Organisation Known" = L001,
+      "L002 - Organisation" = L002,
+      "R006 - Reporter Organisation" = R006,
+      "R006_Other - Reporter Organisation (Other)" = R006_Other,
+      "RI003 - Is there imminent risk of severe harm or death?" = RI003,
+      "OT001 - Physical harm" = OT001,
+      "OT002 - Psychological harm" = OT002,
+      "OT008 - Outcome Type" = OT008,
+      "A002 - Medicine types involved" = A002,
+      "A016 - BuildingsInfrastructure" = A016,
+      "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
+      #"Largest physical or psychological harm (across all patients in incident)" =  max_harm_level,
+      "Largest psychological harm (across all patients in incident)" =  max_psychological_harm_level,
+      "Largest physical harm (across all patients in incident)" =  max_physical_harm_level,
+      starts_with("group")
+      # TODO: add age columns once DQ issues resolved
+    ))
+  
+  
+  # sampling ####
+    # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
+    if (sampling_strategy == "default") {
+      if (nrow(lfpse_selected_columns) > 300) {
+        print("- Sampling according to default strategy...")
+        lfpse_death_severe <- lfpse_selected_columns |>
+          # deaths or severe physical / psychological harm
+          filter(`OT001 - Physical harm` %in% c("Fatal", "Severe physical harm") |
+                   `OT002 - Psychological harm` == "Severe psychological harm")
+        
+        set.seed(123)
+        lfpse_moderate <- lfpse_selected_columns |>
+          # moderate physical / psychological harm
+          filter(`OT001 - Physical harm` == "Moderate physical harm" | 
+                   `OT002 - Psychological harm` == "Moderate psychological harm") |>
+          collect() |>
+          sample_n(min(n(), 100))
+        
+        set.seed(123)
+        lfpse_low_no_other <- lfpse_selected_columns |>
+          filter(
+            !`OT001 - Physical harm` %in% c("Fatal", "Severe physical harm", "Moderate physical harm"),
+            !`OT002 - Psychological harm` %in% c("Severe psychological harm", "Moderate psychological harm")
+          ) |>
+          collect() |>
+          sample_n(min(n(), 100))
+        
+        lfpse_sampled <- bind_rows(
+          lfpse_death_severe,
+          lfpse_moderate,
+          lfpse_low_no_other
+        )
+      } else {
+        print("- Sampling not required, default threshold not met.")
+        lfpse_sampled <- lfpse_selected_columns
+      }
+    } else if (sampling_strategy == "FOI") {
+      print("- Extracting a sample of 30 incidents for redaction...")
       set.seed(123)
-      lfpse_moderate <- lfpse_pre_release |>
-        # moderate physical / psychological harm
-        filter(`OT001 - Physical harm` == "Moderate physical harm" | `OT002 - Psychological harm` == "Moderate psychological harm") |>
-        collect() |>
-        sample_n(min(n(), 100))
-      
-      set.seed(123)
-      lfpse_low_no_other <- lfpse_pre_release |>
-        filter(
-          !`OT001 - Physical harm` %in% c("Fatal", "Severe physical harm", "Moderate physical harm"),
-          !`OT002 - Psychological harm` %in% c("Severe psychological harm", "Moderate psychological harm")
-        ) |>
-        collect() |>
-        sample_n(min(n(), 100))
-      
-      lfpse_sampled <- bind_rows(
-        lfpse_death_severe,
-        lfpse_moderate,
-        lfpse_low_no_other
-      )
-    } else {
-      print("- Sampling not required, default threshold not met.")
-      lfpse_sampled <- lfpse_pre_release
+      lfpse_sampled <- lfpse_selected_columns |>
+        distinct(Reference, .keep_all = T) |>
+        sample_n(min(n(), 30))
+    } else if (sampling_strategy == "none") {
+      print("- Skipping sampling...")
+      lfpse_sampled <- lfpse_selected_columns
     }
-  } else if (sampling_strategy == "FOI") {
-    print("- Extracting a sample of 30 incidents for redaction...")
-    set.seed(123)
-    lfpse_sampled <- lfpse_pre_release |>
-      distinct(Reference, .keep_all = T) |>
-      sample_n(min(n(), 30))
-  } else if (sampling_strategy == "none") {
-    print("- Skipping sampling...")
-    lfpse_sampled <- lfpse_pre_release
-  }
-  
-  lfpse_for_release_incident_level<- lfpse_sampled
-  
-  lfpse_for_release_full_for_summary <- lfpse_pre_release |> 
-    select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
-    distinct(Reference, .keep_all = TRUE)
-  
-  print(glue("- Final sampled {dataset} dataset contains {nrow(lfpse_for_release_incident_level)} incidents."))
-  print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_full_for_summary)} incidents."))
-  }else{
-  print(glue("**The search criteria has produced no results in {dataset}**"))
-  print(glue("Moving on..."))
+    
+    lfpse_for_release_incident_level<- lfpse_sampled
+    
+    lfpse_for_release_full_for_summary <- lfpse_selected_columns |> 
+      select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
+      distinct(Reference, .keep_all = TRUE)
+    
+    print(glue("- Final sampled {dataset} dataset contains {nrow(lfpse_for_release_incident_level)} incidents."))
+    print(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_full_for_summary)} incidents."))
+    }else{
+    print(glue("**The search criteria has produced no results in {dataset}**"))
+    print(glue("Moving on..."))
 }
 
 dbDisconnect(con_lfpse)

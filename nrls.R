@@ -85,7 +85,7 @@ if (sum(!is.na(text_terms)) > 0) {
 # check whether the text search generated results
 if (nrow(nrls_filtered_text) != 0) {
   # MW: Moving this here to facilitate the neopaeds
-  nrls_pre_release <- nrls_filtered_text |>
+  nrls_labelled <- nrls_filtered_text |>
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
       "name" = "col_name",
@@ -96,7 +96,9 @@ if (nrow(nrls_filtered_text) != 0) {
       names_from = name,
       values_from = OPTIONTEXT
     )|>
-    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
+    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) 
+  
+  nrls_selected_columns<- nrls_labelled |>
     select(
       `RP01 Unique Incident ID` = INCIDENTID,
       `Local Trust incident ID` = TRUSTINCIDENTID,
@@ -150,24 +152,23 @@ if (nrow(nrls_filtered_text) != 0) {
         `Month of Incident`,
         month.abb
       )
-      )|>
-    remove_empty("cols")
+    )
 # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
   if (sampling_strategy == "default") {
-    if (nrow(nrls_pre_release) > 300) {
+    if (nrow(nrls_selected_columns) > 300) {
       print("- Sampling according to default strategy...")
-      nrls_death_severe <- nrls_pre_release |>
+      nrls_death_severe <- nrls_selected_columns |>
         filter(`PD09 Degree of harm (severity)`  %in% c("Death", "Severe"))
       
       set.seed(123)
-      nrls_moderate <- nrls_pre_release |>
+      nrls_moderate <- nrls_selected_columns |>
         filter(`PD09 Degree of harm (severity)`  == "Moderate") |>
         # sample 100, or if fewer than 100, bring all
         sample_n(min(n(), 100))
       
       set.seed(123)
-      nrls_low_no_other <- nrls_pre_release |>
+      nrls_low_no_other <- nrls_selected_columns |>
         filter(!`PD09 Degree of harm (severity)`  %in% c("Moderate", "Severe", "Death")) |>
         sample_n(min(n(), 100))
       
@@ -178,20 +179,20 @@ if (nrow(nrls_filtered_text) != 0) {
       )
     } else {
       print("- Sampling not required, default threshold not met.")
-      nrls_sampled <- nrls_pre_release
+      nrls_sampled <- nrls_selected_columns
     }
   } else if (sampling_strategy == "FOI") {
     print("- Extracting a sample of 30 incidents for redaction...")
     set.seed(123)
-    nrls_sampled <- nrls_pre_release |>
+    nrls_sampled <- nrls_selected_columns |>
       sample_n(min(n(), 30))
   } else if (sampling_strategy == "none") {
     print("- Skipping sampling...")
-    nrls_sampled <- nrls_pre_release
+    nrls_sampled <- nrls_selected_columns
   }
 
   nrls_for_release_incident_level<- nrls_sampled
-  nrls_for_release_full_for_summary <- nrls_pre_release
+  nrls_for_release_full_for_summary <- nrls_selected_columns
   
   print(glue("- Final sampled {dataset} dataset contains {nrow(nrls_for_release_incident_level)} incidents."))
   print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_full_for_summary)} incidents."))

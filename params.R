@@ -16,8 +16,8 @@ source("connections.R")
 source("functions.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2021-01-01"
-end_date <- "2021-05-01"
+start_date <- "2024-01-01"
+end_date <- "2024-05-01"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -29,7 +29,7 @@ nrls_categorical <- expr(IN05_LVL1 == 10)
 lfpse_categorical <- expr(A001 == '4')
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
-steis_filename <- 'SUI_2_22877.csv'
+steis_filename <- 'SUI_2_87360.csv'
 
 # text terms
 #example below- not real example
@@ -44,20 +44,20 @@ text_filter <- expr((group_A | group_B) & group_C)
 #text_terms<- list()
 #text_filter<- expr(0)
 
-#type of data extract -"summary" for summary, "summary_plus_incident_level" for summary and incident level
-type_of_output<- "summary_plus_incident_level"
+# is incident level data required? "yes" or "no"
+incident_level_required<- "yes"
  
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
 # or you can just have one element
 # summary_categories_nrls <- list(c(expr(`PD09 Degree of harm (severity)`)),
 #                                 c(expr(`Year of Incident`),expr(`Month of Incident`)))
-# summary_categories_lfpse <- list(c(expr(`Largest physical or psychological harm (across all patients in incident)`)),
+# summary_categories_lfpse <- list(c(expr(`Largest physical harm (across all patients in incident)`)),
 #                                  c(expr(`Year of Incident`),expr(`Month of Incident`)))
 # summary_categories_steis <- list(c(expr(`Type of Incident`)),
 #                                  c(expr(`Year of Incident`),expr(`Month of Incident`)))
 summary_categories_nrls <- list(c(expr(`PD09 Degree of harm (severity)`)))
-summary_categories_lfpse <- list(c(expr(`Largest physical or psychological harm (across all patients in incident)`)))
+summary_categories_lfpse <- list(c(expr(`Largest physical harm (across all patients in incident)`)))
 summary_categories_steis <- list(c(expr(`Year of Incident`)))
  
 # sampling strategy (default/FOI/none)

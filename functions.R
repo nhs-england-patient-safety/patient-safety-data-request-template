@@ -38,7 +38,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   if (database_name == "lfpse"){
   
     note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
-           "Note: Where a question can have multiple answers, these have been seperated out so will sum to a larger number than the number of incidents.")
+           "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents.")
     
     # write note
     writeData(
@@ -73,39 +73,50 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   
   # loop through list- each item of list is one table
-  for (category in summary_categories_list) {
+  for (table_variables in summary_categories_list) {
     #work out if table has one or 2 variables
-    if (length(category) == 1) {
+    if (length(table_variables) == 1) {
       one_variable = TRUE
-      category[[2]] = category[[1]] #to allow code to work the same for 1 or 2 categories, add a category with the same column as the first
-    } else{
+      table_variables[[2]] = table_variables[[1]] #to allow code to work the same for 1 or 2 categories, add a table_variables with the same column as the first
+    } else if ( length(table_variables)==2){
       one_variable = FALSE
+    } else{
+      print("TWO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+      print(table_variables)
     }
     
-    #work out if there is multi-select options in category 1 or 2
+    #work out if there is multi-select options in table_variables 1 or 2
     
-    cat_1_multi <- df_full %>% mutate(cat_1_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_1_delim) %>% summarise(sum(cat_1_delim)>0) %>% pull()
-    cat_2_multi <- df_full %>% mutate(cat_2_delim=str_detect(!!category[[1]], " \\{~@~\\} ")) %>% filter(cat_2_delim) %>% summarise(sum(cat_2_delim)>0) %>% pull()
+    cat_1_multi <- df_full %>% 
+      mutate(cat_1_delim=str_detect(!!table_variables[[1]], " \\{~@~\\} ")) %>% 
+      filter(cat_1_delim) %>% 
+      summarise(sum(cat_1_delim)>0) %>%
+      pull()
+    cat_2_multi <- df_full %>% 
+      mutate(cat_2_delim=str_detect(!!table_variables[[2]], " \\{~@~\\} ")) %>%
+      filter(cat_2_delim) %>% 
+      summarise(sum(cat_2_delim)>0) %>% 
+      pull()
     
     summary_table <- df_full
     
     #separate rows if there are multi select options present
     if (cat_1_multi){
       summary_table <- summary_table %>%
-        separate_rows(!!category[[1]], sep = " {~@~} ") 
+        separate_rows(!!table_variables[[1]], sep = " {~@~} ") 
     }
     if (cat_2_multi){
       summary_table <- summary_table %>%
-        separate_rows(!!category[[2]], sep = " {~@~} ") 
+        separate_rows(!!table_variables[[2]], sep = " {~@~} ") 
     }
     
     summary_table <- summary_table |>
-      count(!!category[[1]], !!category[[2]], .drop= FALSE)
+      count(!!table_variables[[1]], !!table_variables[[2]], .drop= FALSE)
     
     # if 2 variables add row and column totals
     if (!one_variable) {
       summary_table <- summary_table %>%
-        pivot_wider(names_from = !!category[[2]],
+        pivot_wider(names_from = !!table_variables[[2]],
                     values_from = n) %>%
         adorn_totals('both')
       
@@ -181,6 +192,8 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
 add_data_sheet <- function(wb, title, database_name, sheet) {
   
   df <- get(str_glue("{database_name}_for_release_incident_level"))
+  #get data
+  df_full <- get(str_glue("{database_name}_for_release_full_for_summary"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
@@ -194,13 +207,13 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   
   setRowHeights(wb,
                 sheet = sheet,
-                rows = 7:7,
+                rows = 8:8,
                 heights = 34)
   
   # set row heights - body
   setRowHeights(wb,
                 sheet = sheet,
-                rows = 8:(nrow(df) + 7),
+                rows = 9:(nrow(df) + 8),
                 heights = 150)
   
   
@@ -216,7 +229,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     wb,
     sheet = sheet,
     headerStyle,
-    rows = 7,
+    rows = 8,
     cols = 1:ncol(df)
   )
   
@@ -225,7 +238,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     wb,
     sheet = sheet,
     bodyStyle,
-    rows = 8:(nrow(df) + 7),
+    rows = 9:(nrow(df) + 8),
     cols = 1:ncol(df),
     gridExpand = T
   )
@@ -239,15 +252,38 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     startRow = 1
   )
   writeData(wb, sheet, title, startCol = 1, startRow = 3)
+  
+  
+  # write number of incidents
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents in sample", nrow(df), sep = ": "),
+    paste("Number of Incidents in Full Dataset", nrow(df_full), sep = ": "),
     startCol = 1,
     startRow = 5
   )
   
+  if(database_name=="lfpse"){
+    number_of_incidents<- df %>% count(Reference) %>% nrow()
+    number_of_patients<-df %>% count(Reference, `Patient no.`) %>% nrow()
+    info_string<- paste0(str_glue("Number of Incidents in Sample: {number_of_incidents} ({number_of_patients} Patients )"))
+    writeData(
+      wb,
+      sheet,
+      x= info_string,
+      startCol = 1,
+      startRow = 6
+      )
+  }else{
+    writeData(
+      wb,
+      sheet,
+      paste("Number of Incidents in Sample", nrow(df), sep = ": "),
+      startCol = 1,
+      startRow = 6
+    )
+  }
   # Write data
-  writeData(wb, sheet, df, startRow = 7)
+  writeData(wb, sheet, df, startRow = 8)
   return(wb)
 }
