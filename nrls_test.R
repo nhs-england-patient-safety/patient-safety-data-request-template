@@ -181,7 +181,13 @@ nrls_age_categorised <- nrls_labelled %>%
   )
 
 gc()
-#counts of all flags
+
+nrls_age_categorised <- nrls_age_categorised %>% 
+  mutate()
+
+
+
+#counts of all flags- check for NAs
 
 nrls_age_categorised %>% count(age_less_28_days, sort=T)
 nrls_age_categorised %>% count(specialty_neonatology, sort=T)

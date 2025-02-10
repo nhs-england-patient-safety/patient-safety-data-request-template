@@ -95,7 +95,6 @@ print(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {
 
 print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
-# UP TO HERE
 
   # labelling ####
   # Adding in field names
@@ -126,7 +125,6 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
     group_by(Reference) |>
     mutate(npatient = max(EntityId)) |>
     ungroup()
-  
   
   lfpse_age_validated<- lfpse_labelled |>
     mutate(age_unit = case_when(
@@ -250,8 +248,17 @@ print(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtere
       )
       )
   
+  gc()
+  rm(lfpse_age_classified, lfpse_age_validated, lfpse_labelled, lfpse_filtered_categorical)
+ 
+  lfpse_age_classified_with_categorisation %>% count(neonate_specialty_flag)
+  lfpse_age_classified_with_categorisation %>% count(neonate_terms_flag)
+  lfpse_age_classified_with_categorisation %>% count(neonate_terms_flag_no_baby)
+  lfpse_age_classified_with_categorisation %>% count(adult_specialty_flag)
+  lfpse_age_classified_with_categorisation %>% count(paediatric_specialty_flag)
+  lfpse_age_classified_with_categorisation %>% count(paediatric_term_flag)
   
-  #get counts 
+   #get counts 
   
   lfpse_age_classified_with_categorisation %>% 
     mutate(neopaeds_shorter= str_sub(neopaeds_category,1,6)) %>%
