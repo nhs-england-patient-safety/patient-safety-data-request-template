@@ -72,13 +72,18 @@ if (sum(!is.na(text_terms)) > 0) {
     select(!c(contains("_term_"), concat_col))
   
   print(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
+  
+  #call garbage collect to reduce memory usage
+  gc()
+   
 } else {
   print("- No text terms supplied. Skipping text search...")
   nrls_filtered_text <- nrls_filtered_categorical
 }
 
 if(nrow(nrls_filtered_text) != 0){
-   # label 
+  # label 
+  # note, this step will only be possible if nrls_filtered_text has < 700,000 rows (approx) 
   nrls_labelled <- nrls_filtered_text |>
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
@@ -90,6 +95,9 @@ if(nrow(nrls_filtered_text) != 0){
       names_from = name,
       values_from = OPTIONTEXT
     )
+  
+  #call garbage collect to reduce memory usage
+  gc()
   
   # Neonatal logic
   # AGE_AT_INCIDENT appears to be derived from DV01 so DV01 shouldn't need checking separately
@@ -119,8 +127,8 @@ if(nrow(nrls_filtered_text) != 0){
         specialty_neonatology ~ 'neonate_by_specialty',
         # Neonate by text: obs and gynae or paeds specialty and neo text terms found
         poss_neonate_specialty & neonate_terms_text  ~ 'neonate_by_text',
-        # otherwise other
-        .default = "other"
+        # otherwise not neonate related
+        .default = "not neonate related"
         ),
       paediatric_category = case_when(
         # paediatric by age: between 28 days and 18 
@@ -129,8 +137,8 @@ if(nrow(nrls_filtered_text) != 0){
         camhs_and_age_na | other_paed_specialty ~ 'paediatric_by_specialty',
         # paediatric by text: paediatric specialty and paediatric terms found
         paed_flags & paed_terms_text ~ 'paediatric_by_text',
-        # otherwise other
-        .default = "other"
+        # otherwise not paeds related
+        .default = "not paediatric related"
       )
     )
   
@@ -139,7 +147,7 @@ if(nrow(nrls_filtered_text) != 0){
     print("- Running neonate strategy...")
     
     nrls_neopaed <- nrls_age_categorised %>%
-      filter(neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonat_by_text"))
+      filter(neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text"))
     
   } else if (is_neopaed == "paed") {
     print("- Running paediatric strategy...")
@@ -237,7 +245,8 @@ if(nrow(nrls_filtered_text) != 0){
         `DE01 Type of Device` = DE01,
         `DE01 Type of device - free text` = DE01_TEXT,
         `Date incident received by NRLS` = reported_date,
-         `Categorisation (neonates, paediatric or other)` = neopaeds_category,
+        `Neonate Categorisation` = neonate_category,
+        `Paediatric Categorisation` = paediatric_category,
          starts_with("group")
       ) |>
       remove_empty("cols")

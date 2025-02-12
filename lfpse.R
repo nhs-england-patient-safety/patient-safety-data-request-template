@@ -97,6 +97,9 @@ if (sum(!is.na(text_terms))>0) {
     filter(!!text_filter) |>
     select(!c(contains("_term_"), concat_col))
   
+  #call garbage collect to reduce memory usage
+  gc()
+  
   #A002 may need to be added for a medication incident
   print(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -133,6 +136,9 @@ if (nrow(lfpse_filtered_text) != 0) {
     group_by(Reference) |>
     mutate(npatient = max(EntityId)) |>
     ungroup()
+  
+  #call garbage collect to reduce memory usage
+  gc()
   
   lfpse_age_validated<- lfpse_labelled |>
     mutate(age_unit = case_when(
@@ -178,7 +184,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
         (age_category == 'unknown' & neonate_terms_flag & ! adult_specialty_flag) ~ "neonate_by_text",
         # Default: not neonate-related
-        .default = "adult"
+        .default = "not neonate related"
         ),
       paediatric_category = case_when(
         # Paediatrics by age: age is older than 1 month and younger than 18 years
@@ -187,8 +193,8 @@ if (nrow(lfpse_filtered_text) != 0) {
         (age_category == 'unknown' & paediatric_specialty_flag) ~ "paediatric_by_specialty",
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
         (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
-        # Default: not neonate/paediatrics-related
-        .default = "adult"
+        # Default: not paediatrics-related
+        .default = "not paediatric related"
       )
     )
     
@@ -303,7 +309,8 @@ if (nrow(lfpse_filtered_text) != 0) {
         "A016 - BuildingsInfrastructure" = A016,
         "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
         starts_with("group"),
-        `Categorisation (neonates, paediatric or other)` = neopaeds_category,
+        `Neonate Categorisation` = neonate_category,
+        `Paediatric Categorisation` = paediatric_category
         # TODO: add age columns once DQ issues resolved
       )) |>
       remove_empty("cols")
