@@ -108,8 +108,9 @@ if (sum(!is.na(text_terms))>0) {
 }
 
 if (nrow(lfpse_filtered_text) != 0) {
-  # labelling ####
+  # labelling
   # Adding in field names
+  #note this step will cause problems if lfpse_filtered_text has over 200,00 rows
   lfpse_labelled <- lfpse_filtered_text |>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
@@ -172,7 +173,6 @@ if (nrow(lfpse_filtered_text) != 0) {
       L006 = if_else(is.na(L006),"", L006), #required for text search to work as expected
       neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      neonate_terms_flag_no_baby = str_detect(concat_col, neonatal_terms_no_baby),
       adult_specialty_flag = str_detect(L006, adult_specialty_terms),
       paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
       paediatric_term_flag = str_detect(concat_col, paediatric_terms),
