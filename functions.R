@@ -74,59 +74,73 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   # loop through list- each item of list is one table
   for (table_variables in summary_categories_list) {
+
     #work out if table has one or 2 variables
     if (length(table_variables) == 1) {
-      one_variable = TRUE
-      table_variables[[2]] = table_variables[[1]] #to allow code to work the same for 1 or 2 categories, add a table_variables with the same column as the first
-    } else if ( length(table_variables)==2){
-      one_variable = FALSE
-    } else{
-      print("TWO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
-      print(table_variables)
-    }
+      
+      variable_one<-sym(names(which(rename_lookup==unlist(table_variables)[[1]])))
+      
+      df_for_summary<- df_full 
+      
+      cat_1_multi <- df_for_summary %>% 
+        mutate(cat_1_delim=str_detect(!!variable_one, " \\{~@~\\} ")) %>% 
+        filter(cat_1_delim) %>% 
+        summarise(sum(cat_1_delim)>0) %>%
+        pull()
     
-    #work out if there is multi-select options in table_variables 1 or 2
-    
-    cat_1_multi <- df_full %>% 
-      mutate(cat_1_delim=str_detect(!!table_variables[[1]], " \\{~@~\\} ")) %>% 
-      filter(cat_1_delim) %>% 
-      summarise(sum(cat_1_delim)>0) %>%
-      pull()
-    cat_2_multi <- df_full %>% 
-      mutate(cat_2_delim=str_detect(!!table_variables[[2]], " \\{~@~\\} ")) %>%
-      filter(cat_2_delim) %>% 
-      summarise(sum(cat_2_delim)>0) %>% 
-      pull()
-    
-    summary_table <- df_full
-    
-    #separate rows if there are multi select options present
-    if (cat_1_multi){
-      summary_table <- summary_table %>%
-        separate_rows(!!table_variables[[1]], sep = " {~@~} ") 
-    }
-    if (cat_2_multi){
-      summary_table <- summary_table %>%
-        separate_rows(!!table_variables[[2]], sep = " {~@~} ") 
-    }
-    
-    summary_table <- summary_table |>
-      count(!!table_variables[[1]], !!table_variables[[2]], .drop= FALSE)
-    
-    # if 2 variables add row and column totals
-    if (!one_variable) {
-      summary_table <- summary_table %>%
-        pivot_wider(names_from = !!table_variables[[2]],
-                    values_from = n) %>%
-        adorn_totals('both')
+      #separate rows if there are multi select options present
+      if (cat_1_multi){
+        df_for_summary <- df_for_summary %>%
+          separate_rows(!!variable_one,sep = " {~@~} ") 
+      }
+      
+      summary_table <- df_for_summary |>
+          count(!!variable_one,.drop= FALSE)|>
+        #  add row totals and percentage column
+          mutate(percent = scales::percent(n / sum(n))) %>%
+          adorn_totals('row')
+      
+      
+      } else if ( length(table_variables)==2){
+
+        variable_one<-sym(names(which(rename_lookup==unlist(table_variables)[[1]])))
+        variable_two<-sym(names(which(rename_lookup==unlist(table_variables)[[2]])))
+        
+        df_for_summary<- df_full 
+        #work out if there is multi-select options in table_variables 1 or 2
+        
+        cat_1_multi <- df_for_summary %>% 
+          mutate(cat_1_delim=str_detect(!!variable_one, " \\{~@~\\} ")) %>% 
+          filter(cat_1_delim) %>% 
+          summarise(sum(cat_1_delim)>0) %>%
+          pull()
+        cat_2_multi <- df_for_summary %>% 
+          mutate(cat_2_delim=str_detect(!!variable_two, " \\{~@~\\} ")) %>%
+          filter(cat_2_delim) %>% 
+          summarise(sum(cat_2_delim)>0) %>% 
+          pull()
+        
+        #separate rows if there are multi select options present
+        if (cat_1_multi){
+          df_for_summary <- df_for_summary %>%
+            separate_rows(!!variable_one,sep = " {~@~} ") 
+        }
+        if (cat_2_multi){
+          df_for_summary <- df_for_summary %>%
+            separate_rows(!!variable_one, sep = " {~@~} ") 
+        }
+        
+        summary_table <- df_for_summary |>
+          count(!!variable_one,!!variable_two,.drop= FALSE)%>% 
+          pivot_wider(names_from = !!variable_two,
+                      values_from = n) %>%
+          adorn_totals('both')
       
     } else{
-      # if one variable, add row totals and percentage column
-      summary_table <- summary_table %>%
-        mutate(percent = scales::percent(n / sum(n))) %>%
-        adorn_totals('row')
-    }
-  
+       print("TWO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+      }
+    
+
     #add summary table to sheet
     writeData(wb, sheet, summary_table, startRow = table_start_row)
     

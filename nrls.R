@@ -90,7 +90,7 @@ if (nrow(nrls_filtered_text) != 0) {
   # sampling ####
   # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
   if (sampling_strategy == "default") {
-    if (nrow(nrls_selected_columns) > 300) {
+    if (nrow(nrls_filtered_text) > 300) {
       print("- Sampling according to default strategy...")
       
       nrls_death_severe <- nrls_filtered_text |>
