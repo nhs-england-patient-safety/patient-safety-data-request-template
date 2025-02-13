@@ -84,8 +84,102 @@ if (sum(!is.na(text_terms)) > 0) {
 
 # check whether the text search generated results
 if (nrow(nrls_filtered_text) != 0) {
-  # MW: Moving this here to facilitate the neopaeds
-  nrls_labelled <- nrls_filtered_text |>
+
+  #nrls logic will go here
+  
+  # sampling ####
+  # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
+  if (sampling_strategy == "default") {
+    if (nrow(nrls_selected_columns) > 300) {
+      print("- Sampling according to default strategy...")
+      
+      nrls_death_severe <- nrls_filtered_text |>
+        filter(PD09  %in% c(4, 5))
+      
+      set.seed(123)
+      
+      nrls_moderate <- nrls_filtered_text |>
+        filter(PD09  == 3) |>
+        # sample 100, or if fewer than 100, bring all
+        sample_n(min(n(), 100))
+      
+      set.seed(123)
+      
+      nrls_low_no_other <- nrls_filtered_text |>
+        filter(PD09  %in% c(3, 4, 5)) |>
+        sample_n(min(n(), 100))
+      
+      nrls_sampled <- bind_rows(
+        nrls_death_severe,
+        nrls_moderate,
+        nrls_low_no_other
+      )
+    } else {
+      print("- Sampling not required, default threshold not met.")
+      nrls_sampled <- nrls_filtered_text
+    }
+  } else if (sampling_strategy == "FOI") {
+    print("- Extracting a sample of 30 incidents for redaction...")
+    
+    set.seed(123)
+    nrls_sampled <- nrls_filtered_text |>
+      sample_n(min(n(), 30))
+    
+  } else if (sampling_strategy == "none") {
+    
+    print("- Skipping sampling...")
+    nrls_sampled <- nrls_selected_columns
+  }
+
+
+  rename_lookup<- c(
+    `RP01 Unique Incident ID` = "INCIDENTID",
+    `Local Trust incident ID` = "TRUSTINCIDENTID",
+    `RP02 Care Setting of Occurrence` = "RP02",
+    `RP07 NHS Organisation Code` = "RP07",
+    `Organisation Name` = "ORGANISATIONNAME",
+    `Date of Incident` = "occurred_date",
+    `Month of Incident` = "month_of_incident",
+    `Year of Incident` = "year_of_incident",
+    `IN03 Location (lvl1)` = "IN03_LVL1",
+    `IN03 Location (lvl2)` = "IN03_LVL2",
+    `IN03 Location (lvl3)` = "IN03_LVL3",
+    `IN03 Location - Free Text` = "IN03_TEXT",
+    `IN04 Country` = "IN04",
+    `IN05 Incident Category - Lvl1` = "IN05_LVL1",
+    `IN05 Incident Category - Lvl2` = "IN05_LVL2",
+    `IN05 Incident Category - Free Text` = "IN05_TEXT",
+    `IN07 Description of what happened` = "IN07",
+    `IN10 Actions Preventing Reoccurrence` = "IN10",
+    `IN11 Apparent Causes` = "IN11",
+    `Age at time of Incident (years)` = "AGE_AT_INCIDENT",
+    `PD05 Specialty - Lvl 1` = "PD05_LVL1",
+    `PD05 Specialty - Lvl 2` = "PD05_LVL2",
+    `PD05 Speciality - Free Text` = "PD05_TEXT",
+    `PD09 Degree of harm (severity)` ="PD09",
+    `RM04 Source of Notification` = "RM04",
+    `MD01 Med Process` = "MD01",
+    `MD01 Med Process Free Text` = "MD01_TEXT",
+    `MD02 Med Error Category` = "MD02",
+    `MD02 Med Error Category Free Text` = "MD02_TEXT",
+    `MD05 Approved Name (Drug 1)` = "MD05",
+    `MD06 Proprietary Name (Drug 1)` = "MD06",
+    `PD02 Patient Sex` = "PD02",
+    `PD04 Adult/Paediatrics Specialty` = "PD04",
+    `PD20 Paediatric ward/department/unit` = "PD20", # Changed this from PD04 to PD20
+    `MD30 Approved Name (Drug 2)` = "MD30",
+    `MD31 Proprietary Name (Drug 2)` = "MD31",
+    `DE01 Type of Device` = "DE01",
+    `DE01 Type of device - free text` = "DE01_TEXT",
+    `Date incident received by NRLS` = "reported_date")
+  
+
+  categories_for_summary_tables<-unique(as.character(unlist(summary_categories_nrls)))
+  
+
+  #create for release for sampling table
+  nrls_for_release_full_for_summary <- nrls_filtered_text  |>
+    select(INCIDENTID, !!categories_for_summary_tables)|>
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
       "name" = "col_name",
@@ -96,103 +190,28 @@ if (nrow(nrls_filtered_text) != 0) {
       names_from = name,
       values_from = OPTIONTEXT
     )|>
-    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) 
-  
-  nrls_selected_columns<- nrls_labelled |>
-    select(
-      `RP01 Unique Incident ID` = INCIDENTID,
-      `Local Trust incident ID` = TRUSTINCIDENTID,
-      `RP02 Care Setting of Occurrence` = RP02,
-      `RP07 NHS Organisation Code` = RP07,
-      `Organisation Name` = ORGANISATIONNAME,
-      `Date of Incident` = occurred_date,
-      `Month of Incident` = month_of_incident,
-      `Year of Incident` = year_of_incident,
-      `IN03 Location (lvl1)` = IN03_LVL1,
-      `IN03 Location (lvl2)` = IN03_LVL2,
-      `IN03 Location (lvl3)` = IN03_LVL3,
-      `IN03 Location - Free Text` = IN03_TEXT,
-      `IN04 Country` = IN04,
-      `IN05 Incident Category - Lvl1` = IN05_LVL1,
-      `IN05 Incident Category - Lvl2` = IN05_LVL2,
-      `IN05 Incident Category - Free Text` = IN05_TEXT,
-      `IN07 Description of what happened` = IN07,
-      `IN10 Actions Preventing Reoccurrence` = IN10,
-      `IN11 Apparent Causes` = IN11,
-      `Age at time of Incident (years)` = AGE_AT_INCIDENT,
-      `PD05 Specialty - Lvl 1` = PD05_LVL1,
-      `PD05 Specialty - Lvl 2` = PD05_LVL2,
-      `PD05 Speciality - Free Text` = PD05_TEXT,
-      `PD09 Degree of harm (severity)` = PD09,
-      `RM04 Source of Notification` = RM04,
-      `MD01 Med Process` = MD01,
-      `MD01 Med Process Free Text` = MD01_TEXT,
-      `MD02 Med Error Category` = MD02,
-      `MD02 Med Error Category Free Text` = MD02_TEXT,
-      `MD05 Approved Name (Drug 1)` = MD05,
-      `MD06 Proprietary Name (Drug 1)` = MD06,
-      `PD02 Patient Sex` = PD02,
-      `PD04 Adult/Paediatrics Specialty` = PD04,
-      `PD20 Paediatric ward/department/unit` = PD20, # Changed this from PD04 to PD20
-      `MD30 Approved Name (Drug 2)` = MD30,
-      `MD31 Proprietary Name (Drug 2)` = MD31,
-      `DE01 Type of Device` = DE01,
-      `DE01 Type of device - free text` = DE01_TEXT,
-      `Date incident received by NRLS` = reported_date,
-      starts_with("group_")
-    ) |>
-    mutate(
-      `PD09 Degree of harm (severity)`= factor(`PD09 Degree of harm (severity)`,
-                                               levels= c("No Harm",
-                                                         "Low",
-                                                         "Moderate",
-                                                         "Severe",
-                                                         "Death")),
-      `Month of Incident` = fct_relevel(
-        `Month of Incident`,
-        month.abb
-      )
-    )
-# sampling ####
-  # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
-  if (sampling_strategy == "default") {
-    if (nrow(nrls_selected_columns) > 300) {
-      print("- Sampling according to default strategy...")
-      nrls_death_severe <- nrls_selected_columns |>
-        filter(`PD09 Degree of harm (severity)`  %in% c("Death", "Severe"))
-      
-      set.seed(123)
-      nrls_moderate <- nrls_selected_columns |>
-        filter(`PD09 Degree of harm (severity)`  == "Moderate") |>
-        # sample 100, or if fewer than 100, bring all
-        sample_n(min(n(), 100))
-      
-      set.seed(123)
-      nrls_low_no_other <- nrls_selected_columns |>
-        filter(!`PD09 Degree of harm (severity)`  %in% c("Moderate", "Severe", "Death")) |>
-        sample_n(min(n(), 100))
-      
-      nrls_sampled <- bind_rows(
-        nrls_death_severe,
-        nrls_moderate,
-        nrls_low_no_other
-      )
-    } else {
-      print("- Sampling not required, default threshold not met.")
-      nrls_sampled <- nrls_selected_columns
-    }
-  } else if (sampling_strategy == "FOI") {
-    print("- Extracting a sample of 30 incidents for redaction...")
-    set.seed(123)
-    nrls_sampled <- nrls_selected_columns |>
-      sample_n(min(n(), 30))
-  } else if (sampling_strategy == "none") {
-    print("- Skipping sampling...")
-    nrls_sampled <- nrls_selected_columns
-  }
+    select(any_of(rename_lookup), starts_with("group_"))|>
+    mutate_at(vars(one_of("Month of Incident")), fct_relevel, month.abb) |>
+    mutate_at(vars(one_of("PD09 Degree of harm (severity)")), factor, levels= c("No Harm",
+                                                                                "Low",
+                                                                                "Moderate",
+                                                                                "Severe",
+                                                                                "Death"))
 
-  nrls_for_release_incident_level<- nrls_sampled
-  nrls_for_release_full_for_summary <- nrls_selected_columns
+  #create for release for incident table 
+  nrls_for_release_incident_level<- nrls_sampled |>
+    pivot_longer(cols = any_of(codes$col_name)) |>
+    left_join(codes, by = c(
+      "name" = "col_name",
+      "value" = "SASCODE"
+    )) |>
+    select(!value) |>
+    pivot_wider(
+      names_from = name,
+      values_from = OPTIONTEXT
+    )|>
+    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
+    select(any_of(rename_lookup), starts_with("group_"))
   
   print(glue("- Final sampled {dataset} dataset contains {nrow(nrls_for_release_incident_level)} incidents."))
   print(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_full_for_summary)} incidents."))
