@@ -131,6 +131,12 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_selected_columns
   }
 
+  #note the pivot_longer step below is not feasible for all columns in the dataset if there are more than 100,000 rows.
+  #It has been split into:
+  #-creating the data for the summary tables (using just required columns) 
+  #-creating the data for the incident level data (usually post sampling, or small number of rows)
+  
+  
   #select the columns required for the summary tables
   categories_for_summary_tables_nrls<-unique(as.character(unlist(summary_categories_nrls)))
 
@@ -139,7 +145,7 @@ if (nrow(nrls_filtered_text) != 0) {
     #select columns required for summary tables-
     #add incident id column
     #add PD09 because the pivot longer will only work if at least one of the column names is in codes
-    #add PD09 and month of incident because they are refactored, and there will be a error if they don't exist.
+    #add PD09 and month of incident because they are mutated later, and there will be a error if they don't exist.
     select(INCIDENTID, !!categories_for_summary_tables_nrls, PD09, month_of_incident)|>
     #get the column values from the codes table
     pivot_longer(cols = any_of(codes$col_name)) |>
