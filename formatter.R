@@ -123,7 +123,7 @@ writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 for (i in file_list) {
   
-  database_name <- str_split_i(i, "_", 1)
+  database_name <- toupper(str_split_i(i, "_", 1))
 
   sheet_base_name <- str_extract(i, "^([^_])+") |> 
     toupper() |> 

@@ -17,7 +17,7 @@ min_safe<- function(vec){
 #' @return workbook with summary tables added
 add_summary_sheet <- function(wb, title, database_name, sheet) {
 
-  summary_categories_list <- get(str_glue("summary_categories_{database_name}"))
+  summary_categories_list <- get(str_glue("summary_categories_{tolower(database_name)}"))
   
   addWorksheet(wb, sheet, gridLines = FALSE) 
   
@@ -35,7 +35,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   content_start_row = 5
   
   #add caveats to lfpse tab
-  if (database_name == "lfpse"){
+  if (database_name == "LFPSE"){
   
     note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
            "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents.")
@@ -53,7 +53,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   }
   
   #get data
-  df_full <- get(str_glue("{database_name}_for_release_full_for_summary"))
+  df_full <- get(str_glue("{tolower(database_name)}_for_release_full_for_summary"))
   
   # write number of incidents
   writeData(
@@ -78,7 +78,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     #work out if table has one or 2 variables
     if (length(table_variables) == 1) {
       
-      variable_one<-sym(names(which(rename_lookup==unlist(table_variables)[[1]])))
+      variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
       
       df_for_summary<- df_full 
       
@@ -103,8 +103,8 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
       
       } else if ( length(table_variables)==2){
 
-        variable_one<-sym(names(which(rename_lookup==unlist(table_variables)[[1]])))
-        variable_two<-sym(names(which(rename_lookup==unlist(table_variables)[[2]])))
+        variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
+        variable_two<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[2]])))
         
         df_for_summary<- df_full 
         #work out if there is multi-select options in table_variables 1 or 2
@@ -205,9 +205,9 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
 #' @return workbook with data added
 add_data_sheet <- function(wb, title, database_name, sheet) {
   
-  df <- get(str_glue("{database_name}_for_release_incident_level"))
+  df <- get(str_glue("{tolower(database_name)}_for_release_incident_level"))
   #get data
-  df_full <- get(str_glue("{database_name}_for_release_full_for_summary"))
+  df_full <- get(str_glue("{tolower(database_name)}_for_release_full_for_summary"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
@@ -277,7 +277,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     startRow = 5
   )
   
-  if(database_name=="lfpse"){
+  if(database_name=="LFPSE"){
     number_of_incidents<- df %>% count(Reference) %>% nrow()
     number_of_patients<-df %>% count(Reference, `Patient no.`) %>% nrow()
     info_string<- paste0(str_glue("Number of Incidents in Sample: {number_of_incidents} ({number_of_patients} Patients )"))

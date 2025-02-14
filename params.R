@@ -17,7 +17,7 @@ source("functions.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-12-31"
+end_date <- "2024-06-30"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -50,17 +50,17 @@ incident_level_required<- "yes"
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
 # or you can just have one element
-# summary_categories_nrls <- list(c(expr(PD09)),
-#                                 c(expr(year_of_incident),expr(month_of_incident)))
-# summary_categories_lfpse <- list(c(expr(`Largest physical harm (across all patients in incident)`)),
-#                                  c(expr(`Year of Incident`),expr(`Month of Incident`)))
-# summary_categories_steis <- list(c(expr(`Type of Incident`)),
-#                                  c(expr(`Year of Incident`),expr(`Month of Incident`)))
-summary_categories_lfpse <- list(c(expr(`Largest physical harm (across all patients in incident)`)))
-summary_categories_steis <- list(c(expr(`Year of Incident`)))
+summary_categories_lfpse <- list(c(expr(max_physical_harm_level)))
+summary_categories_steis <- list(c(expr(year_of_incident)))
+summary_categories_nrls <- list(c(expr(PD09)))
 
-#summary_categories_nrls <- list(c(expr(PD09)))
 
+summary_categories_lfpse <- list(c(expr(max_physical_harm_level)),
+                                 c(expr(year_of_incident),expr(month_of_incident)))
+summary_categories_steis <- list(c(expr(year_of_incident)),
+                                  c(expr(year_of_incident),expr(type_of_incident)))
+summary_categories_nrls <- list(c(expr(PD09)),
+                                c(expr(year_of_incident),expr(month_of_incident)))
 # sampling strategy (default/FOI/none)
 # TODO: custom
 sampling_strategy <- "default"
