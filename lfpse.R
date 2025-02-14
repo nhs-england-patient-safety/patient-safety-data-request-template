@@ -181,10 +181,20 @@ if (nrow(lfpse_filtered_text) != 0) {
       print("- Skipping sampling...")
       lfpse_sampled <- lfpse_filtered_text
     }
-    
+   
+  
+  #note the pivot_longer step below is not feasible for all columns in the dataset if there are more than 100,000 rows.
+  #It has been split into:
+  #-creating the data for the summary tables (using just required columns) 
+  #-creating the data for the incident level data (usually post sampling, or small number of rows)
+  
+  
+  #find the categories required for creating summary tables 
   categories_for_summary_tables_lfpse<-unique(as.character(unlist(summary_categories_lfpse)))
   
-  
+  #create table which will be used to create summary tables.
+  #this may be very large, so we reduce the number of columns 
+  #by only selecting the columns required for creating the summary tabkes
   lfpse_for_release_full_for_summary <-  lfpse_filtered_text  |>
     #relevel factor of columns
     mutate(
@@ -199,9 +209,9 @@ if (nrow(lfpse_filtered_text) != 0) {
                   "Moderate psychological harm",
                    "Severe psychological harm")),
       month_of_incident= fct_relevel(month_of_incident, month.abb))|>
-    #select columns required for summary tables
-    #add Reference column
-    #add taxonomy version
+    #select columns required for summary tables-
+    #add Reference column to allow us to switch to incident level
+    #add taxonomy version to allow us to join the ResponsReference
     #add A001 because the pivot longer will only work if at least one of the column names is in ResponseReference
     select(Reference, !!categories_for_summary_tables_lfpse, TaxonomyVersion, A001)|>
     # pivot the coded columns

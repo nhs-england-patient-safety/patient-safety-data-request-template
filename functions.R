@@ -75,7 +75,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   # loop through list- each item of list is one table
   for (table_variables in summary_categories_list) {
 
-    #work out if table has one or 2 variables
+    #work out if table has one or 2 variables. 
     if (length(table_variables) == 1) {
       
       variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
@@ -137,7 +137,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
           adorn_totals('both')
       
     } else{
-       print("TWO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+       print("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
       }
     
 
