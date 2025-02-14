@@ -185,7 +185,24 @@ if (nrow(lfpse_filtered_text) != 0) {
   categories_for_summary_tables_lfpse<-unique(as.character(unlist(summary_categories_lfpse)))
   
   
-  lfpse_for_release_full_for_summary <-  lfpse_filtered_text  |> 
+  lfpse_for_release_full_for_summary <-  lfpse_filtered_text  |>
+    #relevel factor of columns
+    mutate(
+      max_physical_harm_level= factor(
+        max_physical_harm_level, 
+        levels= c("No physical harm", "Low physical harm",
+               "Moderate physical harm","Severe physical harm", "Fatal")),
+      max_psychological_harm_level= factor(
+        max_psychological_harm_level,
+        levels= c("No psychological harm",
+                  "Low psychological harm",
+                  "Moderate psychological harm",
+                   "Severe psychological harm")),
+      month_of_incident= fct_relevel(month_of_incident, month.abb))|>
+    #select columns required for summary tables
+    #add Reference column
+    #add taxonomy version
+    #add A001 because the pivot longer will only work if at least one of the column names is in ResponseReference
     select(Reference, !!categories_for_summary_tables_lfpse, TaxonomyVersion, A001)|>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
@@ -211,19 +228,9 @@ if (nrow(lfpse_filtered_text) != 0) {
     ) |>
     # select the columns for release
     select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-    mutate_at(vars(one_of("Largest physical harm (across all patients in incident)")),
-              factor,
-              levels= c("No physical harm", "Low physical harm",
-                       "Moderate physical harm","Severe physical harm",
-                         "Fatal"))|>
-    mutate_at(vars(one_of("Largest psychological harm (across all patients in incident)")),
-            factor,
-            levels= c("No psychological harm",
-                              "Low psychological harm",
-                              "Moderate psychological harm",
-                              "Severe psychological harm"))|>
-    mutate_at(vars(one_of("Month of Incident")), fct_relevel, month.abb) |>
-    select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> # remove columns that contain patient specific info (for summary tables)
+    # remove columns that contain patient specific info (for summary tables)
+    select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> 
+    # get distinct References, so only one row per incident
     distinct(Reference, .keep_all = TRUE)
     
   
@@ -251,6 +258,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # collapse multi-responses into single row per entity
         values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
       ) |>
+      #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     
     print(glue("- Final sampled {dataset} dataset contains {nrow(lfpse_for_release_incident_level)} incidents."))

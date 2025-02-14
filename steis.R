@@ -96,7 +96,7 @@ if(nrow(steis_filtered_text) != 0){
     steis_for_release <- steis_filtered_text
   } else if (cols_to_extract == 'default'){
     steis_for_release <- steis_filtered_text |>
-      # select columns to be released
+      # select columns to be released and rename using lookup
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
  
     steis_for_release_incident_level<- steis_for_release

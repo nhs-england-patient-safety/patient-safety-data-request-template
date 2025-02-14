@@ -131,13 +131,17 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_selected_columns
   }
 
-
+  #select the columns required for the summary tables
   categories_for_summary_tables_nrls<-unique(as.character(unlist(summary_categories_nrls)))
-  
 
   #create for release for sampling table
   nrls_for_release_full_for_summary <- nrls_filtered_text  |>
-    select(INCIDENTID, !!categories_for_summary_tables_nrls, IN05_LVL1)|>
+    #select columns required for summary tables-
+    #add incident id column
+    #add PD09 because the pivot longer will only work if at least one of the column names is in codes
+    #add PD09 and month of incident because they are refactored, and there will be a error if they don't exist.
+    select(INCIDENTID, !!categories_for_summary_tables_nrls, PD09, month_of_incident)|>
+    #get the column values from the codes table
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
       "name" = "col_name",
@@ -148,15 +152,17 @@ if (nrow(nrls_filtered_text) != 0) {
       names_from = name,
       values_from = OPTIONTEXT
     )|>
+    #rename columns using lookup 
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))|>
-    mutate_at(vars(one_of("Month of Incident")), fct_relevel, month.abb) |>
-    mutate_at(vars(one_of("PD09 Degree of harm (severity)")), factor, levels= c("No Harm",
-                                                                                "Low",
-                                                                                "Moderate",
-                                                                                "Severe",
-                                                                                "Death"))
+    #convert columns to factors, and set order
+    mutate(`Month of Incident`= fct_relevel(`Month of Incident`, month.abb),
+           `PD09 Degree of harm (severity)`= factor(`PD09 Degree of harm (severity)`,
+                                                    levels= c("No Harm", "Low",
+                                                              "Moderate", "Severe",
+                                                              "Death"))
+           )
 
-  #create for release for incident table 
+  #create incident level table from sampled dataframe
   nrls_for_release_incident_level<- nrls_sampled |>
     pivot_longer(cols = any_of(codes$col_name)) |>
     left_join(codes, by = c(
