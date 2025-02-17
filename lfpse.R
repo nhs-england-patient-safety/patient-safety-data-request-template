@@ -63,21 +63,27 @@ lfpse_filtered_categorical <- lfpse_parsed |>
     # apply categorical filters here
     lfpse_categorical
   ) |>
+  #select only relevant columns
+  select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
+  #find month and year of incident
   mutate(year_of_incident = as.numeric(substr(as.character(occurred_date), 1, 4)),
          month_of_incident = as.numeric(substr(as.character(occurred_date), 6, 7)))|>
   group_by(Reference)  |>
   mutate(OT001_min= min(as.numeric(OT001)), #calculate the worst physical harm per incident
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
-         npatient = max(EntityId)) |>
+         npatient = max(EntityId)) |># calculate the number of incidents
   ungroup() |>
+
   # collecting here so that we can apply text filters later
   collect() |>
   mutate(month_of_incident= month.abb[month_of_incident],
          OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
   )|>
   rowwise() |>
+  #combine physical harm and psychological harm to find maximum harm (of any type)
   mutate(max_harm= min_safe(c(OT001_min, OT002_min_plus_one))) |>
   ungroup() |>
+  #label the different harm levels 
   mutate(max_harm_level= case_when(max_harm==1 ~ "Fatal",
                                    max_harm==2 ~ "Severe harm",
                                    max_harm==3 ~ "Moderate harm",
@@ -93,6 +99,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                                  OT002_min==3 ~ "Low psychological harm",
                                                  OT002_min==4 ~ "No psychological harm")
   ) |>
+  #remove helper columns
   select(-OT001_min,- OT002_min, -OT002_min_plus_one, -max_harm)
 
 toc_lfpse <- Sys.time()
@@ -135,87 +142,10 @@ if (sum(!is.na(text_terms))>0) {
 
 # check whether the text search generated results
 if (nrow(lfpse_filtered_text) != 0) {
-    # sampling ####
-    # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
-    if (sampling_strategy == "default") {
-      if (nrow(lfpse_filtered_text) > 300) {
-        print("- Sampling according to default strategy...")
-        lfpse_death_severe <- lfpse_filtered_text |>
-          # deaths or severe physical / psychological harm
-          filter(OT001 %in% c("1", "2") |
-                   OT002 == "1")
-        
-        set.seed(123)
-        lfpse_moderate <- lfpse_filtered_text |>
-          # moderate physical / psychological harm
-          filter(OT001 == "3" | 
-                   OT002 == "2") |>
-          collect() |>
-          sample_n(min(n(), 100))
-        
-        set.seed(123)
-        lfpse_low_no_other <- lfpse_filtered_text |>
-          filter(
-            !OT001 %in% c("1", "2", "3"),
-            !OT002 %in% c("1", "2")
-          ) |>
-          collect() |>
-          sample_n(min(n(), 100))
-        
-        lfpse_sampled <- bind_rows(
-          lfpse_death_severe,
-          lfpse_moderate,
-          lfpse_low_no_other
-        )
-      } else {
-        print("- Sampling not required, default threshold not met.")
-        lfpse_sampled <- lfpse_filtered_text
-      }
-    } else if (sampling_strategy == "FOI") {
-      print("- Extracting a sample of 30 incidents for redaction...")
-      set.seed(123)
-      lfpse_sampled <- lfpse_filtered_text |>
-        distinct(Reference, .keep_all = T) |>
-        sample_n(min(n(), 30))
-    } else if (sampling_strategy == "none") {
-      print("- Skipping sampling...")
-      lfpse_sampled <- lfpse_filtered_text
-    }
-   
   
-  #note the pivot_longer step below is not feasible for all columns in the dataset if there are more than 100,000 rows.
-  #It has been split into:
-  #-creating the data for the summary tables (using just required columns) 
-  #-creating the data for the incident level data (usually post sampling, or small number of rows)
-  
-  
-  #find the categories required for creating summary tables 
-  categories_for_summary_tables_lfpse<-unique(as.character(unlist(summary_categories_lfpse)))
-  
-  #create table which will be used to create summary tables.
-  #this may be very large, so we reduce the number of columns 
-  #by only selecting the columns required for creating the summary tabkes
-  lfpse_for_release_full_for_summary <-  lfpse_filtered_text  |>
-    #relevel factor of columns
-    mutate(
-      max_physical_harm_level= factor(
-        max_physical_harm_level, 
-        levels= c("No physical harm", "Low physical harm",
-               "Moderate physical harm","Severe physical harm", "Fatal")),
-      max_psychological_harm_level= factor(
-        max_psychological_harm_level,
-        levels= c("No psychological harm",
-                  "Low psychological harm",
-                  "Moderate psychological harm",
-                   "Severe psychological harm")),
-      month_of_incident= fct_relevel(month_of_incident, month.abb))|>
-    #select columns required for summary tables-
-    #add Reference column to allow us to switch to incident level
-    #add taxonomy version to allow us to join the ResponsReference
-    #add A001 because the pivot longer will only work if at least one of the column names is in ResponseReference
-    select(Reference, !!categories_for_summary_tables_lfpse, TaxonomyVersion, A001)|>
-    # pivot the coded columns
-    pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
+  lfpse_labelled<- lfpse_filtered_text |>
+  # pivot the coded columns
+  pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
     # separate the multi-responses into single row per selection
     separate_rows(value, sep = " {~@~} ") |>
     # arrange so that multi-responses appear alphabetised later
@@ -236,7 +166,67 @@ if (nrow(lfpse_filtered_text) != 0) {
       # collapse multi-responses into single row per entity
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
     ) |>
-    # select the columns for release
+    #relevel factor of columns
+    mutate(
+      max_physical_harm_level= factor(
+        max_physical_harm_level, 
+        levels= c("No physical harm", "Low physical harm",
+                  "Moderate physical harm","Severe physical harm", "Fatal")),
+      max_psychological_harm_level= factor(
+        max_psychological_harm_level,
+        levels= c("No psychological harm",
+                  "Low psychological harm",
+                  "Moderate psychological harm",
+                  "Severe psychological harm")),
+      month_of_incident= fct_relevel(month_of_incident, month.abb))
+  
+    # sampling ####
+    # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
+    if (sampling_strategy == "default") {
+      if (nrow(lfpse_labelled) > 300) {
+        print("- Sampling according to default strategy...")
+        lfpse_death_severe <- lfpse_labelled |>
+          # deaths or severe physical harm
+          filter(OT001 %in% c("Fatal", "Severe physical harm"))
+        
+        set.seed(123)
+        lfpse_moderate <- lfpse_labelled |>
+          # moderate physical  harm
+          filter(OT001 == "Moderate physical harm") |>
+          collect() |>
+          sample_n(min(n(), 100))
+        
+        set.seed(123)
+        lfpse_low_no_other <- lfpse_labelled |>
+          filter(
+            !OT001 %in% c("Fatal", "Severe physical harm", "Moderate physical harm")
+          ) |>
+          collect() |>
+          sample_n(min(n(), 100))
+        
+        lfpse_sampled <- bind_rows(
+          lfpse_death_severe,
+          lfpse_moderate,
+          lfpse_low_no_other
+        )
+      } else {
+        print("- Sampling not required, default threshold not met.")
+        lfpse_sampled <- lfpse_labelled
+      }
+    } else if (sampling_strategy == "FOI") {
+      print("- Extracting a sample of 30 incidents for redaction...")
+      set.seed(123)
+      lfpse_sampled <- lfpse_labelled |>
+        distinct(Reference, .keep_all = T) |>
+        sample_n(min(n(), 30))
+    } else if (sampling_strategy == "none") {
+      print("- Skipping sampling...")
+      lfpse_sampled <- lfpse_labelled
+    }
+   
+  
+  lfpse_for_release_full_for_summary <-  lfpse_labelled  |>
+    # rename columns
     select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
     # remove columns that contain patient specific info (for summary tables)
     select(-any_of(c("Patient no.","OT001 - Physical harm","OT002 - Psychological harm"))) |> 
@@ -246,28 +236,6 @@ if (nrow(lfpse_filtered_text) != 0) {
   
 
     lfpse_for_release_incident_level <-  lfpse_sampled  |> 
-      # pivot the coded columns
-      pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
-      # separate the multi-responses into single row per selection
-      separate_rows(value, sep = " {~@~} ") |>
-      # arrange so that multi-responses appear alphabetised later
-      arrange(value) |>
-      # bring through the value labels
-      left_join(ResponseReference, by = c(
-        "name" = "QuestionId",
-        "value" = "ResponseCode",
-        "TaxonomyVersion" = "TaxonomyVersion"
-      )) |>
-      # remove the unnecessary columns
-      select(!c(value, Property, LastUpdated, IsActive)) |>
-      # pivot back into columns
-      pivot_wider(
-        id_cols = !any_of(ResponseReference$QuestionId),
-        names_from = name,
-        values_from = ResponseText,
-        # collapse multi-responses into single row per entity
-        values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
-      ) |>
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     

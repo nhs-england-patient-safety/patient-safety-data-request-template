@@ -113,6 +113,7 @@ rename_lookup_nrls<- c(
   `MD31 Proprietary Name (Drug 2)` = "MD31",
   `DE01 Type of Device` = "DE01",
   `DE01 Type of device - free text` = "DE01_TEXT",
+  `DE03`="DE03",
   `Date incident received by NRLS` = "reported_date")
 
 rename_lookup_lfpse<-c(
