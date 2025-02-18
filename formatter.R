@@ -1,4 +1,4 @@
-file_list <- apropos('for_release_incident_level')
+file_list <- apropos('for_release_full_for_summary')
 
 #there's no need to carry on if there are no objects for release
 if(is_empty(file_list)){

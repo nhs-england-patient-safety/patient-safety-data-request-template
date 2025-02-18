@@ -63,7 +63,8 @@ lfpse_filtered_categorical <- lfpse_parsed |>
     # apply categorical filters here
     lfpse_categorical
   ) |>
-  #select only relevant columns
+  #select only relevant columns- use the lookup but do not rename at this step
+  #to use additional columns, add them to column_selection_lookups.R
   select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
   #find month and year of incident
   mutate(year_of_incident = as.numeric(substr(as.character(occurred_date), 1, 4)),

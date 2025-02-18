@@ -31,7 +31,8 @@ nrls_filtered_categorical <- nrls_parsed |>
   # apply categorical filters here
   filter(between(date_filter, start_date, end_date)) |>
   filter(!!nrls_categorical) |>
-  #select only relevant columns
+  #select only relevant columns- use the lookup but do not rename at this step
+  #to use additional columns, add them to column_selection_lookups.R
   select(any_of(unname(rename_lookup[["NRLS"]])))|>
   # collecting here so that we can apply text filters later
  collect() |>
@@ -152,7 +153,7 @@ if (nrow(nrls_filtered_text) != 0) {
   } else if (sampling_strategy == "none") {
     
     print("- Skipping sampling...")
-    nrls_sampled <- nrls_selected_columns
+    nrls_sampled <- nrls_labelled
   }
 
   #create for release for sampling table- and rename columns
