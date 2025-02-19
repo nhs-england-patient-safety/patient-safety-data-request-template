@@ -145,7 +145,7 @@ if (nrow(lfpse_filtered_text) != 0) {
     mutate(age_unit = case_when(
       is.na(P004_days) ~ 'age missing',
       between(P004_days, 1, 30) ~ 'days',
-      between(P004_days, 31, 341) ~ 'months',
+      between(P004_days, 31, 371) ~ 'months',
       between(P004_days, 372, 74028) ~ 'years',
       .default = 'age outside bounds')) |>
     mutate(age_compliance = case_when(
