@@ -14,10 +14,11 @@ search_steis <- T
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
 source("functions.R")
+source("column_selection_lookups.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-06-30"
+end_date <- "2024-03-30"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)

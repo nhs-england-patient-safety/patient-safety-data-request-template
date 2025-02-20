@@ -1,6 +1,6 @@
 # steis
 dataset <- "StEIS"
-print(glue("Running {dataset} search..."))
+message(glue("Running {dataset} search..."))
 
 if(steis_categorical == 0){
   steis_categorical <- expr(1==1)
@@ -45,13 +45,13 @@ steis_filtered_categorical <- steis_parsed |>
   filter(between(!! date_filter, start_date, end_date)) |>
   filter(!!steis_categorical)
 
-print(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
+message(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
 
-print(glue("- No sampling for StEIS since no harm grading."))
+message(glue("- No sampling for StEIS since no harm grading."))
 
 # text filters ####
 if (sum(!is.na(text_terms))>0) {
-  print(glue("Running {dataset} text search..."))
+  message(glue("Running {dataset} text search..."))
   
   steis_filtered_text_precursor<- steis_filtered_categorical |>
     mutate(concat_col=paste(description_of_what_happened,
@@ -82,9 +82,9 @@ if (sum(!is.na(text_terms))>0) {
     # drop individual term columns
     select(!c(contains("_term_"), concat_col))
   
-  print(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
+  message(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
 } else {
-  print("- No text terms supplied. Skipping text search...")
+  message("- No text terms supplied. Skipping text search...")
   steis_filtered_text <- steis_filtered_categorical
 }
 
@@ -99,15 +99,15 @@ if(nrow(steis_filtered_text) != 0){
       # select columns to be released and rename using lookup
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
  
-    steis_for_release_incident_level<- steis_for_release
-    steis_for_release_full_for_summary <- steis_for_release
+    steis_for_release_unsampled<- steis_for_release
+    steis_for_release_sampled <- steis_for_release
   }
   
-  print(glue("- Final {dataset} dataset contains {nrow(steis_for_release_incident_level)} incidents."))
-  
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled)} incidents."))
+
 } else {
-  print(glue('**The search criteria has produced no results in {dataset}**'))
-  print(glue('Moving on...'))
+  message(glue('**The search criteria has produced no results in {dataset}**'))
+  message(glue('Moving on...'))
 }
 
 source('formatter.R')

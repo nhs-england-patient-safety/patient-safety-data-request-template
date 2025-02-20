@@ -1,4 +1,4 @@
-file_list <- apropos('for_release_full_for_summary')
+file_list <- apropos('for_release_sampled')
 
 #there's no need to carry on if there are no objects for release
 if(is_empty(file_list)){
@@ -6,7 +6,7 @@ if(is_empty(file_list)){
 }
 
 # Formatting Excel workbook
-print('Formatting Excel workbook...')
+message('Formatting Excel workbook...')
 
 # Create a new workbook
 wb <- createWorkbook()
@@ -134,7 +134,7 @@ for (i in file_list) {
     if (incident_level_required=="yes"){
       wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Data"))
     }else{
-      print("incident_level_required not valid. Only the summary sheet has been added.")
+      message("incident_level_required not valid. Only the summary sheet has been added.")
   }
   
 }

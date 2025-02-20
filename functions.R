@@ -1,7 +1,8 @@
 #function to find the minimum number in a vector, and return NA if all values are NA
+# This is required to find the minimum physical or psychological harm level
 min_safe<- function(vec){
-  ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec,na.rm=TRUE))
-}
+   ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec,na.rm=TRUE))
+ }
 
 
 #' add summary sheet
@@ -37,7 +38,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   #add caveats to lfpse tab
   if (database_name == "LFPSE"){
   
-    note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest harm level accross patients",
+    note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients",
            "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents.")
     
     # write note
@@ -53,13 +54,13 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   }
   
   #get data
-  df_full <- get(str_glue("{tolower(database_name)}_for_release_full_for_summary"))
+  df_unsampled <- get(str_glue("{tolower(database_name)}_for_release_unsampled"))
   
   # write number of incidents
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents in Full Dataset", nrow(df_full), sep = ": "),
+    paste("Number of Incidents retrieved by search strategy", nrow(df_unsampled), sep = ": "),
     startCol = 1,
     startRow = content_start_row
   )
@@ -80,7 +81,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
       
       variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
       
-      df_for_summary<- df_full 
+      df_for_summary<- df_unsampled 
       
       cat_1_multi <- df_for_summary %>% 
         mutate(cat_1_delim=str_detect(!!variable_one, " \\{~@~\\} ")) %>% 
@@ -106,7 +107,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
         variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
         variable_two<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[2]])))
         
-        df_for_summary<- df_full 
+        df_for_summary<- df_unsampled 
         #work out if there is multi-select options in table_variables 1 or 2
         
         cat_1_multi <- df_for_summary %>% 
@@ -137,7 +138,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
           adorn_totals('both')
       
     } else{
-       print("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+       message("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
       }
     
 
@@ -205,16 +206,16 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
 #' @return workbook with data added
 add_data_sheet <- function(wb, title, database_name, sheet) {
   
-  df <- get(str_glue("{tolower(database_name)}_for_release_incident_level"))
+  df_sampled <- get(str_glue("{tolower(database_name)}_for_release_sampled"))
   #get data
-  df_full <- get(str_glue("{tolower(database_name)}_for_release_full_for_summary"))
+  df_unsampled <- get(str_glue("{tolower(database_name)}_for_release_unsampled"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
   # set column widths
   setColWidths(wb,
                sheet = sheet,
-               cols = 1:ncol(df),
+               cols = 1:ncol(df_sampled),
                widths = 35)
   
   # set row heights - header row
@@ -227,7 +228,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   # set row heights - body
   setRowHeights(wb,
                 sheet = sheet,
-                rows = 9:(nrow(df) + 8),
+                rows = 9:(nrow(df_sampled) + 8),
                 heights = 150)
   
   
@@ -244,7 +245,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     sheet = sheet,
     headerStyle,
     rows = 8,
-    cols = 1:ncol(df)
+    cols = 1:ncol(df_sampled)
   )
   
   # Add body style
@@ -252,8 +253,8 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     wb,
     sheet = sheet,
     bodyStyle,
-    rows = 9:(nrow(df) + 8),
-    cols = 1:ncol(df),
+    rows = 9:(nrow(df_sampled) + 8),
+    cols = 1:ncol(df_sampled),
     gridExpand = T
   )
   
@@ -272,14 +273,14 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents in Full Dataset", nrow(df_full), sep = ": "),
+    paste("Number of Incidents retrieved by search strategy", nrow(df_unsampled), sep = ": "),
     startCol = 1,
     startRow = 5
   )
   
   if(database_name=="LFPSE"){
-    number_of_incidents<- df %>% count(Reference) %>% nrow()
-    number_of_patients<-df %>% count(Reference, `Patient no.`) %>% nrow()
+    number_of_incidents<- df_sampled %>% count(Reference) %>% nrow()
+    number_of_patients<-df_sampled %>% count(Reference, `Patient no.`) %>% nrow()
     info_string<- paste0(str_glue("Number of Incidents in Sample: {number_of_incidents} ({number_of_patients} Patients )"))
     writeData(
       wb,
@@ -292,12 +293,12 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     writeData(
       wb,
       sheet,
-      paste("Number of Incidents in Sample", nrow(df), sep = ": "),
+      paste("Number of Incidents in Sample", nrow(df_sampled), sep = ": "),
       startCol = 1,
       startRow = 6
     )
   }
   # Write data
-  writeData(wb, sheet, df, startRow = 8)
+  writeData(wb, sheet, df_sampled, startRow = 8)
   return(wb)
 }
