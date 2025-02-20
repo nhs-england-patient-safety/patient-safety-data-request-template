@@ -13,13 +13,6 @@
 -   Below is regex for when you want to find a word within a certain number of other words, with the option for a reverse of the pattern as well:
 -   `\\b(?:word1\\W+(?:\\w+\\W+){0,5}?word2|word2\\W+(?:\\w+\\W+){0,5}?word1)\\b`
 -   You might come across instances where a special character is part of the string you're after, but you'll struggle to set the correct regex expression because that character has a meaning in regex code. Use `fixed()` in such instances. For example `str_detect('65+', '+')` will error out but `str_detect('65+', fixed('+'))` will not.
--   `(?:\\W|)` - optional non word character including - useful for acronyms
--   Below is regex for when you want to find a word within a certain number of other words, with the option for a reverse of the pattern as well:
--   `\\b(?:word1\\W+(?:\\w+\\W+){0,5}?word2|word2\\W+(?:\\w+\\W+){0,5}?word1)\\b`
--   Below is how you search for a range of numbers, for example "0 - 40 weeks" pregnant:
--   `\\b([0-9]|[1-3][0-9]|40)\\sweeks?\\b`
--   You can omit certain terms from your search, in the below example the term 'Frida' is open ended to capture options such as 'Frida Baby', but we don't want 'Friday' returned:
--   `(?i)\\bfrida(?!y)`
 
 ## Categorical terms
 
