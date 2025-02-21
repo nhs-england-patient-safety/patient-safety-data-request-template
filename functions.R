@@ -19,13 +19,12 @@ min_safe<- function(vec){
 add_summary_sheet <- function(wb, title, database_name, sheet) {
 
   list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
-  #get data
   
+  #get data
   df_unsampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_incident_level"))
   df_sampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_incident_level"))
   
   addWorksheet(wb, sheet, gridLines = FALSE) 
-  
   
   table_start_row<- add_header_to_sheet(wb, title, database_name, sheet,
                       summary_sheet= TRUE,
@@ -34,11 +33,9 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   # loop through list- each item of list is one table
   for (variables_to_tabulate_by_list in list_of_tables_to_create) {
-    
     summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,variables_to_tabulate_by_list, database_name)
     summary_table_sampled<- create_summary_table(df_sampled_incident_level,variables_to_tabulate_by_list, database_name)
 
-    
     add_summary_table_to_sheet(wb,
                                sheet, 
                                summary_table_unsampled,
@@ -87,11 +84,12 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
 
 }
 
+#this function creates a summary table from a dataframe and a list containing the variables to tabulate by
 create_summary_table<-function(df_to_create_summary_table,
                                variables_to_tabulate_by_list, 
                                database_name){
-  
-  #work out if table needs to have one or 2 variables. 
+
+    #work out if table needs to have one or 2 variables. 
   if (length(variables_to_tabulate_by_list) == 1) {
     
     # extract the variable from list of variables
@@ -147,7 +145,7 @@ create_summary_table<-function(df_to_create_summary_table,
   return(summary_table)
   
 }
-
+#this function adds a summary table to a sheet
 add_summary_table_to_sheet<- function(wb,
                                       sheet, 
                                       summary_table,
@@ -201,6 +199,7 @@ add_summary_table_to_sheet<- function(wb,
                widths = 20)
 }
 
+#this function adds a data table to a sheet and styles it 
 add_data_table_to_sheet<- function(wb,
                                    sheet,
                                    data_table,
@@ -250,7 +249,7 @@ add_data_table_to_sheet<- function(wb,
   
 }
 
-
+#this function adds the header section to the sheet- the contents depend on the database and what sheet is being made
 add_header_to_sheet<-function(wb, title, 
                               database_name, 
                               sheet, 
