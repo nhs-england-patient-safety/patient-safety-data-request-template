@@ -74,7 +74,6 @@ lfpse_filtered_categorical <- lfpse_parsed |>
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
          npatient = max(EntityId)) |># calculate the number of incidents
   ungroup() |>
-
   # collecting here so that we can apply text filters later
   collect() |>
   mutate(month_of_incident= month.abb[month_of_incident],
