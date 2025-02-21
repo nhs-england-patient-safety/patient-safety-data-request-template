@@ -7,7 +7,7 @@ min_safe<- function(vec){
 
 #' add summary sheet
 #'
-#'searches environment for summary_categories_lfpse, nrls or steis, depending on database_name
+#'searches environment for list_of_tables_to_create_lfpse, nrls or steis, depending on database_name
 #'creates summary tables from the columns specified by this object
 #'
 #' @param wb workbook (workbook class)
@@ -18,7 +18,7 @@ min_safe<- function(vec){
 #' @return workbook with summary tables added
 add_summary_sheet <- function(wb, title, database_name, sheet) {
 
-  summary_categories_list <- get(str_glue("summary_categories_{tolower(database_name)}"))
+  list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
   
   addWorksheet(wb, sheet, gridLines = FALSE) 
   
@@ -74,15 +74,13 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   
   # loop through list- each item of list is one table
-  for (variables_to_tabulate_by_list in summary_categories_list) {
-
+  for (variables_to_tabulate_by_list in list_of_tables_to_create) {
     
     summary_table<- create_summary_table(df_unsampled,variables_to_tabulate_by_list, database_name)
 
     #add summary table to sheet
     writeData(wb, sheet, summary_table, startRow = table_start_row)
     
-
     # style table - header 
     addStyle(
       wb,
