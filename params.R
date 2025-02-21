@@ -15,9 +15,11 @@ search_steis <- T
 source("connections.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2021-01-01"
-end_date <- "2024-01-31"
+start_date <- "2024-06-01"
+end_date <- "2024-07-31"
 date_type <- "occurring"
+# Adding in caveat into formatter and params
+nrls_decomissioned <- "2024-06-30"
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -29,6 +31,7 @@ lfpse_categorical <- expr(A001 == '4')
 
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
+steis_url <- ' ' # Added in URL for steis extract
 steis_filename <- 'SUI_2_1258.csv'
 
 # text terms

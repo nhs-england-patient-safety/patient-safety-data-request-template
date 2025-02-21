@@ -91,11 +91,36 @@ if (sum(!is.na(text_terms))>0) {
 # check whether the text search generated results 
 if(nrow(steis_filtered_text) != 0){
 
+  
+  # Adding in sampling as occasionally is needed like for FOI's
+  # Default (if > 300: random sample of output)
+      if (sampling_strategy == "default") {
+        if (nrow(steis_filtered_text) > 300) {
+          print("- Sampling according to default strategy...")
+          set.seed(123)
+          steis_sampled <- steis_filtered_text |>
+            sample_n(min(n(), 300))
+          
+          if (sampling_strategy == "FOI") {
+            if (nrow(steis_filtered_text) > 300) {
+              print("- Sampling according to FOI strategy...")
+              set.seed(123)
+              steis_sampled <- steis_filtered_text |>
+                sample_n(min(n(), 30))
+          
+        } else {
+          print("- Sampling not required, default threshold not met.")
+          steis_sampled <- steis_filtered_text
+        }
+      }
+    }
+  }
+  
 # columns for release ####
 if(cols_to_extract == 'all'){
-  steis_for_release <- steis_filtered_text
+  steis_for_release <- steis_sampled
 } else if (cols_to_extract == 'default'){
-  steis_for_release <- steis_filtered_text |>
+  steis_for_release <- steis_sampled |>
     # select columns to be released
     select(
       `Log No` = log_no,
