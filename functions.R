@@ -109,7 +109,6 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   }
   
   
-  
   return(wb)
 }
 

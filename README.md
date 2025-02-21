@@ -2,11 +2,11 @@
 
 Template for extracting data from the national patient safety systems in England.
 
-## Instructions: 
+## Instructions:
 
--    Set the search parameters in the params file.
+-   Set the search parameters in the params file.
 
--    Source the params file.This will source each relevant script automatically.
+-   Source the params file.This will source each relevant script automatically.
 
 ## Scripts:
 
@@ -14,11 +14,11 @@ Template for extracting data from the national patient safety systems in England
 
 -   `connections.R` - This file is sourced by the params file. It connects to the the LFPSE and NRLS databases if required.
 
--   `functions.R`  - This file is sourced by the params file. It contains functions used by the other scripts.
+-   `functions.R` - This file is sourced by the params file. It contains functions used by the other scripts.
 
 -   `column_selection_lookups.R` - This file is sourced by the params file. It creates a list with the required columns for each of the three databases.
 
--   `flow.R`  - this file is sourced by the params file. It sources the script for first database that needs to be run for this search (The order is `nrls.R`, `lfpse.R`, `steis.R` )
+-   `flow.R` - this file is sourced by the params file. It sources the script for first database that needs to be run for this search (The order is `nrls.R`, `lfpse.R`, `steis.R` )
 
 -   `nrls.R` - this file searches the NRLS database according to the parameters specified in the params file. It sources the next file in the process (`lfpse.R`, `steis.R` or `formatter.R` depending on which databases are required)
 
@@ -34,7 +34,7 @@ Template for extracting data from the national patient safety systems in England
 
 Each file follows a very similar process. They will all create these objects in the following order (where x is the name of the database.
 
-1.   `x_parsed` - SQL table object with some renamed columns
+1.  `x_parsed` - SQL table object with some renamed columns
 
 2.  `x_filtered_categorical` - `x_parsed` object with date and categorical filters applied, only relevant columns selected, collected into R memory and additional required columns generated (e.g. month and year)
 
@@ -42,8 +42,16 @@ Each file follows a very similar process. They will all create these objects in 
 
 4.  `x_labelled` - `x_filtered_text` object with the categorical variables labelled - e.g. in the form "medications", "devices" rather than 3 or 4.
 
-5.  `x_sampled`  - `x_labelled` object with sampling strategy applied (or no sampling if no sampling strategy is required)
+5.  `x_sampled` - `x_labelled` object with sampling strategy applied (or no sampling if no sampling strategy is required)
 
-6.  `x_for_release_sampled` - `x_sampled` object with columns renamed to more human readable column. This sampled data is required for data tabs.
+6.  `x_for_release_sampled_pt_level` - `x_sampled` object with columns renamed to more human readable column names. The patient level data is required for data tabs.
 
-7.  `x_for_release_unsampled` - `x_labelled` object with columns renamed to more human readable column. This sampled data is required for the summary table tabs. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`.
+7.  `x_for_release_unsampled_pt_level` - `x_labelled` object with columns renamed to more human readable column names. This patient level is required for data tabs.
+
+8.  `x_for_release_sampled_incident_level` - `x_sampled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
+
+9.  `x_for_release_unsampled_incident_level` - `x_labelled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
+
+Note- for NRLS and StEIS, the patient level is identical to the incident level
+
+Note- where sampling has not been carried out, the sampled data is identical to the unsampled data.
