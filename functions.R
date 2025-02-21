@@ -1,14 +1,13 @@
-library(tidyverse)
 
-get_code_text <-function(column, code, dataset){
+get_code_text <-function(column, code, database_name){
   
-  if (dataset=="steis"){
+  if (database_name=="steis"){
     return(code)
-  }else if(dataset=="nrls"){
+  }else if(database_name=="nrls"){
     code_text_df<-codes |> 
       filter(col_name==column, SASCODE== code) |>
       select(OPTIONTEXT)
-  } else if(dataset=="lfpse"){
+  } else if(database_name=="lfpse"){
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
@@ -19,21 +18,21 @@ get_code_text <-function(column, code, dataset){
     code_text <- pull(code_text_df)
   } else {
     code_text<-  code
-    print(str_glue("{code} was not found in {column} column in lookup table for {dataset}. (or it was found with duplicates)"))
+    print(str_glue("{code} was not found in {column} column in lookup table for {database_name}. (or it was found with duplicates)"))
   }
   return(code_text)
 }
 
-get_column_text<-function(column, dataset){
-  if (dataset=="steis"){
+get_column_text<-function(column, database_name){
+  if (database_name=="steis"){
     return(column)
-  } else if (dataset=="lfpse"){
+  } else if (database_name=="lfpse"){
     column_text_df<-QuestionReference |> 
       filter(QuestionId==column) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
       distinct(QuestionId, Property) |>
       select(Property)
-  }else if (dataset=="nrls"){
+  }else if (database_name=="nrls"){
     column_text_df<- nrls_colname_lookup %>% 
       filter(NAME==column) %>% 
       select(LABEL)
@@ -42,45 +41,11 @@ get_column_text<-function(column, dataset){
     column_new <- pull(column_text_df)
   } else{
     column_new <- column
-    print(str_glue("{column} column was not found in lookup table for {dataset}"))
+    print(str_glue("{column} column was not found in lookup table for {database_name}"))
   }
   
   return(column_new)   
 }
-
-expand_categorical_filters <- function(string,
-                                       dataset) {
-  
-  #create a list of filters starting with dataset name _filter
-  vector_of_filters <-   apropos(str_glue("{dataset}_filter_"))
-  list_of_filters <- vector_of_filters %>%
-    set_names() %>%
-    map(~get(.))
-  
-  #manipulate full string - to make later processing simpler
-  string_formatted<- string %>%
-    str_replace_all( '\"','') %>% #get rid of speech marks
-    str_replace_all(" +"," ") %>% #get rid of excess spaces - most important for (" " + col_name + " ") pattern
-    str_replace_all("\\( \\+ ","") %>% #replace ( + pattern - important for (" " + col_name + " ") pattern
-    str_replace_all(" \\+ \\)","") %>% # replace + ) pattern - important for (" " + col_name + " ") pattern
-    str_replace_all("c\\(", "\\(") #remove c from the start of vectors 
-  
-  #loop through all filters, replacing  filter with full text version of filter
-  for (i in list_of_filters) {
-    string_formatted<- replace_filter(string_formatted, i, dataset)
-  }
-  #replace |, & , ==, like and %in% with more understandable phrases
-  string_formatted<- string_formatted %>%  
-    str_replace_all("\\|", "OR") %>%
-    str_replace_all("&", "AND") %>%
-    str_replace_all("==", "=") %>%
-    str_replace_all("%in%", "IN") %>%
-    str_replace_all("%LIKE%", "CONTAINS")
-  
-  return(string_formatted)
-}
-
-
 
 find_filter_category<- function(i){
   
@@ -130,7 +95,7 @@ translate_individual_filter <- function(one_filter, database_name){
     #split each filter into column, value and operator
     
     column <- str_trim(str_split(one_filter,"%in%")[[1]][1])
-    column_new <- get_column_text(column, dataset)  
+    column_new <- get_column_text(column, database_name)  
     value_old <- str_trim(str_split(one_filter,"%in%")[[1]][2])
     value_old_no_spaces <- str_replace(value_old," ", "")
     operator <- "%in%"
@@ -145,7 +110,7 @@ translate_individual_filter <- function(one_filter, database_name){
       if (! j %in% c("c", ",", " ", "~")){
 
         #get text for this element of value 
-        code_text <- get_code_text(column, j, dataset)
+        code_text <- get_code_text(column, j, database_name)
         #append this value to a vector of values
         value_new <- append(value_new, code_text)
       }
@@ -163,12 +128,12 @@ translate_individual_filter <- function(one_filter, database_name){
     } else if (filter_category=="equals"){
     
     column <- str_trim(str_split(one_filter,"==")[[1]][1])
-    column_new <- get_column_text(column, dataset)  
+    column_new <- get_column_text(column, database_name)  
     value_old <-str_trim(str_split(one_filter,"==")[[1]][2])
     operator <- "=="
     
     
-    value_new_string <- get_code_text(column, value_old, dataset)
+    value_new_string <- get_code_text(column, value_old, database_name)
 
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
     
@@ -177,7 +142,7 @@ translate_individual_filter <- function(one_filter, database_name){
     
     column <- one_filter%>% 
       str_extract("[a-zA-Z0-9_.-]+")
-    column_new <- get_column_text(column, dataset)  
+    column_new <- get_column_text(column, database_name)  
     
     value_old <- str_extract(one_filter,"% \\d %")
     operator <- "CONTAINS"
@@ -186,14 +151,14 @@ translate_individual_filter <- function(one_filter, database_name){
       str_replace_all("%","") %>% #get rid of "% "- which is present with a multi-select column
       str_trim()
     
-    value_new_string <- get_code_text(column, value_pretty, dataset)
+    value_new_string <- get_code_text(column, value_pretty, database_name)
     #recreate the filter by combining column, operator and value old
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
     
   }else if (filter_category=="filter_na"){
     not_na<-!str_detect(one_filter,"!")
     column<- str_extract(one_filter,"[a-zA-Z0-9_-]{3,}")
-    column_new <- get_column_text(column , dataset) 
+    column_new <- get_column_text(column , database_name) 
     if (not_na){
       filter_nice <- str_glue("{column_new} IS NOT NA")
     } else {
