@@ -74,73 +74,10 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   
   
   # loop through list- each item of list is one table
-  for (table_variables in summary_categories_list) {
+  for (variables_to_tabulate_by_list in summary_categories_list) {
 
-    #work out if table has one or 2 variables. 
-    if (length(table_variables) == 1) {
-      
-      variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
-      
-      df_for_summary<- df_unsampled 
-      
-      cat_1_multi <- df_for_summary %>% 
-        mutate(cat_1_delim=str_detect(!!variable_one, " \\{~@~\\} ")) %>% 
-        filter(cat_1_delim) %>% 
-        summarise(sum(cat_1_delim)>0) %>%
-        pull()
     
-      #separate rows if there are multi select options present
-      if (cat_1_multi){
-        df_for_summary <- df_for_summary %>%
-          separate_rows(!!variable_one,sep = " {~@~} ") 
-      }
-      
-      summary_table <- df_for_summary |>
-          count(!!variable_one,.drop= FALSE)|>
-        #  add row totals and percentage column
-          mutate(percent = scales::percent(n / sum(n))) %>%
-          adorn_totals('row')
-      
-      
-      } else if ( length(table_variables)==2){
-
-        variable_one<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[1]])))
-        variable_two<-sym(names(which(rename_lookup[[database_name]]==unlist(table_variables)[[2]])))
-        
-        df_for_summary<- df_unsampled 
-        #work out if there is multi-select options in table_variables 1 or 2
-        
-        cat_1_multi <- df_for_summary %>% 
-          mutate(cat_1_delim=str_detect(!!variable_one, " \\{~@~\\} ")) %>% 
-          filter(cat_1_delim) %>% 
-          summarise(sum(cat_1_delim)>0) %>%
-          pull()
-        cat_2_multi <- df_for_summary %>% 
-          mutate(cat_2_delim=str_detect(!!variable_two, " \\{~@~\\} ")) %>%
-          filter(cat_2_delim) %>% 
-          summarise(sum(cat_2_delim)>0) %>% 
-          pull()
-        
-        #separate rows if there are multi select options present
-        if (cat_1_multi){
-          df_for_summary <- df_for_summary %>%
-            separate_rows(!!variable_one,sep = " {~@~} ") 
-        }
-        if (cat_2_multi){
-          df_for_summary <- df_for_summary %>%
-            separate_rows(!!variable_one, sep = " {~@~} ") 
-        }
-        
-        summary_table <- df_for_summary |>
-          count(!!variable_one,!!variable_two,.drop= FALSE)%>% 
-          pivot_wider(names_from = !!variable_two,
-                      values_from = n) %>%
-          adorn_totals('both')
-      
-    } else{
-       message("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
-      }
-    
+    summary_table<- create_summary_table(df_unsampled,variables_to_tabulate_by_list, database_name)
 
     #add summary table to sheet
     writeData(wb, sheet, summary_table, startRow = table_start_row)
@@ -302,4 +239,65 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   # Write data
   writeData(wb, sheet, df_sampled, startRow = 8)
   return(wb)
+}
+
+create_summary_table<-function(df_to_create_summary_table,
+                               variables_to_tabulate_by_list, 
+                               database_name){
+  
+  #work out if table needs to have one or 2 variables. 
+  if (length(variables_to_tabulate_by_list) == 1) {
+    
+    # extract the variable from list of variables
+    variable_to_tabulate_by_one<- unlist(variables_to_tabulate_by_list)[[1]]
+    
+    #convert the variable which data will be tabulated to a more human readable name, using lookup
+    renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
+    
+    #allow the variable to be used as a column name
+    renamed_variable_to_tabulate_by_one<- sym(renamed_variable_to_tabulate_by_one) 
+  
+    summary_table <- df_to_create_summary_table |>
+      #separate rows if there are multi select options present
+      separate_rows(!!renamed_variable_to_tabulate_by_one,sep = " {~@~} ") |>
+      #use count to tabulate
+      count(!!renamed_variable_to_tabulate_by_one,.drop= FALSE)|>
+      #  add row totals and percentage column
+      mutate(percent = scales::percent(n / sum(n))) %>%
+      adorn_totals('row')
+    
+    
+  } else if ( length(variables_to_tabulate_by_list)==2){
+    
+    # extract the variables from list of variables
+    variable_to_tabulate_by_one<- unlist(variables_to_tabulate_by_list)[[1]]
+    variable_to_tabulate_by_two<- unlist(variables_to_tabulate_by_list)[[2]]
+    
+    #convert the variables which data will be tabulated to a more human readable name, using lookup
+    renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
+    renamed_variable_to_tabulate_by_two<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_two))
+    
+    #allow the variable to be used as a column name
+    renamed_variable_to_tabulate_by_one<- sym(renamed_variable_to_tabulate_by_one) 
+    renamed_variable_to_tabulate_by_two<- sym(renamed_variable_to_tabulate_by_two) 
+    
+    
+    summary_table <- df_to_create_summary_table |>
+      #separate rows if there are multi select options present
+      separate_rows(!!renamed_variable_to_tabulate_by_one, sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_two, sep = " {~@~} ") |>
+      # use count to get a table
+      count(!!renamed_variable_to_tabulate_by_one,!!renamed_variable_to_tabulate_by_two,.drop= FALSE)%>% 
+      #pivot so variable 2 is columns
+      pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two,
+                  values_from = n) %>%
+      #add row and column totals
+      adorn_totals('both')
+    
+  } else{
+    message("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+  }
+  
+  return(summary_table)
+  
 }
