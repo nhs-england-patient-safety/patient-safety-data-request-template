@@ -19,68 +19,18 @@ min_safe<- function(vec){
 add_summary_sheet <- function(wb, title, database_name, sheet) {
 
   list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
-  
-  addWorksheet(wb, sheet, gridLines = FALSE) 
-  
-  # Write title
-  writeData( wb, 
-             sheet, 
-             paste(sheet, "Confidential", sep = " - "),
-             startCol = 1,
-             startRow = 1
-  )
-  
-  #write subtitle
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-
-  content_start_row = 5
-  
-  #add caveats to lfpse tab
-  if (database_name == "LFPSE"){
-  
-    note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients",
-           "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents.")
-    
-    # write note
-    writeData(
-      wb,
-      sheet,
-      note,
-      startCol = 1,
-      startRow = content_start_row,
-    )
-  
-    content_start_row <- content_start_row + 3
-  }
-  
   #get data
   
   df_unsampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_incident_level"))
   df_sampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_incident_level"))
   
-  # write number of incidents
-  writeData(
-    wb,
-    sheet,
-    paste("Number of Incidents retrieved by search strategy (incident level)", nrow(df_unsampled_incident_level), sep = ": "),
-    startCol = 1,
-    startRow = content_start_row
-  )
+  addWorksheet(wb, sheet, gridLines = FALSE) 
   
-  writeData(
-    wb,
-    sheet,
-    paste("Number of Incidents in Sample (incident level)", nrow(df_sampled_incident_level), sep = ": "),
-    startCol = 1,
-    startRow = content_start_row + 1
-  )
-    
-  #set start row for summary tables
-  table_start_row = content_start_row + 3
   
-  #Add text style
-  addStyle(wb, sheet = sheet,  textStyle, rows = 1:(table_start_row - 1), cols = 1)
-  
+  table_start_row<- add_header_to_sheet(wb, title, database_name, sheet,
+                      summary_sheet= TRUE,
+                      number_of_rows_sampled = nrow(df_sampled_incident_level),
+                      number_of_rows_unsampled = nrow(df_unsampled_incident_level))
   
   # loop through list- each item of list is one table
   for (variables_to_tabulate_by_list in list_of_tables_to_create) {
@@ -108,8 +58,6 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     
   }
   
-  
-  return(wb)
 }
 
 #' add data sheet
@@ -130,83 +78,13 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
-  # set column widths
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1:ncol(df_sampled_pt_level),
-               widths = 35)
+  table_start_row<- add_header_to_sheet(wb, title, database_name, sheet,
+                                        summary_sheet = FALSE,
+                                        number_of_rows_sampled = nrow(df_sampled_pt_level),
+                                        number_of_rows_unsampled = nrow(df_unsampled_pt_level))
   
-  # set row heights - header row
-  
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 8:8,
-                heights = 34)
-  
-  # set row heights - body
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 9:(nrow(df_sampled_pt_level) + 8),
-                heights = 150)
-  
-  
-  # Add text style
-  addStyle(wb,
-           sheet = sheet,
-           textStyle,
-           rows = 1:6,
-           cols = 1:1)
-  
-  # Add header style
-  addStyle(
-    wb,
-    sheet = sheet,
-    headerStyle,
-    rows = 8,
-    cols = 1:ncol(df_sampled_pt_level)
-  )
-  
-  # Add body style
-  addStyle(
-    wb,
-    sheet = sheet,
-    bodyStyle,
-    rows = 9:(nrow(df_sampled_pt_level) + 8),
-    cols = 1:ncol(df_sampled_pt_level),
-    gridExpand = T
-  )
-  
-  # Write text
-  writeData(
-    wb,
-    sheet,
-    paste(sheet, "Confidential", sep = " - "),
-    startCol = 1,
-    startRow = 1
-  )
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-  
-  
-  # write number of incidents
-  writeData(
-    wb,
-    sheet,
-    paste("Number of Incidents retrieved by search strategy (patient level)", nrow(df_unsampled_pt_level), sep = ": "),
-    startCol = 1,
-    startRow = 5
-  )
-  
-    writeData(
-      wb,
-      sheet,
-      paste("Number of Incidents in Sample (patient level)", nrow(df_sampled_pt_level), sep = ": "),
-      startCol = 1,
-      startRow = 6
-    )
-    
-  # Write data
-  writeData(wb, sheet, df_sampled_pt_level, startRow = 8)
-  return(wb)
+  add_data_table_to_sheet(wb, sheet,data_table= df_sampled_pt_level, table_start_row = 8)
+
 }
 
 create_summary_table<-function(df_to_create_summary_table,
@@ -321,5 +199,122 @@ add_summary_table_to_sheet<- function(wb,
                sheet = sheet,
                cols = table_start_col:(table_start_col + ncol(summary_table) - 1 ),
                widths = 20)
-  return(wb)
+}
+
+add_data_table_to_sheet<- function(wb,
+                                   sheet,
+                                   data_table,
+                                   table_start_row){
+  
+  
+  # set column widths
+  setColWidths(wb,
+               sheet = sheet,
+               cols = 1:ncol(data_table),
+               widths = 35)
+  
+  # set row heights - header row
+  
+  setRowHeights(wb,
+                sheet = sheet,
+                rows = table_start_row:table_start_row,
+                heights = 34)
+  
+  # set row heights - body
+  setRowHeights(wb,
+                sheet = sheet,
+                rows = (table_start_row + 1):(nrow(data_table) + table_start_row),
+                heights = 150)
+  
+  # Add header style
+  addStyle(
+    wb,
+    sheet = sheet,
+    headerStyle,
+    rows = table_start_row,
+    cols = 1:ncol(data_table)
+  )
+  
+  # Add body style
+  addStyle(
+    wb,
+    sheet = sheet,
+    bodyStyle,
+    rows = (table_start_row+1):(nrow(data_table) + table_start_row),
+    cols = 1:ncol(data_table),
+    gridExpand = T
+  )
+  # Write data
+  writeData(wb, sheet, data_table, startRow = table_start_row)
+  
+  
+}
+
+
+add_header_to_sheet<-function(wb, title, 
+                              database_name, 
+                              sheet, 
+                              summary_sheet, 
+                              number_of_rows_sampled,
+                              number_of_rows_unsampled){
+  
+  # Write title
+  writeData( wb, 
+             sheet, 
+             paste(sheet, "Confidential", sep = " - "),
+             startCol = 1,
+             startRow = 1
+  )
+  
+  #write subtitle
+  writeData(wb, sheet, title, startCol = 1, startRow = 3)
+  
+  content_start_row = 5
+  
+  #add caveats to lfpse summary tab
+  if (database_name == "LFPSE" & summary_sheet){
+    
+    note<- c("Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients",
+             "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents.")
+    
+    # write note
+    writeData(
+      wb,
+      sheet,
+      note,
+      startCol = 1,
+      startRow = content_start_row,
+    )
+    
+    content_start_row <- content_start_row + 3
+  }
+  
+  incident_or_pt_level<- case_when(summary_sheet & database_name=="LFPSE" ~ " (incident level)",
+                                   !summary_sheet & database_name=="LFPSE" ~ " (patient level)",
+                                   .default = "")
+  # write number of incidents
+  writeData(
+    wb,
+    sheet,
+    paste(str_glue("Number of Incidents retrieved by search strategy{incident_or_pt_level}: {number_of_rows_unsampled}")),
+    startCol = 1,
+    startRow = content_start_row
+  )
+  
+  writeData(
+    wb,
+    sheet,
+    paste(str_glue("Number of Incidents in Sample{incident_or_pt_level}: {number_of_rows_sampled}")),
+    startCol = 1,
+    startRow = content_start_row + 1
+  )
+  
+  #set start row for summary tables
+  table_start_row = content_start_row + 3
+  
+  #Add text style
+  addStyle(wb, sheet = sheet,  textStyle, rows = 1:(table_start_row - 1), cols = 1)
+  
+  return(table_start_row)
+  
 }

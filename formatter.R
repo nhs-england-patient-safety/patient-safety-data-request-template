@@ -157,10 +157,10 @@ for (i in file_list) {
     toupper() |> 
     str_replace("STEIS", "StEIS") 
 
-    wb<-add_summary_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Summary"))
+    add_summary_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Summary"))
     
     if (incident_level_required=="yes"){
-      wb<-add_data_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Data"))
+      add_data_sheet(wb, title, database_name, str_glue("{sheet_base_name} - Data"))
     }else{
       message("incident_level_required not valid. Only the summary sheet has been added.")
   }
