@@ -209,24 +209,28 @@ translate_individual_filter <- function(one_filter, database_name){
 lfpse_categorical<- expr(A001 == 3 & A008 %in% c(1,2) & is.na(A001) & !is.na(A001) & (' ' + A001 +  ' ' %LIKE% '% 3 %') )
 #lfpse_categorical<- expr(A001 == 3 & A008 %in% c(1,2) & is.na(A001) & !is.na(A001))
 
-lfpse_filter_string <- deparse(lfpse_categorical, width.cutoff = 500)
-lfpse_filter_string_copy<- lfpse_filter_string %>%
-  str_replace_all("\\(", "~") %>%
-  str_replace_all("\\)", "~") %>%
-  str_replace_all('\\"', "#")
-filter_vector<- str_split(lfpse_filter_string_copy, "\\&|\\|")[[1]]
-
-# loop through filter
-for (one_filter in filter_vector){
-   one_filter_translated<- translate_individual_filter(one_filter, database_name)
-  print(lfpse_filter_string_copy)
-   lfpse_filter_string_copy<-str_replace_all(lfpse_filter_string_copy,
-                                             one_filter, 
-                                             one_filter_translated) 
+translate_categorical_string<- function(categorical_filter, database_name){
+  
+  categorical_filter_string <- deparse(categorical_filter, width.cutoff = 500)
+  categorical_filter_copy<- categorical_filter_string %>%
+    str_replace_all("\\(", "~") %>%
+    str_replace_all("\\)", "~") %>%
+    str_replace_all('\\"', "#")
+  filter_vector<- str_split(categorical_filter_copy, "\\&|\\|")[[1]]
+  
+  # loop through filter
+  for (one_filter in filter_vector){
+     one_filter_translated<- translate_individual_filter(one_filter, database_name)
+     categorical_filter_copy<-str_replace_all(categorical_filter_copy,
+                                               one_filter, 
+                                               one_filter_translated) 
+  }
+  
+  categorical_filter_copy <- categorical_filter_copy %>%
+    str_replace_all("\\&", " AND ") %>%
+    str_replace_all("\\|", " OR ")
+return(categorical_filter_copy)
 }
-lfpse_filter_string_copy <- lfpse_filter_string_copy %>%
-  str_replace_all("\\&", " AND ") %>%
-  str_replace_all("\\|", " OR ")
-print(lfpse_filter_string_copy)
 
-#this is not working for the multi select columns
+#this is not working for the multi select columns but otherwise good
+translate_categorical_string(lfpse_categorical, "lfpse")
