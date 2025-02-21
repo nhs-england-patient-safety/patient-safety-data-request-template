@@ -150,7 +150,7 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
     addStyle(
       wb,
       sheet = sheet,
-      headerStyle,
+      summaryTableTopBottomStyle,
       rows = table_start_row,
       cols = 1:ncol(summary_table)
     )
@@ -160,27 +160,28 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
       wb,
       sheet = sheet,
       rowTitleStyle,
-      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
+      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
       cols = 1
     )
     #style table - main body
     addStyle(
       wb,
       sheet = sheet,
-      bodyStyle,
-      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
+      bodyStyleNoBorder,
+      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
       cols = 2:(ncol(summary_table)),
       gridExpand = T
     )
     
-    # set row heights
-    
-    setRowHeights(
+    addStyle(
       wb,
       sheet = sheet,
-      rows = table_start_row:(table_start_row + nrow(summary_table)),
-      heights = 50
+      summaryTableTopBottomStyle,
+      rows = nrow(summary_table) + table_start_row ,
+      cols = 1:(ncol(summary_table)),
+      gridExpand = T
     )
+    
     # increment start row to allow next table to be further down on page
     table_start_row <- table_start_row + nrow(summary_table) + 3
     

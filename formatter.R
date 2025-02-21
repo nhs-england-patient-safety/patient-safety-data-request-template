@@ -43,11 +43,34 @@ bodyStyle <- createStyle(
   halign = "left"
 )
 
+
+# Create header style
+summaryTableTopBottomStyle<- createStyle(
+  fontSize = 11,
+  fontName = "Arial",
+  border = "TopBottom",
+  borderStyle = "thin",
+  wrapText = TRUE,
+  textDecoration = "bold",
+  valign = "center",
+  halign = "left"
+)
+
+
+
+# Create body style
+bodyStyleNoBorder <- createStyle(
+  fontSize = 11,
+  fontName = "Arial",
+  wrapText = TRUE,
+  valign = "center",
+  halign = "left"
+)
+
+
 rowTitleStyle <- createStyle(
   fontSize = 11,
   fontName = "Arial",
-  border = "TopBottomLeftRight",
-  borderStyle = "thin",
   wrapText = TRUE,
   textDecoration = "bold",
   valign = "center",
@@ -74,7 +97,10 @@ metadata <- c(
   "",
   "LFPSE categorical criteria:",
   "",
-  "Free text filters:"
+  "Free text filters:",
+  "",
+  "",
+  "Sampling strategy:"
 )
 
 ref_no <- substr(title, 5, 8)
@@ -112,7 +138,9 @@ metadata_answers <- c(
   deparse(lfpse_categorical, width.cutoff = 500),
   "",
   deparse(text_terms,width.cutoff = 500),
-  deparse(text_filter, width.cutoff = 500)
+  deparse(text_filter, width.cutoff = 500),
+  "",
+  deparse(sampling_strategy)
 )
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
@@ -158,4 +186,5 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-source('microsoft365R.R')
+saveWorkbook(wb,file="data/210225.xlsx", overwrite = T)
+#source('microsoft365R.R')
