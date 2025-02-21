@@ -99,12 +99,18 @@ if(nrow(steis_filtered_text) != 0){
       # select columns to be released and rename using lookup
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
  
-    steis_for_release_unsampled<- steis_for_release
-    steis_for_release_sampled <- steis_for_release
+    steis_for_release_unsampled_pt_level<- steis_for_release
+    steis_for_release_sampled_pt_level <- steis_for_release
+    steis_for_release_sampled_incident_level <- steis_for_release
+    steis_for_release_unsampled_incident_level <- steis_for_release
+    
   }
   
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled)} incidents."))
-
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_incident_level)} unsampled incidents"))
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_incident_level)} sampled incidents."))
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+  
 } else {
   message(glue('**The search criteria has produced no results in {dataset}**'))
   message(glue('Moving on...'))

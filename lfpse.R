@@ -224,8 +224,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       lfpse_sampled <- lfpse_labelled
     }
    
-  
-  lfpse_for_release_unsampled <-  lfpse_labelled  |>
+  #create incident level table from unsampled dataframe and rename columns - this is for summary tab
+  lfpse_for_release_unsampled_incident_level <-  lfpse_labelled  |>
     # rename columns
     select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
     # remove columns that contain patient specific info (for summary tables)
@@ -239,14 +239,36 @@ if (nrow(lfpse_filtered_text) != 0) {
     # get distinct References, so only one row per incident
     distinct(Reference, .keep_all = TRUE)
     
+  #create incident level table from sampled dataframe and rename columns - this is for summary tab
+  lfpse_for_release_sampled_incident_level <-  lfpse_sampled |>
+    # rename columns
+    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
+    # remove columns that contain patient specific info (for summary tables)
+    select(-any_of(c("Patient no.",
+                     "OT001 - Physical harm",
+                     "OT002 - Psychological harm",
+                     "P004 - Age in days", 
+                     "P007 - Age Range",
+                     "OT003 - What was the clinical outcome for the patient?"
+    ))) |> 
+    # get distinct References, so only one row per incident
+    distinct(Reference, .keep_all = TRUE)
   
-
-    lfpse_for_release_sampled <-  lfpse_sampled  |> 
+  #create patient level table from sampled dataframe and rename columns - this is for data tab
+    lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     
-    message(glue("- Final sampled {dataset} dataset contains {nrow(lfpse_for_release_sampled)} incidents."))
-    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled)} incidents."))
+    #create patient level table from sampled dataframe and rename columns - this is for data tab
+    lfpse_for_release_unsampled_pt_level <-  lfpse_labelled  |> 
+      #rename columns using lookup
+      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))
+    
+    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
+    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))
+    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_pt_level)} sampled incidents (pt level)"))
+    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+    
     }else{
     message(glue("**The search criteria has produced no results in {dataset}**"))
     message(glue("Moving on..."))

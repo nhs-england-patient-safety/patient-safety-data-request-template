@@ -156,17 +156,30 @@ if (nrow(nrls_filtered_text) != 0) {
     nrls_sampled <- nrls_labelled
   }
 
-  #create for release for sampling table- and rename columns
-  nrls_for_release_unsampled <- nrls_labelled  |>
+  #create incident level table from unsampled dataframe and rename columns - this is for summary tab
+  nrls_for_release_unsampled_incident_level <- nrls_labelled  |>
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
 
-  #create incident level table from sampled dataframe and rename columns
-  nrls_for_release_sampled<- nrls_sampled |>
+  #create incident level table from sampled dataframe and rename columns - this is for summary tab
+  nrls_for_release_sampled_incident_level <- nrls_sampled  |>
+    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
+    
+  #note: below is identical to incident level dataframe as nrls is already one row per incident
+  #create patient level table from sampled dataframe and rename columns - this is for data tab
+  nrls_for_release_sampled_pt_level<- nrls_sampled |>
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
   
-  message(glue("- Final sampled {dataset} dataset contains {nrow(nrls_for_release_sampled)} incidents."))
-  message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled)} incidents."))
-} else {
+  #note: below is identical to incident level dataframe as nrls is already one row per incident
+  #create patient level table from unsampled dataframe and rename columns - this is for data tab
+  nrls_for_release_unsampled_pt_level<- nrls_labelled |>
+    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
+
+  message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled_incident_level)} unsampled incidents"))
+  message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_sampled_incident_level)} sampled incidents."))
+  message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_sampled_pt_level)} sampled incidents (pt level)"))
+  message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+  
+  } else {
   message(glue("**The search criteria has produced no results in {dataset}**"))
   message(glue("Moving on..."))
 }

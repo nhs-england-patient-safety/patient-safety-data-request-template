@@ -54,20 +54,29 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   }
   
   #get data
-  df_unsampled <- get(str_glue("{tolower(database_name)}_for_release_unsampled"))
+  
+  df_unsampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_incident_level"))
+  df_sampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_incident_level"))
   
   # write number of incidents
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents retrieved by search strategy", nrow(df_unsampled), sep = ": "),
+    paste("Number of Incidents retrieved by search strategy (incident level)", nrow(df_unsampled_incident_level), sep = ": "),
     startCol = 1,
     startRow = content_start_row
   )
   
+  writeData(
+    wb,
+    sheet,
+    paste("Number of Incidents in Sample (incident level)", nrow(df_sampled_incident_level), sep = ": "),
+    startCol = 1,
+    startRow = content_start_row + 1
+  )
     
   #set start row for summary tables
-  table_start_row = content_start_row + 2 
+  table_start_row = content_start_row + 3
   
   #Add text style
   addStyle(wb, sheet = sheet,  textStyle, rows = 1:(table_start_row - 1), cols = 1)
@@ -76,56 +85,30 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
   # loop through list- each item of list is one table
   for (variables_to_tabulate_by_list in list_of_tables_to_create) {
     
-    summary_table<- create_summary_table(df_unsampled,variables_to_tabulate_by_list, database_name)
+    summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,variables_to_tabulate_by_list, database_name)
+    summary_table_sampled<- create_summary_table(df_sampled_incident_level,variables_to_tabulate_by_list, database_name)
 
-    #add summary table to sheet
-    writeData(wb, sheet, summary_table, startRow = table_start_row)
     
-    # style table - header 
-    addStyle(
-      wb,
-      sheet = sheet,
-      summaryTableTopBottomStyle,
-      rows = table_start_row,
-      cols = 1:ncol(summary_table)
-    )
+    add_summary_table_to_sheet(wb,
+                               sheet, 
+                               summary_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1)
     
-    # style table- row titles 
-    addStyle(
-      wb,
-      sheet = sheet,
-      rowTitleStyle,
-      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
-      cols = 1
-    )
-    #style table - main body
-    addStyle(
-      wb,
-      sheet = sheet,
-      bodyStyleNoBorder,
-      rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
-      cols = 2:(ncol(summary_table)),
-      gridExpand = T
-    )
-    
-    addStyle(
-      wb,
-      sheet = sheet,
-      summaryTableTopBottomStyle,
-      rows = nrow(summary_table) + table_start_row ,
-      cols = 1:(ncol(summary_table)),
-      gridExpand = T
-    )
-    
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      add_summary_table_to_sheet(wb,
+                               sheet,
+                               summary_table_sampled, 
+                               table_start_row,
+                               table_start_col = ncol(summary_table_unsampled)+2)
+    }
+
     # increment start row to allow next table to be further down on page
-    table_start_row <- table_start_row + nrow(summary_table) + 3
+    table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
     
   }
   
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1:15,
-               widths = 20)
+  
   
   return(wb)
 }
@@ -141,17 +124,17 @@ add_summary_sheet <- function(wb, title, database_name, sheet) {
 #'
 #' @return workbook with data added
 add_data_sheet <- function(wb, title, database_name, sheet) {
-  
-  df_sampled <- get(str_glue("{tolower(database_name)}_for_release_sampled"))
+    
   #get data
-  df_unsampled <- get(str_glue("{tolower(database_name)}_for_release_unsampled"))
+  df_sampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_pt_level"))
+  df_unsampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_pt_level"))
   
   addWorksheet(wb, sheet, gridLines = FALSE)
   
   # set column widths
   setColWidths(wb,
                sheet = sheet,
-               cols = 1:ncol(df_sampled),
+               cols = 1:ncol(df_sampled_pt_level),
                widths = 35)
   
   # set row heights - header row
@@ -164,7 +147,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   # set row heights - body
   setRowHeights(wb,
                 sheet = sheet,
-                rows = 9:(nrow(df_sampled) + 8),
+                rows = 9:(nrow(df_sampled_pt_level) + 8),
                 heights = 150)
   
   
@@ -181,7 +164,7 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     sheet = sheet,
     headerStyle,
     rows = 8,
-    cols = 1:ncol(df_sampled)
+    cols = 1:ncol(df_sampled_pt_level)
   )
   
   # Add body style
@@ -189,8 +172,8 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
     wb,
     sheet = sheet,
     bodyStyle,
-    rows = 9:(nrow(df_sampled) + 8),
-    cols = 1:ncol(df_sampled),
+    rows = 9:(nrow(df_sampled_pt_level) + 8),
+    cols = 1:ncol(df_sampled_pt_level),
     gridExpand = T
   )
   
@@ -209,33 +192,21 @@ add_data_sheet <- function(wb, title, database_name, sheet) {
   writeData(
     wb,
     sheet,
-    paste("Number of Incidents retrieved by search strategy", nrow(df_unsampled), sep = ": "),
+    paste("Number of Incidents retrieved by search strategy (patient level)", nrow(df_unsampled_pt_level), sep = ": "),
     startCol = 1,
     startRow = 5
   )
   
-  if(database_name=="LFPSE"){
-    number_of_incidents<- df_sampled %>% count(Reference) %>% nrow()
-    number_of_patients<-df_sampled %>% count(Reference, `Patient no.`) %>% nrow()
-    info_string<- paste0(str_glue("Number of Incidents in Sample: {number_of_incidents} ({number_of_patients} Patients )"))
     writeData(
       wb,
       sheet,
-      x= info_string,
-      startCol = 1,
-      startRow = 6
-      )
-  }else{
-    writeData(
-      wb,
-      sheet,
-      paste("Number of Incidents in Sample", nrow(df_sampled), sep = ": "),
+      paste("Number of Incidents in Sample (patient level)", nrow(df_sampled_pt_level), sep = ": "),
       startCol = 1,
       startRow = 6
     )
-  }
+    
   # Write data
-  writeData(wb, sheet, df_sampled, startRow = 8)
+  writeData(wb, sheet, df_sampled_pt_level, startRow = 8)
   return(wb)
 }
 
@@ -298,4 +269,58 @@ create_summary_table<-function(df_to_create_summary_table,
   
   return(summary_table)
   
+}
+
+add_summary_table_to_sheet<- function(wb,
+                                      sheet, 
+                                      summary_table,
+                                      table_start_row, 
+                                      table_start_col){
+  
+
+  
+  #add summary table to sheet
+  writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col)
+  
+  # style table - header 
+  addStyle(
+    wb,
+    sheet = sheet,
+    summaryTableTopBottomStyle,
+    rows = table_start_row,
+    cols = table_start_col:(table_start_col + ncol(summary_table) - 1 )
+  )
+  
+  # style table- row titles 
+  addStyle(
+    wb,
+    sheet = sheet,
+    rowTitleStyle,
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    cols = table_start_col
+  )
+  #style table - main body
+  addStyle(
+    wb,
+    sheet = sheet,
+    bodyStyleNoBorder,
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    cols = (table_start_col + 1):(table_start_col + ncol(summary_table) - 1 ),
+    gridExpand = T
+  )
+  
+  addStyle(
+    wb,
+    sheet = sheet,
+    summaryTableTopBottomStyle,
+    rows = nrow(summary_table) + table_start_row ,
+    cols = table_start_col:(table_start_col + ncol(summary_table) - 1 ),
+    gridExpand = T
+  )
+  
+  setColWidths(wb,
+               sheet = sheet,
+               cols = table_start_col:(table_start_col + ncol(summary_table) - 1 ),
+               widths = 20)
+  return(wb)
 }
