@@ -51,7 +51,7 @@ find_filter_category<- function(i){
   
   like_present <-sum(str_detect(i, "%LIKE%")) == 1
   space_number_space_present <- sum(str_detect(i, "% \\d+ %")) == 1 
-  space_colname_space_present <- sum(str_detect(i, '# # *\\+ *\\w* *\\+ *# #')) == 1
+  space_colname_space_present <- sum(str_detect(i, '# # *% *\\w* *% *# #')) == 1
   vector_present <- sum(str_detect(as.character(i), "c~")) == 1
   in_present <- sum(str_detect(as.character(i), "%in%")) == 1
   equals_present <- sum(str_detect(as.character(i), "==|!=")) == 1
@@ -139,22 +139,18 @@ translate_individual_filter <- function(one_filter, database_name){
     
     
   }else if (filter_category=="multi"){
-    
     column <- one_filter%>% 
       str_extract("[a-zA-Z0-9_.-]+")
     column_new <- get_column_text(column, database_name)  
-    
     value_old <- str_extract(one_filter,"% \\d %")
     operator <- "CONTAINS"
     
     value_pretty <- value_old %>% 
       str_replace_all("%","") %>% #get rid of "% "- which is present with a multi-select column
       str_trim()
-    
     value_new_string <- get_code_text(column, value_pretty, database_name)
     #recreate the filter by combining column, operator and value old
     filter_nice <- str_c(column_new, operator, value_new_string, sep = " ")
-    
   }else if (filter_category=="filter_na"){
     not_na<-!str_detect(one_filter,"!")
     column<- str_extract(one_filter,"[a-zA-Z0-9_-]{3,}")
@@ -180,7 +176,8 @@ translate_categorical_string<- function(categorical_filter, database_name){
   categorical_filter_copy<- categorical_filter_string %>%
     str_replace_all("\\(", "~") %>%
     str_replace_all("\\)", "~") %>%
-    str_replace_all('\\"', "#")
+    str_replace_all('\\"', "#") %>%
+    str_replace_all('\\+', "%")
   filter_vector<- str_split(categorical_filter_copy, "\\&|\\|")[[1]]
   
   # loop through filter
@@ -199,3 +196,4 @@ return(categorical_filter_copy)
 
 #this is not working for the multi select columns but otherwise good
 translate_categorical_string(lfpse_categorical, "lfpse")
+
