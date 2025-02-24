@@ -25,7 +25,7 @@ cols_to_extract <- "default"
 # nrls categorical filters (wrap in expr() or set to 0)
 nrls_categorical <- expr(IN05_lvl1 == 10)
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- expr(A001 == '4')
+lfpse_categorical <- expr(A001 == '4' & A008 =='1')
 
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
