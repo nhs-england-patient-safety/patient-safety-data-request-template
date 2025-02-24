@@ -1,6 +1,5 @@
 # function to get find the label for a column value from the column name, code and database name
 get_code_text <-function(column, code, database_name){
-  
   if (database_name=="steis"){
     return(code)
   }else if(database_name=="nrls"){
@@ -8,6 +7,7 @@ get_code_text <-function(column, code, database_name){
       filter(col_name==column, SASCODE== code) |>
       select(OPTIONTEXT)
   } else if(database_name=="lfpse"){
+    code= str_replace_all(code,"#","")
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
@@ -34,9 +34,9 @@ get_column_text<-function(column, database_name){
       distinct(QuestionId, Property) |>
       select(Property)
   }else if (database_name=="nrls"){
-    column_text_df<- nrls_colname_lookup %>% 
-      filter(NAME==column) %>% 
-      select(LABEL)
+    column_text_df<- nrls_lookup %>% 
+      filter(Code==column) %>% 
+      select(Label)
   }
   if (nrow(column_text_df) == 1){
     column_new <- pull(column_text_df)
@@ -108,7 +108,7 @@ translate_individual_filter <- function(one_filter, database_name){
     # loop through each element in the vector (so can handle 1 or c(1,2,3))
     for (j in str_split(value_old_no_spaces,"")[[1]]) {
       #this is required because value is of the type class when it is in c(1,2,3) form
-      if (! j %in% c("c", ",", " ", "~")){
+      if (! j %in% c("c", ",", " ", "~", "#")){
 
         #get text for this element of value 
         code_text <- get_code_text(column, j, database_name)
@@ -254,7 +254,12 @@ return(result_string)
 
 
 lfpse_categorical<- expr(
-  (A001 == 3) & (A008 %in% c(1,2) & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)) )
+  (A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)) )
 
 translate_categorical_string(lfpse_categorical, "lfpse")
 
+
+nrls_categorical<- expr(
+  (DE01 == 23) & (ST04==1))
+
+translate_categorical_string(nrls_categorical, "nrls")
