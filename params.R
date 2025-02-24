@@ -15,6 +15,7 @@ search_steis <- T
 source("connections.R")
 source("functions.R")
 source("column_selection_lookups.R")
+source("styles.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
@@ -51,12 +52,12 @@ incident_level_required<- "yes"
 # create a list with an element containing for each table you would like 
 #first element is what you want as rows, second is what you want as columns
 # or you can just have one element
-list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)),
-                                 c(expr(year_of_incident),expr(month_of_incident)))
-list_of_tables_to_create_steis <- list(c(expr(year_of_incident)),
-                                  c(expr(year_of_incident),expr(type_of_incident)))
-list_of_tables_to_create_nrls <- list(c(expr(PD09)),
-                                c(expr(year_of_incident),expr(month_of_incident)))
+# list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)),
+#                                  c(expr(year_of_incident),expr(month_of_incident)))
+# list_of_tables_to_create_steis <- list(c(expr(year_of_incident)),
+#                                   c(expr(year_of_incident),expr(type_of_incident)))
+#list_of_tables_to_create_nrls <- list(c(expr(PD09)),
+#                                 c(expr(year_of_incident),expr(month_of_incident)))
 list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
 list_of_tables_to_create_steis <- list(c(expr(year_of_incident)))
 list_of_tables_to_create_nrls <- list(c(expr(PD09)))
