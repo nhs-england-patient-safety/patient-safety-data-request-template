@@ -90,13 +90,22 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     
     #allow the variable to be used as a column name
-    renamed_variable_to_tabulate_by_one<- sym(renamed_variable_to_tabulate_by_one) 
+    renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
   
+    # run separate_rows if the column is not a factor (as seperate converts it to a string)
+    if(!renamed_variable_to_tabulate_by_one %in% c("Month of Incident", 
+                                                   "Largest psychological harm (across all patients in incident)",
+                                                   "Largest physical harm (across all patients in incident)",
+                                                   "PD09 Degree of harm (severity)")){
+    
+      df_to_create_summary_table<- df_to_create_summary_table %>%
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")
+    
+      }  
+    
     summary_table <- df_to_create_summary_table |>
-      #separate rows if there are multi select options present
-      separate_rows(!!renamed_variable_to_tabulate_by_one,sep = " {~@~} ") |>
       #use count to tabulate
-      count(!!renamed_variable_to_tabulate_by_one,.drop= FALSE)|>
+      count(!!renamed_variable_to_tabulate_by_one_col_name,.drop= FALSE)|>
       #  add row totals and percentage column
       mutate(percent = scales::percent(n / sum(n))) %>%
       adorn_totals('row')
@@ -113,18 +122,36 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_two<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_two))
     
     #allow the variable to be used as a column name
-    renamed_variable_to_tabulate_by_one<- sym(renamed_variable_to_tabulate_by_one) 
-    renamed_variable_to_tabulate_by_two<- sym(renamed_variable_to_tabulate_by_two) 
+    renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
+    renamed_variable_to_tabulate_by_two_col_name<- sym(renamed_variable_to_tabulate_by_two) 
     
+    # run separate_rows if the column is not a factor (as seperate converts it to a string)
+    if(!renamed_variable_to_tabulate_by_one %in% c("Month of Incident", 
+                                                   "Largest psychological harm (across all patients in incident)",
+                                                   "Largest physical harm (across all patients in incident)",
+                                                   "PD09 Degree of harm (severity)")){
+      
+      df_to_create_summary_table<- df_to_create_summary_table %>%
+        separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")
+      
+    } 
+    # run separate_rows if the column is not a factor (as seperate converts it to a string)
+    if(!renamed_variable_to_tabulate_by_two %in% c("Month of Incident", 
+                                                   "Largest psychological harm (across all patients in incident)",
+                                                   "Largest physical harm (across all patients in incident)",
+                                                   "PD09 Degree of harm (severity)")){
+      
+      df_to_create_summary_table<- df_to_create_summary_table %>%
+        separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ")
+      
+    }
     
     summary_table <- df_to_create_summary_table |>
-      #separate rows if there are multi select options present
-      separate_rows(!!renamed_variable_to_tabulate_by_one, sep = " {~@~} ") |>
-      separate_rows(!!renamed_variable_to_tabulate_by_two, sep = " {~@~} ") |>
       # use count to get a table
-      count(!!renamed_variable_to_tabulate_by_one,!!renamed_variable_to_tabulate_by_two,.drop= FALSE)%>% 
+      count(!!renamed_variable_to_tabulate_by_one_col_name,
+            !!renamed_variable_to_tabulate_by_two_col_name,.drop= FALSE)%>% 
       #pivot so variable 2 is columns
-      pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two,
+      pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two_col_name,
                   values_from = n) %>%
       #add row and column totals
       adorn_totals('both')
