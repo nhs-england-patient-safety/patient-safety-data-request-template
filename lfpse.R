@@ -30,14 +30,30 @@ analysis_table_names <- c(
   "Medication_Responses",
   "Devices_Responses",
   "Reporter_Responses",
-  "Governance_Responses" # ,
+  "Governance_Responses",
   # "Findings_Responses"#,
-  # "DmdMedication_Responses"
+  "DmdMedication_Responses"
 )
 
 # bring all tables together
 analysis_tables <- lapply(analysis_table_names, function(x) {
-  tbl(con_lfpse, in_schema("analysis", x))
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+  #Rename EntityId columns for Patient_Responses and DmdMedication_Responses
+  if ("EntityId" %in% colnames(table)) {
+    if (x == "DmdMedication_Responses") {
+      table <- table |> rename(DmdEntityId = EntityId)
+    } else if (x == "Patient_Responses") {
+      table <- table |> rename(PatientEntityId = EntityId)
+    }
+  }
+  #Have just one row per Reference/Revision for DmdMedication_Responses to remove duplicates
+  if (x == "DmdMedication_Responses") {
+    table <- table |> 
+      group_by(Reference, Revision) |> 
+      summarize(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "))) |> 
+      ungroup()
+  }
+  return(table)
 })
 
 lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
@@ -79,7 +95,8 @@ if (sum(!is.na(text_terms))>0) {
   print(glue("Running {dataset} text search..."))
   
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, DMD002, DMD004, 
+                            sep=" "))
   
   groups <- names(text_terms)
   for (group in groups) {
@@ -153,8 +170,7 @@ if (nrow(lfpse_filtered_text) != 0) {
   }
   
   
-  # columns for release ####
-  
+    # columns for release ####
   lfpse_for_release <- lfpse_sampled |>
     # pivot the coded columns
     pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
@@ -179,7 +195,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
     ) |>
     group_by(Reference) |>
-    mutate(npatient = max(EntityId)) |>
+    mutate(npatient = max(PatientEntityId)) |>
     # select the columns for release
     select(c(
       Reference,
@@ -189,7 +205,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       ReporterOrganisationCode,
       reported_date,
       "Number of patients" = npatient,
-      "Patient no." = EntityId,
+      "Patient no." = PatientEntityId,
       "T005 - Event date" = occurred_date,
       # TODO: check whether these are needed
       # "T005 - Event year" = year(T005),
@@ -217,6 +233,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       "OT002 - Psychological harm " = OT002,
       "OT008 - Outcome Type" = OT008,
       "A002 - Medicine types involved" = A002,
+      "DMD002 - Medicines involved (VTM)" = DMD002,
+      "DMD004 - Medicines involved (VMP)" = DMD004,
       "A016 - BuildingsInfrastructure" = A016,
       "A016_Other - BuildingsInfrastructure (other)" = A016_Other,
       starts_with("group")
