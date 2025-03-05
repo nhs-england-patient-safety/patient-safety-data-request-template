@@ -92,18 +92,10 @@ create_summary_table<-function(df_to_create_summary_table,
     #allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
   
-    # run separate_rows if the column is not a factor (as seperate converts it to a string)
-    if(!renamed_variable_to_tabulate_by_one %in% c("Month of Incident", 
-                                                   "Largest psychological harm (across all patients in incident)",
-                                                   "Largest physical harm (across all patients in incident)",
-                                                   "PD09 Degree of harm (severity)")){
-    
-      df_to_create_summary_table<- df_to_create_summary_table %>%
-      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")
-    
-      }  
-    
     summary_table <- df_to_create_summary_table |>
+      #seperate multi select values
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")|>
+      convert_columns_to_factors(database_name) |>
       #use count to tabulate
       count(!!renamed_variable_to_tabulate_by_one_col_name,.drop= FALSE)|>
       #  add row totals and percentage column
@@ -125,28 +117,12 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
     renamed_variable_to_tabulate_by_two_col_name<- sym(renamed_variable_to_tabulate_by_two) 
     
-    # run separate_rows if the column is not a factor (as seperate converts it to a string)
-    if(!renamed_variable_to_tabulate_by_one %in% c("Month of Incident", 
-                                                   "Largest psychological harm (across all patients in incident)",
-                                                   "Largest physical harm (across all patients in incident)",
-                                                   "PD09 Degree of harm (severity)")){
-      
-      df_to_create_summary_table<- df_to_create_summary_table %>%
-        separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")
-      
-    } 
-    # run separate_rows if the column is not a factor (as seperate converts it to a string)
-    if(!renamed_variable_to_tabulate_by_two %in% c("Month of Incident", 
-                                                   "Largest psychological harm (across all patients in incident)",
-                                                   "Largest physical harm (across all patients in incident)",
-                                                   "PD09 Degree of harm (severity)")){
-      
-      df_to_create_summary_table<- df_to_create_summary_table %>%
-        separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ")
-      
-    }
     
     summary_table <- df_to_create_summary_table |>
+      #seperate multi select values
+      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
+      convert_columns_to_factors(database_name) |>
       # use count to get a table
       count(!!renamed_variable_to_tabulate_by_one_col_name,
             !!renamed_variable_to_tabulate_by_two_col_name,.drop= FALSE)%>% 
@@ -163,6 +139,48 @@ create_summary_table<-function(df_to_create_summary_table,
   return(summary_table)
   
 }
+
+#function to convert month and level of harm columns to factors (depending on database)
+convert_columns_to_factors<-function(df_without_factors, database_name){
+
+  #convert month and harm level to ordered factors 
+  if (database_name=="LFPSE"){
+    #relevel factor of columns
+    df_with_factors<- df_without_factors |>
+      mutate(
+        `Largest physical harm (across all patients in incident)`= factor(
+          `Largest physical harm (across all patients in incident)`, 
+          levels= c("No physical harm", "Low physical harm",
+                    "Moderate physical harm","Severe physical harm", "Fatal")),
+        `Largest psychological harm (across all patients in incident)`= factor(
+          `Largest psychological harm (across all patients in incident)`,
+          levels= c("No psychological harm",
+                    "Low psychological harm",
+                    "Moderate psychological harm",
+                    "Severe psychological harm")),
+        `Month of Incident`= fct_relevel(`Month of Incident`, month.abb))
+    
+  } else if (database_name=="NRLS"){
+    df_with_factors<- df_without_factors |>
+      mutate(`Month of Incident`=
+               fct_relevel(`Month of Incident`, month.abb),
+             `PD09 Degree of harm (severity)` = 
+               factor(`PD09 Degree of harm (severity)`,
+                      levels= c("No Harm", "Low", "Moderate", "Severe","Death")))
+    
+  } else if (database_name=="STEIS"){
+    df_with_factors<- df_without_factors |>
+      mutate(`Month of Incident`= fct_relevel(`Month of Incident`, month.abb))
+  }else{
+    print("database name not found")
+  }
+
+  return(df_with_factors)
+
+}
+
+
+
 
 
 #this function adds a summary table to a sheet

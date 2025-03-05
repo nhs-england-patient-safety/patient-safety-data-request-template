@@ -30,7 +30,7 @@ steis_parsed <- steis_deduped |>
     occurred_date = as.character(dmy(occurred_date)),
     reported_date = as.character(dmy_hms(reported_date)),
     year_of_incident = year(occurred_date),
-    month_of_incident = month(occurred_date),
+    month_of_incident = as.character(month(occurred_date, label = TRUE, abbr = TRUE)),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
     patient_age_months = ifelse(patient_age_years < 2,

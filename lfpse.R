@@ -165,20 +165,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       values_from = ResponseText,
       # collapse multi-responses into single row per entity
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
-    ) |>
-    #relevel factor of columns
-    mutate(
-      max_physical_harm_level= factor(
-        max_physical_harm_level, 
-        levels= c("No physical harm", "Low physical harm",
-                  "Moderate physical harm","Severe physical harm", "Fatal")),
-      max_psychological_harm_level= factor(
-        max_psychological_harm_level,
-        levels= c("No psychological harm",
-                  "Low psychological harm",
-                  "Moderate psychological harm",
-                  "Severe psychological harm")),
-      month_of_incident= fct_relevel(month_of_incident, month.abb))
+    ) 
   
     # sampling ####
     # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)

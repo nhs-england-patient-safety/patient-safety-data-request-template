@@ -100,12 +100,7 @@ if (nrow(nrls_filtered_text) != 0) {
       names_from = name,
       values_from = OPTIONTEXT
     )|>
-    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE")) |>
-    #convert columns to factors, and set order
-    mutate(month_of_incident= fct_relevel(month_of_incident, month.abb),
-           PD09= factor(PD09,
-                        levels= c("No Harm", "Low", "Moderate", "Severe","Death"))
-    )
+    left_join(organisations, by = c("RP07" = "ORGANISATIONCODE"))
 
   #neopaeds logic will go here
 
