@@ -1,6 +1,7 @@
 # function to get find the label for a column value from the column name, code and database name
 get_code_text <-function(column, code, database_name){
   if (database_name=="steis"){
+    code= str_replace_all(code,"#","")
     return(code)
   }else if(database_name=="nrls"){
     code_text_df<-codes |> 
@@ -44,7 +45,6 @@ get_column_text<-function(column, database_name){
     column_new <- column
     print(str_glue("{column} column was not found in lookup table for {database_name}"))
   }
-  
   return(column_new)   
 }
 
@@ -89,12 +89,10 @@ find_filter_category<- function(i){
 #function to translate a filter into a more human readable value, given the filter string and data
 translate_individual_filter <- function(one_filter, database_name){
   
-  filter_category<-find_filter_category(one_filter) # need to test rest of this
+  filter_category<-find_filter_category(one_filter) 
   
-  #need to test and change all of below
   if (filter_category=="in"){
     #split each filter into column, value and operator
-    
     column <- str_trim(str_split(one_filter,"%in%")[[1]][1])
     column_new <- get_column_text(column, database_name)  
     value_old <- str_trim(str_split(one_filter,"%in%")[[1]][2])
@@ -131,7 +129,7 @@ translate_individual_filter <- function(one_filter, database_name){
     column <- str_trim(str_split(one_filter,"==")[[1]][1])
     column_new <- get_column_text(column, database_name)  
     value_old <-str_trim(str_split(one_filter,"==")[[1]][2])
-    operator <- "=="
+    operator <- "="
     
     
     value_new_string <- get_code_text(column, value_old, database_name)
@@ -200,7 +198,12 @@ translate_filter_subset<- function(filter_subset, database_name){
 
 #function to translate a categorical filter (as an expression object) into a mure human readable string given a database name
 translate_categorical_string<- function(categorical_filter, database_name){
-
+  
+  if(categorical_filter==0){
+    message(str_glue("No {database_name} filter"))
+    return("No categorical filter")
+  }
+  
   #turn the categorical filter into a string
   categorical_filter_string <- deparse(categorical_filter, width.cutoff = 500)
 
@@ -252,14 +255,14 @@ translate_categorical_string<- function(categorical_filter, database_name){
 return(result_string)
 }
 
-
-lfpse_categorical<- expr(
-  (A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)) )
-
-translate_categorical_string(lfpse_categorical, "lfpse")
-
-
-nrls_categorical<- expr(
-  (DE01 == 23) & (ST04==1))
-
-translate_categorical_string(nrls_categorical, "nrls")
+# 
+# lfpse_categorical<- expr(
+#   (A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)) )
+# 
+# translate_categorical_string(lfpse_categorical, "lfpse")
+# 
+# 
+# nrls_categorical<- expr(
+#   (DE01 == 23) & (ST04==1))
+# 
+# translate_categorical_string(nrls_categorical, "nrls")
