@@ -86,6 +86,20 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
+
+text_terms_pretty <- text_terms
+for (group in 1:length(text_terms)){
+  for (term in 1:length(group)){
+    prettier_term<-text_terms[[group]][term] |>
+      str_replace_all(pattern = "\\|", " OR ") |>
+      str_replace_all(pattern = "\\|", " OR ") |>
+      str_replace_all(pattern = "\\\\b", "%") |>
+      str_replace_all(pattern = "\\(\\?i\\)", "") |>
+      str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
+    text_terms_pretty[[group]][term]<-prettier_term
+  }
+}
+
 metadata_answers <- c(
   ref_no,
   "",
@@ -101,11 +115,18 @@ metadata_answers <- c(
   "",
   expanded_categorical_filter_lfpse,
   "",
-  deparse(text_terms,width.cutoff = 500),
-  deparse(text_filter, width.cutoff = 500)
-)
+  "Free text search based the following terms (case insensitive):",
+  deparse(text_terms_pretty,width.cutoff = 500),
+  deparse(text_filter, width.cutoff = 500),
+  "",
+  "Notes:",
+  "'%' represents a boundary",
+  "'~' represents an optional space that can be filled by any character")
 
-addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 2:30, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 16, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 20, cols = 5)
+
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
