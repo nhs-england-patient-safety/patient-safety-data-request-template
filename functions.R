@@ -88,6 +88,11 @@ create_summary_table<-function(df_to_create_summary_table,
     #convert the variable which data will be tabulated to a more human readable name, using lookup
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     
+    if (length(renamed_variable_to_tabulate_by_one)==0){
+      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
+      return(tibble("Table could not be made"))
+    }
+    
     #allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
   
@@ -111,6 +116,14 @@ create_summary_table<-function(df_to_create_summary_table,
     #convert the variables which data will be tabulated to a more human readable name, using lookup
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     renamed_variable_to_tabulate_by_two<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_two))
+    if (length(renamed_variable_to_tabulate_by_one)==0){
+      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
+      return(tibble("Table could not be made"))
+    }
+    if (length(renamed_variable_to_tabulate_by_two)==0){
+      message(paste0(unlist(variables_to_tabulate_by_list)[[2]], "does not exist. Table cannot be created. "))
+      return(tibble("Table could not be made"))
+    }
     
     #allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 

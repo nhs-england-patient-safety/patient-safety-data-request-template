@@ -71,7 +71,7 @@ incident_level_required<- "yes"
 #                                     c(expr(month_year_reported_or_occurred), expr(PD09))
 #                                     )
 list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
-list_of_tables_to_create_steis <- list(c(expr(year_of_incident)))
+list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
 list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
 
