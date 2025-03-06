@@ -79,7 +79,6 @@ add_header_to_sheet<-function(wb, title,
 create_summary_table<-function(df_to_create_summary_table,
                                variables_to_tabulate_by_list, 
                                database_name){
-
     #work out if table needs to have one or 2 variables. 
   if (length(variables_to_tabulate_by_list) == 1) {
     
@@ -133,7 +132,7 @@ create_summary_table<-function(df_to_create_summary_table,
       adorn_totals('both')
     
   } else{
-    message("TOO MANY VARIABLES INCLUDED- ONLY THE FIRST TWO WILL BE USED")
+    message(paste0("TOO MANY VARIABLES INCLUDED FOR {database_name}- ONLY THE FIRST TWO WILL BE USED"))
   }
   
   return(summary_table)
@@ -158,19 +157,21 @@ convert_columns_to_factors<-function(df_without_factors, database_name){
                     "Low psychological harm",
                     "Moderate psychological harm",
                     "Severe psychological harm")),
-        `Month of Incident`= fct_relevel(`Month of Incident`, month.abb))
+        `Month`= fct_relevel(`Month`, month.abb),
+        `Month - Year` = zoo::as.yearmon(`Month - Year`))
     
   } else if (database_name=="NRLS"){
     df_with_factors<- df_without_factors |>
-      mutate(`Month of Incident`=
-               fct_relevel(`Month of Incident`, month.abb),
+      mutate(`Month`= fct_relevel(`Month`, month.abb),
              `PD09 Degree of harm (severity)` = 
                factor(`PD09 Degree of harm (severity)`,
-                      levels= c("No Harm", "Low", "Moderate", "Severe","Death")))
+                      levels= c("No Harm", "Low", "Moderate", "Severe","Death")),
+             `Month - Year` = zoo::as.yearmon(`Month - Year`))
     
   } else if (database_name=="STEIS"){
     df_with_factors<- df_without_factors |>
-      mutate(`Month of Incident`= fct_relevel(`Month of Incident`, month.abb))
+      mutate(`Month`= fct_relevel(`Month`, month.abb),
+             `Month - Year` = zoo::as.yearmon(`Month - Year`))
   }else{
     print("database name not found")
   }

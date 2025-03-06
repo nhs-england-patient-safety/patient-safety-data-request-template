@@ -50,14 +50,26 @@ text_filter <- expr((group_A | group_B) & group_C)
 incident_level_required<- "yes"
 
 # create a list with an element containing for each table you would like 
-#first element is what you want as rows, second is what you want as columns
+# first element is what you want as rows, second is what you want as columns
 # or you can just have one element
-# list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)),
-#                                  c(expr(year_of_incident),expr(month_of_incident)))
-# list_of_tables_to_create_steis <- list(c(expr(year_of_incident)),
-#                                   c(expr(year_of_incident),expr(type_of_incident)))
-#list_of_tables_to_create_nrls <- list(c(expr(PD09)),
-#                                 c(expr(year_of_incident),expr(month_of_incident)))
+# the month, year and month-year columns will be the date type specified in date_type 
+# examples:
+#  list_of_tables_to_create_lfpse <- list(
+#                                   c(expr(max_physical_harm_level)),
+#                                   c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                   c(expr(month_year_reported_or_occurred), expr(max_physical_harm_level))
+#                                   )
+#  list_of_tables_to_create_steis <- list(
+#                                       c(expr(type_of_incident)),
+#                                       c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                       c(expr(month_year_reported_or_occurred),expr(type_of_incident))
+#                                       )
+#  )
+# list_of_tables_to_create_nrls <- list(
+#                                     c(expr(PD09)),
+#                                     c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                     c(expr(month_year_reported_or_occurred), expr(PD09))
+#                                     )
 list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
 list_of_tables_to_create_steis <- list(c(expr(year_of_incident)))
 list_of_tables_to_create_nrls <- list(c(expr(PD09)))

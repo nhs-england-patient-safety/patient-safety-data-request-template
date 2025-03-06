@@ -66,9 +66,6 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   #select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
   select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
-  #find month and year of incident
-  mutate(year_of_incident = as.numeric(substr(as.character(occurred_date), 1, 4)),
-         month_of_incident = as.numeric(substr(as.character(occurred_date), 6, 7)))|>
   group_by(Reference)  |>
   mutate(OT001_min= min(as.numeric(OT001)), #calculate the worst physical harm per incident
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
@@ -76,7 +73,10 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ungroup() |>
   # collecting here so that we can apply text filters later
   collect() |>
-  mutate(month_of_incident= month.abb[month_of_incident],
+  mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
+         month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
+         month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
+         month_reported_or_occurred= month.abb[month_reported_or_occurred],
          OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
   )|>
   rowwise() |>

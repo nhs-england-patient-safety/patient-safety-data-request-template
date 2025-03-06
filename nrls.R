@@ -36,8 +36,9 @@ nrls_filtered_categorical <- nrls_parsed |>
   select(any_of(unname(rename_lookup[["NRLS"]])))|>
   # collecting here so that we can apply text filters later
   collect() |>
-  mutate(year_of_incident = year(occurred_date),
-         month_of_incident = as.character(month(occurred_date, label = TRUE, abbr = TRUE)))
+  mutate(year_reported_or_occurred = year(!!date_filter),
+         month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
+         month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter))
 
 toc_nrls <- Sys.time()
 

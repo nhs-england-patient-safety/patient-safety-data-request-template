@@ -9,8 +9,10 @@ rename_lookup_nrls<- c(
   `RP07 NHS Organisation Code` = "RP07", #required for join
   `Organisation Name` = "ORGANISATIONNAME",
   `Date of Incident` = "occurred_date",         #required 
-  `Month of Incident` = "month_of_incident",
-  `Year of Incident` = "year_of_incident",
+  `Date incident received by NRLS` = "reported_date",#required
+  `Month` = "month_reported_or_occurred",
+  `Year` = "year_reported_or_occurred",
+  `Month - Year` = "month_year_reported_or_occurred",
   `IN03 Location (lvl1)` = "IN03_LVL1",
   `IN03 Location (lvl2)` = "IN03_LVL2",
   `IN03 Location (lvl3)` = "IN03_LVL3",
@@ -41,8 +43,7 @@ rename_lookup_nrls<- c(
   `MD31 Proprietary Name (Drug 2)` = "MD31", #required for text search
   `DE01 Type of Device` = "DE01",
   `DE01 Type of device - free text` = "DE01_TEXT",
-  `DE03 Device name`="DE03",
-  `Date incident received by NRLS` = "reported_date")
+  `DE03 Device name`="DE03")
 
 rename_lookup_lfpse<-c(
   Reference = "Reference", #required
@@ -50,12 +51,13 @@ rename_lookup_lfpse<-c(
   "Revision" = "Revision",
   "Occurred Organisation Code" = "OccurredOrganisationCode",
   "Reporter Organisation Code" = "ReporterOrganisationCode",
-  "Reported Date" = "reported_date",
-  "Month of Incident" = "month_of_incident",
-  "Year of Incident" = "year_of_incident",
+  "T005 - Event date" = "occurred_date", #required
+  "Reported Date" = "reported_date",#required
+  `Month` = "month_reported_or_occurred",#required
+  `Year` = "year_reported_or_occurred",#required
+  `Month - Year` = "month_year_reported_or_occurred",#required
   "Number of patients" = "npatient",
   "Patient no." = "EntityId",#required
-  "T005 - Event date" = "occurred_date", #required
   # TODO: check whether these are needed
   # "T005 - Event year" = "year(T005)",
   # "T005 - Event moth" = "month(T005)",
@@ -93,15 +95,16 @@ rename_lookup_lfpse<-c(
 
 rename_lookup_steis<-c(
   `Log No` = "log_no",
-  `Created on` = "reported_date",
   `Organisation reporting SI on STEIS` = "organisation_reporting_si_on_steis",
   `Organisation leading investigation` = "organisation_leading_investigation",
   `CCG/CSU Name` = "ccg_csu_name",
   `Region - Geography` = "region_geography",
   `Status` = "status",
-  `Date of Incident:` = "occurred_date",
-  `Year of Incident` = "year_of_incident",
-  `Month of Incident` = "month_of_incident",
+  `Date Incident Reported` = "reported_date",#required
+  `Date of Incident`= "occurred_date",#required
+  `Month` = "month_reported_or_occurred",#required
+  `Year` = "year_reported_or_occurred",#required
+  `Month - Year` = "month_year_reported_or_occurred",#required
   `Time of Incident:` = "time_of_incident",
   `Site of Incident:` = "site_of_incident",
   `Location of Incident:` = "location_of_incident",

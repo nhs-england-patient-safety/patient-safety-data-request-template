@@ -29,8 +29,9 @@ steis_parsed <- steis_deduped |>
   mutate(
     occurred_date = as.character(dmy(occurred_date)),
     reported_date = as.character(dmy_hms(reported_date)),
-    year_of_incident = year(occurred_date),
-    month_of_incident = as.character(month(occurred_date, label = TRUE, abbr = TRUE)),
+    year_reported_or_occurred = year(!!date_filter),
+    month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
+    month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
     patient_age_months = ifelse(patient_age_years < 2,
