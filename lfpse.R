@@ -244,12 +244,14 @@ if (nrow(lfpse_filtered_text) != 0) {
   #create patient level table from sampled dataframe and rename columns - this is for data tab
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
       #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
+      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
+      select(-`Month`, -`Year`, -`Month - Year`)
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_labelled  |> 
       #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))
+      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
+      select(-`Month`, -`Year`, -`Month - Year`)
     
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))

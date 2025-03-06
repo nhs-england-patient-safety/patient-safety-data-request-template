@@ -160,15 +160,17 @@ if (nrow(nrls_filtered_text) != 0) {
   nrls_for_release_sampled_incident_level <- nrls_sampled  |>
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
     
-  #note: below is identical to incident level dataframe as nrls is already one row per incident
+  #note: below is very similar to incident level dataframe as nrls is already one row per incident
   #create patient level table from sampled dataframe and rename columns - this is for data tab
   nrls_for_release_sampled_pt_level<- nrls_sampled |>
-    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
+    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_")) |>
+    select(-`Month`, -`Year`, -`Month - Year`)
   
-  #note: below is identical to incident level dataframe as nrls is already one row per incident
+  #note: below is very similar to incident level dataframe as nrls is already one row per incident
   #create patient level table from unsampled dataframe and rename columns - this is for data tab
   nrls_for_release_unsampled_pt_level<- nrls_labelled |>
-    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
+    select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))|>
+    select(-`Month`, -`Year`, -`Month - Year`)
 
   message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled_incident_level)} unsampled incidents"))
   message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_sampled_incident_level)} sampled incidents."))
