@@ -89,7 +89,7 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     
     if (length(renamed_variable_to_tabulate_by_one)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
+      message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
       return(tibble("Table could not be made"))
     }
     
@@ -107,7 +107,7 @@ create_summary_table<-function(df_to_create_summary_table,
       adorn_totals('row')
     
     
-  } else if ( length(variables_to_tabulate_by_list)==2){
+  } else if ( length(variables_to_tabulate_by_list)>=2){
     
     # extract the variables from list of variables
     variable_to_tabulate_by_one<- unlist(variables_to_tabulate_by_list)[[1]]
@@ -117,11 +117,11 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     renamed_variable_to_tabulate_by_two<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_two))
     if (length(renamed_variable_to_tabulate_by_one)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
+      message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
       return(tibble("Table could not be made"))
     }
     if (length(renamed_variable_to_tabulate_by_two)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[2]], "does not exist. Table cannot be created. "))
+      message(str_glue("{renamed_variable_to_tabulate_by_two} does not exist. Table cannot be created. "))
       return(tibble("Table could not be made"))
     }
     
@@ -132,20 +132,26 @@ create_summary_table<-function(df_to_create_summary_table,
     
     summary_table <- df_to_create_summary_table |>
       #seperate multi select values
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ") |>
       separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
-      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
-      convert_columns_to_factors(database_name) |>
+      convert_columns_to_factors(database_name) |> 
+      #arrange doesn't work here 
       # use count to get a table
       count(!!renamed_variable_to_tabulate_by_one_col_name,
             !!renamed_variable_to_tabulate_by_two_col_name,.drop= FALSE)%>% 
+      #apply factor order
+      # arrange(!!renamed_variable_to_tabulate_by_one_col_name, 
+      #         !!renamed_variable_to_tabulate_by_two_col_name, .by_group = T) |>
       #pivot so variable 2 is columns
       pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two_col_name,
                   values_from = n) %>%
       #add row and column totals
       adorn_totals('both')
     
-  } else{
-    message(paste0("TOO MANY VARIABLES INCLUDED FOR {database_name}- ONLY THE FIRST TWO WILL BE USED"))
+  } 
+  
+  if (length(variables_to_tabulate_by_list)>2){
+    message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}- ONLY {variable_to_tabulate_by_one} AND {variable_to_tabulate_by_two} TWO WERE USED"))
   }
   
   return(summary_table)
@@ -171,7 +177,11 @@ convert_columns_to_factors<-function(df_without_factors, database_name){
                     "Moderate psychological harm",
                     "Severe psychological harm")),
         `Month`= fct_relevel(`Month`, month.abb),
-        `Month - Year` = zoo::as.yearmon(`Month - Year`))
+        # fct_relevel month-year
+        #`Month - Year` = 
+        `Month - Year` = factor(zoo::as.yearmon(`Month - Year`), 
+                                levels = sort(unique(`Month - Year`)))
+        )
     
   } else if (database_name=="NRLS"){
     df_with_factors<- df_without_factors |>

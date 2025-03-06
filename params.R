@@ -9,7 +9,7 @@ library(Microsoft365R)
 # datasets to be searched (T/F)
 search_nrls <- T
 search_lfpse <- T
-search_steis <- T
+search_steis <- F
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
@@ -18,8 +18,8 @@ source("column_selection_lookups.R")
 source("styles.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
-end_date <- "2024-03-30"
+start_date <- "2023-04-01"
+end_date <- "2024-03-31"
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -54,30 +54,34 @@ incident_level_required<- "yes"
 # or you can just have one element
 # the month, year and month-year columns will be the date type specified in date_type 
 # examples:
-#  list_of_tables_to_create_lfpse <- list(
-#                                   c(expr(max_physical_harm_level)),
-#                                   c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
-#                                   c(expr(month_year_reported_or_occurred), expr(max_physical_harm_level))
-#                                   )
-#  list_of_tables_to_create_steis <- list(
-#                                       c(expr(type_of_incident)),
-#                                       c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
-#                                       c(expr(month_year_reported_or_occurred),expr(type_of_incident))
-#                                       )
-#  )
-# list_of_tables_to_create_nrls <- list(
-#                                     c(expr(PD09)),
-#                                     c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
-#                                     c(expr(month_year_reported_or_occurred), expr(PD09))
-#                                     )
-list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
-list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
-list_of_tables_to_create_nrls <- list(c(expr(PD09)))
+list_of_tables_to_create_lfpse <- list(
+                                c(expr(max_physical_harm_level)),
+                                c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+                                c(expr(month_reported_or_occurred), expr(year_reported_or_occurred)),
+                                c(expr(month_year_reported_or_occurred), expr(max_physical_harm_level)),
+                                c(expr(L004), expr(month_year_reported_or_occurred)),
+                                c(expr(month_year_reported_or_occurred), expr(L004))
+                                )
+list_of_tables_to_create_steis <- list(
+                                    c(expr(type_of_incident)),
+                                    c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+                                    c(expr(month_year_reported_or_occurred),expr(type_of_incident))
+                                    )
+
+list_of_tables_to_create_nrls <- list(
+                                    c(expr(A001)),
+                                    c(expr(year_reported_or_occurred),expr(A001)),
+                                    c(expr(month_year_reported_or_occurred), expr(PD09), expr(IN05_LVL1)),
+                                    c(expr(IN05_LVL1),expr(month_year_reported_or_occurred))
+                                    )
+# list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
+# list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
+# list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
 
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "default"
+sampling_strategy <- "FOI"
 
 source("flow.R")
