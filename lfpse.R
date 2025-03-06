@@ -77,6 +77,8 @@ lfpse_filtered_categorical <- lfpse_parsed |>
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
          month_reported_or_occurred= month.abb[month_reported_or_occurred],
+         reported_date = as.character(reported_date),
+         occurred_date = as.character(occurred_date),
          OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
   )|>
   rowwise() |>

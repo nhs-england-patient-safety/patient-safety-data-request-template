@@ -38,7 +38,9 @@ nrls_filtered_categorical <- nrls_parsed |>
   collect() |>
   mutate(year_reported_or_occurred = year(!!date_filter),
          month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
-         month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter))
+         month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
+         reported_date = as.character(reported_date),
+         occurred_date = as.character(occurred_date))
 
 toc_nrls <- Sys.time()
 
