@@ -135,13 +135,9 @@ create_summary_table<-function(df_to_create_summary_table,
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ") |>
       separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
       convert_columns_to_factors(database_name) |> 
-      #arrange doesn't work here 
       # use count to get a table
       count(!!renamed_variable_to_tabulate_by_one_col_name,
             !!renamed_variable_to_tabulate_by_two_col_name,.drop= FALSE)%>% 
-      #apply factor order
-      # arrange(!!renamed_variable_to_tabulate_by_one_col_name, 
-      #         !!renamed_variable_to_tabulate_by_two_col_name, .by_group = T) |>
       #pivot so variable 2 is columns
       pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two_col_name,
                   values_from = n) %>%
@@ -177,8 +173,6 @@ convert_columns_to_factors<-function(df_without_factors, database_name){
                     "Moderate psychological harm",
                     "Severe psychological harm")),
         `Month`= fct_relevel(`Month`, month.abb),
-        # fct_relevel month-year
-        #`Month - Year` = 
         `Month - Year` = factor(zoo::as.yearmon(`Month - Year`), 
                                 levels = sort(unique(`Month - Year`)))
         )
