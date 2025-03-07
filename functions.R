@@ -145,7 +145,7 @@ create_summary_table<-function(df_to_create_summary_table,
       adorn_totals('both')
   } else {
     message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}"))
-    message(variables_to_tabulate_by_list)
+    message(deparse(variables_to_tabulate_by_list))
     return(tibble(`Table could not be made`= "Too many variables"))
   }
   
