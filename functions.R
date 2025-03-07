@@ -139,10 +139,10 @@ create_summary_table<-function(df_to_create_summary_table,
       tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
             !!renamed_variable_to_tabulate_by_two_col_name,
             show_missing_levels =TRUE,
-            show_na=TRUE)%>% 
+            show_na=TRUE)|> 
+      rename(any_of(c(`Not available`= "NA_"))) |>
       #add row and column totals
       adorn_totals('both')
-    
   } else {
     message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}"))
     message(variables_to_tabulate_by_list)
