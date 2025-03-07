@@ -40,7 +40,7 @@ text_terms <- list(
   group_B = c("(i)\\bibuprofen"),
   group_C = c("(?i)\\bunwell")
 )
- 
+
 text_filter <- expr((group_A | group_B) & group_C)
 
 #text_terms<- list()

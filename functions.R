@@ -89,23 +89,24 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     
     if (length(renamed_variable_to_tabulate_by_one)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
-      return(tibble("Table could not be made"))
+      message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
+      return(tibble(`Table could not be made`= str_glue("{variable_to_tabulate_by_one} doesn't exist.")))
     }
     
     #allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
-  
+
     summary_table <- df_to_create_summary_table |>
       #seperate multi select values
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")|>
       convert_columns_to_factors(database_name) |>
       #use count to tabulate
-      count(!!renamed_variable_to_tabulate_by_one_col_name,.drop= FALSE)|>
-      #  add row totals and percentage column
-      mutate(percent = scales::percent(n / sum(n))) %>%
-      adorn_totals('row')
-    
+      tabyl(!!renamed_variable_to_tabulate_by_one_col_name, 
+            show_missing_levels =TRUE,
+            show_na=TRUE)|>
+      adorn_totals('row') |>
+      adorn_pct_formatting()|>
+      select(-any_of("valid_percent")) # remove additional percent column
     
   } else if ( length(variables_to_tabulate_by_list)==2){
     
@@ -117,35 +118,35 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_one))
     renamed_variable_to_tabulate_by_two<-names(which(rename_lookup[[database_name]]==variable_to_tabulate_by_two))
     if (length(renamed_variable_to_tabulate_by_one)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[1]], "does not exist. Table cannot be created. "))
-      return(tibble("Table could not be made"))
+      message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
+      return(tibble(`Table could not be made`= str_glue("{variable_to_tabulate_by_one} doesn't exist.")))
     }
     if (length(renamed_variable_to_tabulate_by_two)==0){
-      message(paste0(unlist(variables_to_tabulate_by_list)[[2]], "does not exist. Table cannot be created. "))
-      return(tibble("Table could not be made"))
+      message(str_glue("{renamed_variable_to_tabulate_by_two} does not exist. Table cannot be created. "))
+      return(tibble(`Table could not be made`= str_glue("{variable_to_tabulate_by_two} doesn't exist.")))
     }
     
     #allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
     renamed_variable_to_tabulate_by_two_col_name<- sym(renamed_variable_to_tabulate_by_two) 
     
-    
     summary_table <- df_to_create_summary_table |>
       #seperate multi select values
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ") |>
       separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
-      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
-      convert_columns_to_factors(database_name) |>
+      convert_columns_to_factors(database_name) |> 
       # use count to get a table
-      count(!!renamed_variable_to_tabulate_by_one_col_name,
-            !!renamed_variable_to_tabulate_by_two_col_name,.drop= FALSE)%>% 
-      #pivot so variable 2 is columns
-      pivot_wider(names_from = !!renamed_variable_to_tabulate_by_two_col_name,
-                  values_from = n) %>%
+      tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
+            !!renamed_variable_to_tabulate_by_two_col_name,
+            show_missing_levels =TRUE,
+            show_na=TRUE)%>% 
       #add row and column totals
       adorn_totals('both')
     
-  } else{
-    message(paste0("TOO MANY VARIABLES INCLUDED FOR {database_name}- ONLY THE FIRST TWO WILL BE USED"))
+  } else {
+    message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}"))
+    message(variables_to_tabulate_by_list)
+    return(tibble(`Table could not be made`= "Too many variables"))
   }
   
   return(summary_table)
@@ -170,21 +171,33 @@ convert_columns_to_factors<-function(df_without_factors, database_name){
                     "Low psychological harm",
                     "Moderate psychological harm",
                     "Severe psychological harm")),
-        `Month`= fct_relevel(`Month`, month.abb),
-        `Month - Year` = zoo::as.yearmon(`Month - Year`))
+        `Month`= factor(`Month`, levels=month.abb),
+        `Year` = factor(`Year`,
+                        levels = sort(unique(`Year`))),
+        `Month - Year` = factor(zoo::as.yearmon(`Month - Year`), 
+                                levels = sort(unique(`Month - Year`)))
+        )
     
   } else if (database_name=="NRLS"){
     df_with_factors<- df_without_factors |>
-      mutate(`Month`= fct_relevel(`Month`, month.abb),
+      mutate( `Month`= factor(`Month`, levels=month.abb),
+              `Year` = factor(`Year`,
+                              levels = sort(unique(`Year`))),
              `PD09 Degree of harm (severity)` = 
                factor(`PD09 Degree of harm (severity)`,
                       levels= c("No Harm", "Low", "Moderate", "Severe","Death")),
-             `Month - Year` = zoo::as.yearmon(`Month - Year`))
+             `Month - Year` = factor(zoo::as.yearmon(`Month - Year`), 
+                                     levels = sort(unique(`Month - Year`)))
+      )
     
   } else if (database_name=="STEIS"){
     df_with_factors<- df_without_factors |>
-      mutate(`Month`= fct_relevel(`Month`, month.abb),
-             `Month - Year` = zoo::as.yearmon(`Month - Year`))
+      mutate( `Month`= factor(`Month`, levels=month.abb),
+              `Year` = factor(`Year`,
+                              levels = sort(unique(`Year`))),
+             `Month - Year` = factor(zoo::as.yearmon(`Month - Year`), 
+                                     levels = sort(unique(`Month - Year`)))
+      )
   }else{
     print("database name not found")
   }
@@ -205,7 +218,7 @@ add_summary_table_to_sheet<- function(wb,
                                       table_start_col){
   
   #add summary table to sheet
-  writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col)
+  writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
     
   setColWidths(wb,
                sheet = sheet,
