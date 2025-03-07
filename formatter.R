@@ -1,4 +1,4 @@
-file_list <- apropos('for_release')
+file_list <- apropos('for_release_unsampled_incident_level')
 
 #there's no need to carry on if there are no objects for release
 if(is_empty(file_list)){
@@ -6,48 +6,21 @@ if(is_empty(file_list)){
 }
 
 # Formatting Excel workbook
-print('Formatting Excel workbook...')
+message('Formatting Excel workbook...')
+
 
 # Create a new workbook
 wb <- createWorkbook()
 
-# Create text style
-textStyle <- createStyle(
-  fontSize = 11,
-  fontName = "Arial",
-  textDecoration = "bold",
-  valign = "center",
-  halign = "left"
-)
-
-# Create header style
-headerStyle <- createStyle(
-  fontSize = 11,
-  fontName = "Arial",
-  border = "TopBottomLeftRight",
-  borderStyle = "thick",
-  wrapText = TRUE,
-  textDecoration = "bold",
-  valign = "center",
-  halign = "left"
-)
-
-# Create body style
-bodyStyle <- createStyle(
-  fontSize = 11,
-  fontName = "Arial",
-  border = "TopBottomLeftRight",
-  borderStyle = "thin",
-  wrapText = TRUE,
-  valign = "center",
-  halign = "left"
-)
-
 title <- basename(here())
 
+
+# Create cover sheet ------------------------------------------------------
+
+cover_sheet_name <- "Search strategy"
+
 # To do - cover sheet
-# include summary tables - one for each dataset or one with all?
-addWorksheet(wb, "Search strategy", gridLines = FALSE)
+addWorksheet(wb, cover_sheet_name , gridLines = FALSE)
 
 metadata <- c(
   "Reference:",
@@ -64,7 +37,10 @@ metadata <- c(
   "",
   "LFPSE categorical criteria:",
   "",
-  "Free text filters:"
+  "Free text filters:",
+  "",
+  "",
+  "Sampling strategy:"
 )
 
 ref_no <- substr(title, 5, 8)
@@ -102,80 +78,135 @@ metadata_answers <- c(
   deparse(lfpse_categorical, width.cutoff = 500),
   "",
   deparse(text_terms,width.cutoff = 500),
-  deparse(text_filter, width.cutoff = 500)
+  deparse(text_filter, width.cutoff = 500),
+  "",
+  deparse(sampling_strategy)
 )
 
-addStyle(wb, "Search strategy", textStyle, rows = 2:24, cols = 2)
-writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
-writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
+addStyle(wb, sheet = cover_sheet_name, textStyle, rows = 2:24, cols = 2)
+writeData(wb, cover_sheet_name, metadata, startRow = 2, startCol = 2)
+writeData(wb, cover_sheet_name, metadata_answers, startRow = 2, startCol = 5)
 
-# Add worksheets
 
+# Add worksheets ----------------------------------------------------------
+
+#Loop through each of the databases (using the "for_release_unsampled_incident_level" objects)
+# We will create a sheet with the summary tables for this database
+# If required, also add an incident data sheet
+# Each sheet will have a header section, created by calling add_header_section()
+# add_summary_table_to_sheet() or add_data_table_to_sheet() will add data or summary tables to the sheet as needed
 for (i in file_list) {
-  
-  sheet <- str_extract(i, "^([^_])+") |> 
-    toupper() |> 
+
+  #get database name from i
+  database_name <- toupper(str_split_i(i, "_", 1))
+
+  # same as database name apart from capitals in StEIS
+  sheet_base_name <- database_name |> 
     str_replace("STEIS", "StEIS") 
+
   
-  df <- get(i)
+  ## CREATE SUMMARY SHEET
+    
+  #create sheet name using sheet base name 
+  summary_sheet_name <-  str_glue("{sheet_base_name} - Summary")
+
+  #use the database name to get the data required to make summary tables (both sampled and unsampled)
+  df_unsampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_incident_level"))
+  df_sampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_incident_level"))
+
+  #use the database name to get the list of tables to create (created in params file)
+  #We use incident level for the summary tables. We have aggregated or removed the patient level incidents to allow us to count by incident.
+  list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
+    
+  #add a worksheet for the summary tables  
+  addWorksheet(wb, 
+               sheet = summary_sheet_name, 
+               gridLines = FALSE) 
+    
+  #add a header section to the sheet. this adds the header section to the workbook and returns the row number where the data should begin
+  table_start_row<- add_header_to_sheet(wb, 
+                                        title, 
+                                        database_name, 
+                                        sheet = summary_sheet_name,
+                                        summary_sheet= TRUE,
+                                        number_of_rows_sampled = nrow(df_sampled_incident_level),
+                                        number_of_rows_unsampled = nrow(df_unsampled_incident_level))
+    
+    # loop through list, to create required tables, and add them to the sheet
+    for (variables_to_tabulate_by_list in list_of_tables_to_create) {
+      
+      #create summary table for given variables (unsampled data)
+      summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,
+                                                     variables_to_tabulate_by_list, 
+                                                     database_name)
+
+      #add this summary table to the sheet, and adds styling
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name, 
+                                 summary_table_unsampled,
+                                 table_start_row,
+                                 table_start_col = 1)
+      
+      
+      #if the sampled and unsampled data have different lengths, then create and add a summary table for the sampled data
+      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      
+        message("Data has been sampled. Printing summary tables for both sampled and unsampled data")
+        
+        #create summary table for given variables (sampled data)
+        summary_table_sampled<- create_summary_table(df_sampled_incident_level,
+                                                     variables_to_tabulate_by_list, 
+                                                     database_name)
+        
+        #add this summary table to the sheet, and adds styling
+        add_summary_table_to_sheet(wb,
+                                   sheet = summary_sheet_name,
+                                   summary_table_sampled, 
+                                   table_start_row,
+                                   #this is printed to the right of the unsampled dataframe
+                                   table_start_col = ncol(summary_table_unsampled)+2)
+      }
+      
+      # increment start row to allow next table to be further down on page
+      table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
+      
+    }
   
-  addWorksheet(wb, sheet, gridLines = FALSE)
+    ## CREATE INCIDENT LEVEL DATA IF REQUIRED
   
-  # set column widths
-  setColWidths(wb,
-               sheet = sheet,
-               cols = 1:ncol(df),
-               widths = 35
-  )
-  
-  # set row heights - header row
-  
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 7:7,
-                heights = 34
-  )
-  
-  # set row heights - body
-  setRowHeights(wb,
-                sheet = sheet,
-                rows = 8:(nrow(df) + 7),
-                heights = 150
-  )
-  
-  
-  # Add text style
-  addStyle(wb,
-           sheet = sheet,
-           textStyle,
-           rows = 1:6,
-           cols = 1:1
-  )
-  
-  # Add header style
-  addStyle(wb,
-           sheet = sheet,
-           headerStyle,
-           rows = 7,
-           cols = 1:ncol(df)
-  )
-  
-  # Add body style
-  addStyle(wb,
-           sheet = sheet,
-           bodyStyle,
-           rows = 8:(nrow(df) + 7),
-           cols = 1:ncol(df),
-           gridExpand = T
-  )
-  
-  # Write text
-  writeData(wb, sheet, paste(sheet, "Confidential", sep = " - "), startCol = 1, startRow = 1)
-  writeData(wb, sheet, title, startCol = 1, startRow = 3)
-  writeData(wb, sheet, paste("Number of Incidents", nrow(df), sep = ": "), startCol = 1, startRow = 5)
-  
-  # Write data
-  writeData(wb, sheet, df, startRow = 7)
+    #if incident level data is required, then we add a sheet with this data  
+    if (incident_level_required=="yes"){
+      
+      #We use patient level for the incidents. LFPSE contains patient level columns which we want to print.
+      #use the database name to get the data required to make the data table (both sampled and unsampled)
+      df_sampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_pt_level"))
+      df_unsampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_pt_level"))
+      
+      data_sheet_name<- str_glue("{sheet_base_name} - Data")
+      
+      #add a worksheet for the data     
+      addWorksheet(wb, 
+                   sheet = data_sheet_name, 
+                   gridLines = FALSE)
+      
+      #add a header section to the sheet. this adds the header section to the workbook and returns the row number where the data should begin
+      table_start_row<- add_header_to_sheet(wb, 
+                                            title, 
+                                            database_name, 
+                                            sheet= data_sheet_name,
+                                            summary_sheet = FALSE,
+                                            number_of_rows_sampled = nrow(df_sampled_pt_level),
+                                            number_of_rows_unsampled = nrow(df_unsampled_pt_level))
+      
+      #add this incident data to the sheet, and add styling
+      add_data_table_to_sheet(wb, 
+                              sheet = data_sheet_name,
+                              data_table= df_sampled_pt_level, 
+                              table_start_row = table_start_row)
+      
+    }else{
+      message("incident_level_required not valid. Only the summary sheet has been added.")
+  }
   
 }
 
@@ -199,4 +230,3 @@ saveWorkbook(wb,
              overwrite = T)
 
 source('microsoft365R.R')
-
