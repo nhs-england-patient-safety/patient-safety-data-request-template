@@ -64,7 +64,6 @@ incident_level_required<- "yes"
 #                                       c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
 #                                       c(expr(month_year_reported_or_occurred),expr(type_of_incident))
 #                                       )
-#  )
 # list_of_tables_to_create_nrls <- list(
 #                                     c(expr(PD09)),
 #                                     c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
