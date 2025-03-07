@@ -30,6 +30,8 @@ Template for extracting data from the national patient safety systems in England
 
 -   `microsoft365.R` - this file uploads the excel file created by `formatter.R` to sharepoint.
 
+-   `styles.R` - this file is where the styles used by openxlsx are created.
+
 ## Process in each database file
 
 Each file follows a very similar process. They will all create these objects in the following order (where x is the name of the database.
@@ -52,6 +54,6 @@ Each file follows a very similar process. They will all create these objects in 
 
 9.  `x_for_release_unsampled_incident_level` - `x_labelled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
 
-Note- for NRLS and StEIS, the patient level is identical to the incident level
+Note- for NRLS and StEIS, the patient level is identical to the incident level (apart from the month, month-year and year columns)
 
 Note- where sampling has not been carried out, the sampled data is identical to the unsampled data.
