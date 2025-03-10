@@ -1,5 +1,5 @@
 # write to sharepoint
-print('Saving to Sharepoint...')
+message('Saving to Sharepoint...')
 
 site_url <- "https://nhs.sharepoint.com/sites/MED/ps2/it/mit"
 
@@ -16,10 +16,10 @@ dr$upload(
   dest = glue('{title}/{workbook_title}')
 )
 
-print(glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
+message(glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
 
 toc <- Sys.time()
 
 time_diff <- (toc-tic)
 
-print(glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))
+message(glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))

@@ -14,9 +14,13 @@ search_steis <- T
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
 source("functions.R")
+source("column_selection_lookups.R")
+source("styles.R")
+
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-01-31"
+end_date <- "2024-03-30"
+
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
@@ -26,11 +30,12 @@ cols_to_extract <- "default"
 # - the code uses |, & and brackets to split the long filter into individual filters
 # - filters can be combined using & or | - however | and & may not be used within a filter (i.e. A001== 3|4 would cause an error)
 # - brackets can be used to create more complex logic
+# for example expr((A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)))
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr( (DE01 == 23) & (ST04==1))
+nrls_categorical <- expr(IN05_LVL1 == 10)
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- expr((A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)))
+lfpse_categorical <- expr(A001 == '4')
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
 steis_filename <- 'SUI_2_87360.csv'
@@ -52,10 +57,40 @@ text_terms <- list(
   group_B = c("(i)\\bibuprofen"),
   group_C = c("(?i)\\bunwell")
 )
- 
+
 text_filter <- expr((group_A | group_B) & group_C)
-# text_terms<- list()
-# text_filter<- expr(0)
+
+#text_terms<- list()
+#text_filter<- expr(0)
+
+# is incident level data required? "yes" or "no"
+incident_level_required<- "yes"
+
+# create a list with an element containing for each table you would like 
+# first element is what you want as rows, second is what you want as columns
+# or you can just have one element
+# the month, year and month-year columns will be the date type specified in date_type 
+# examples:
+#  list_of_tables_to_create_lfpse <- list(
+#                                   c(expr(max_physical_harm_level)),
+#                                   c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                   c(expr(month_year_reported_or_occurred), expr(max_physical_harm_level))
+#                                   )
+#  list_of_tables_to_create_steis <- list(
+#                                       c(expr(type_of_incident)),
+#                                       c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                       c(expr(month_year_reported_or_occurred),expr(type_of_incident))
+#                                       )
+# list_of_tables_to_create_nrls <- list(
+#                                     c(expr(PD09)),
+#                                     c(expr(year_reported_or_occurred),expr(month_reported_or_occurred)),
+#                                     c(expr(month_year_reported_or_occurred), expr(PD09))
+#                                     )
+list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
+list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
+list_of_tables_to_create_nrls <- list(c(expr(PD09)))
+
+
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
