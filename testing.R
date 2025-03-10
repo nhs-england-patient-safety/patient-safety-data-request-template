@@ -30,7 +30,7 @@ test_that(
   }
  )
 
-##Flow
+##Flow.R
 #test: if date_type doesn't equal "reported" or "occurring" (i.e. NA?) -> expected outcome
 
 #test: if a script doesn't exist, an error message appears
@@ -42,7 +42,7 @@ test_that("Handles missing scripts gracefully", {
   }
 )
 
-##Formatter
+##Formatter.R
 #test: the data_sheet_name is in the workbook created and is not empty
 test_that("data_sheet_name exists and is not empty in the generated workbook", {
   expect_true(exists("wb"), info = "The workbook object 'wb' should exist")
