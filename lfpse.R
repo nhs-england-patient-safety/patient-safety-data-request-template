@@ -65,7 +65,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ) |>
   #select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
-  select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days)|> #P004_days needs to be included but is not a named column due to DQ issues
   group_by(Reference)  |>
   mutate(OT001_min= min(as.numeric(OT001)), #calculate the worst physical harm per incident
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
@@ -169,24 +169,112 @@ if (nrow(lfpse_filtered_text) != 0) {
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
     ) 
   
+  #create a new column for age following validation 
+  lfpse_age_validated<- lfpse_labelled |>
+    mutate(age_unit = case_when(
+      is.na(P004_days) ~ 'age missing',
+      between(P004_days, 1, 30) ~ 'days',
+      between(P004_days, 31, 371) ~ 'months',
+      between(P004_days, 372, 74028) ~ 'years',
+      .default = 'age outside bounds')) |>
+    mutate(age_compliance = case_when(
+      age_unit == 'age outside bounds' ~ 'age outside bounds',
+      age_unit == 'age missing' ~ 'age missing',
+      age_unit == 'days' & between(P004_days, 1, 30) ~ 'yes',
+      age_unit == 'months' & P004_days %% 31 == 0 ~ 'yes',
+      age_unit == 'years' & P004_days %% 372 == 0 ~ 'yes',
+      .default = 'no')) |>
+    mutate(P004_days_validated = if_else(
+      age_compliance == "yes", P004_days, NA
+    ))
+  
+  
+  lfpse_age_classified <- lfpse_age_validated |>
+    mutate(
+      concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
+      age_category = case_when(
+        (P004_days_validated > 0 & P004_days_validated <= 28) | (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
+        (P004_days_validated > 28 & P004_days_validated < 6696) | (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+        (!is.na(P007)|!is.na(P004_days_validated)) ~ 'adult estimated',
+        is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
+        .default = 'other' 
+      ),
+      L006 = if_else(is.na(L006),"", L006), #required for text search to work as expected- if it is NA, str_detect will return NA
+      #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
+      neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
+      neonate_terms_flag = str_detect(concat_col, neonatal_terms),
+      adult_specialty_flag = str_detect(L006, adult_specialty_terms),
+      paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
+      paediatric_term_flag = str_detect(concat_col, paediatric_terms),
+      neonate_category = case_when(
+        # Neonate by age: age is between 0 and 28 days
+        age_category == 'neonate' ~ "neonate_by_age",
+        # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+        age_category == 'unknown' &  neonate_specialty_flag ~ "neonate_by_specialty",
+        # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
+        (age_category == 'unknown' & neonate_terms_flag & ! adult_specialty_flag) ~ "neonate_by_text",
+        # Default: not neonate-related
+        .default = "not neonate related"
+      ),
+      paediatric_category = case_when(
+        # Paediatrics by age: age is older than 1 month and younger than 18 years
+        age_category == 'paediatric' ~ "paediatric_by_age",
+        # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+        (age_category == 'unknown' & paediatric_specialty_flag) ~ "paediatric_by_specialty",
+        # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+        (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
+        # Default: not paediatrics-related
+        .default = "not paediatric related"
+      )
+    )
+  
+  # Now filter based on `is_neopaed` parameter
+  if (is_neopaed == "neonate") {
+    print("- Running neonate strategy...")
+    
+    lfpse_neopaed <- lfpse_age_classified |>
+      filter(neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text"))
+    
+  } else if (is_neopaed == "paed") {
+    print("- Running paediatric strategy...")
+    
+    lfpse_neopaed <- lfpse_age_classified |>
+      filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text"))
+    
+  } else if (is_neopaed == "either") {
+    print("- Running paediatric strategy...")
+    
+    nrls_neopaed <- nrls_age_categorised %>%
+      filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text")|
+               neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text") )
+    
+  } else if (is_neopaed == "none") {
+    print("- Skipping neopaeds strategy...")
+    
+    lfpse_neopaed <- lfpse_age_classified
+  }
+  
+  # check whether the text search generated results
+  if (nrow(lfpse_neopaed) != 0) {
+  
     # sampling ####
     # Default (if > 300: all death/severe, 100 moderate, 100 low/no harm)
     if (sampling_strategy == "default") {
-      if (nrow(lfpse_labelled) > 300) {
+      if (nrow(lfpse_neopaed) > 300) {
         message("- Sampling according to default strategy...")
-        lfpse_death_severe <- lfpse_labelled |>
+        lfpse_death_severe <- lfpse_neopaed |>
           # deaths or severe physical harm
           filter(OT001 %in% c("Fatal", "Severe physical harm"))
         
         set.seed(123)
-        lfpse_moderate <- lfpse_labelled |>
+        lfpse_moderate <- lfpse_neopaed |>
           # moderate physical  harm
           filter(OT001 == "Moderate physical harm") |>
           collect() |>
           sample_n(min(n(), 100))
         
         set.seed(123)
-        lfpse_low_no_other <- lfpse_labelled |>
+        lfpse_low_no_other <- lfpse_neopaed |>
           filter(
             !OT001 %in% c("Fatal", "Severe physical harm", "Moderate physical harm")
           ) |>
@@ -200,21 +288,21 @@ if (nrow(lfpse_filtered_text) != 0) {
         )
       } else {
         message("- Sampling not required, default threshold not met.")
-        lfpse_sampled <- lfpse_labelled
+        lfpse_sampled <- lfpse_neopaed
       }
     } else if (sampling_strategy == "FOI") {
       message("- Extracting a sample of 30 incidents for redaction...")
       set.seed(123)
-      lfpse_sampled <- lfpse_labelled |>
+      lfpse_sampled <- lfpse_neopaed |>
         distinct(Reference, .keep_all = T) |>
         sample_n(min(n(), 30))
     } else if (sampling_strategy == "none") {
       message("- Skipping sampling...")
-      lfpse_sampled <- lfpse_labelled
+      lfpse_sampled <- lfpse_neopaed
     }
    
   #create incident level table from unsampled dataframe and rename columns - this is for summary tab
-  lfpse_for_release_unsampled_incident_level <-  lfpse_labelled  |>
+  lfpse_for_release_unsampled_incident_level <-  lfpse_neopaed  |>
     # rename columns
     select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
     # remove columns that contain patient specific info (for summary tables)
@@ -250,7 +338,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       select(-`Month`, -`Year`, -`Month - Year`)
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
-    lfpse_for_release_unsampled_pt_level <-  lfpse_labelled  |> 
+    lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
       select(-`Month`, -`Year`, -`Month - Year`)
@@ -259,8 +347,12 @@ if (nrow(lfpse_filtered_text) != 0) {
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_pt_level)} sampled incidents (pt level)"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
-    
-    }else{
+ 
+    } else {
+    message(glue("**The neopaed search has produced no results in {dataset}**"))
+    message(glue("Moving on..."))
+    }
+  }else{
     message(glue("**The search criteria has produced no results in {dataset}**"))
     message(glue("Moving on..."))
 }
