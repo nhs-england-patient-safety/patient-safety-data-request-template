@@ -30,31 +30,26 @@ analysis_table_names <- c(
   "Medication_Responses",
   "Devices_Responses",
   "Reporter_Responses",
-  "Governance_Responses" # ,
+  "Governance_Responses",
   # "Findings_Responses"#,
-  # "DmdMedication_Responses"
+  "DmdMedication_Responses"
 )
 
 # bring all tables together
 analysis_tables <- lapply(analysis_table_names, function(x) {
-  tbl(con_lfpse, in_schema("analysis", x))
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+    #Rename EntityId column for DmdMedication_Responses
+    if(x == "DmdMedication_Responses") {table <- table |> rename(DmdEntityId = EntityId)}
+  return(table)
 })
 
 lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
-
-# separately prepare the DmdMedication_Responses analysis tables
-dmd_db <- tbl(con_lfpse, in_schema("analysis", "DmdMedication_Responses")) |>
-  group_by(Reference, Revision) |>
-  summarize(across(c(DMD002, DMD004), ~ str_flatten(., collapse = ", "))) |>
-  ungroup()
-
 
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
 lfpse_parsed <- reduce(lfpse_analysis_tables,
                        left_join,
                        by = c("Reference", "Revision")
 ) |>
-  left_join(dmd_db, by = c("Reference", "Revision")) |>
   rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
@@ -110,7 +105,12 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                                  OT002_min==4 ~ "No psychological harm")
   ) |>
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
-         -max_harm) #remove max_harm as we do not use currently
+         -max_harm) |> #remove max_harm as we do not use currently
+  # Handling row duplication brought in by the DMD table
+  group_by(Reference, EntityId) |>
+  mutate(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}")) |>
+  ungroup() |>
+  distinct(Reference, EntityId, .keep_all = TRUE)
 
 toc_lfpse <- Sys.time()
 
@@ -126,7 +126,8 @@ if (sum(!is.na(text_terms))>0) {
 
   #A002 may need to be added for a medication incident
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, DMD002, DMD004,
+                            sep=" "))
   
   groups <- names(text_terms)
   for (group in groups) {
