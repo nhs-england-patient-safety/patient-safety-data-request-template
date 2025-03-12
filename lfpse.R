@@ -61,12 +61,14 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
 tic_lfpse <- Sys.time()
 
 lfpse_filtered_categorical <- lfpse_parsed |>
+  
   filter(
     between(date_filter, start_date, end_date),
     # apply categorical filters here
     lfpse_categorical
   ) |>
-  #select only relevant columns- use the lookup but do not rename at this step
+  
+  ## Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
   select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
   group_by(Reference)  |>
@@ -74,7 +76,8 @@ lfpse_filtered_categorical <- lfpse_parsed |>
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
          npatient = max(EntityId)) |># calculate the number of incidents
   ungroup() |>
-  # collecting here so that we can apply text filters later
+  
+  ## Collecting here so that we can apply text filters later
   collect() |>
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
@@ -85,10 +88,12 @@ lfpse_filtered_categorical <- lfpse_parsed |>
          OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
   )|>
   rowwise() |>
-  #combine physical harm and psychological harm to find maximum harm (of any type)
+  
+  ## Combine physical harm and psychological harm to find maximum harm (of any type)
   mutate(max_harm= min_safe(c(OT001_min, OT002_min_plus_one))) |>
   ungroup() |>
-  #label the different harm levels 
+  
+  ## Label the different harm levels 
   mutate(max_harm_level= case_when(max_harm==1 ~ "Fatal",
                                    max_harm==2 ~ "Severe harm",
                                    max_harm==3 ~ "Moderate harm",
@@ -106,11 +111,12 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ) |>
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
          -max_harm) |> #remove max_harm as we do not use currently
-  # Handling row duplication brought in by the DMD table
-  group_by(Reference, EntityId) |>
-  mutate(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}")) |>
-  ungroup() |>
-  distinct(Reference, EntityId, .keep_all = TRUE)
+  
+  ## Handling row duplication brought in by the DMD table
+  #this step is done after collecting because putting it before slowed down collection process substantially
+  group_by(across(-starts_with("DMD"))) |>
+  summarize(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}")) |>
+  ungroup()
 
 toc_lfpse <- Sys.time()
 
