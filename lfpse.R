@@ -115,8 +115,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ## Handling row duplication brought in by the DMD table
   #this step is done after collecting because putting it before slowed down collection process substantially
   group_by(across(-starts_with("DMD"))) |>
-  summarize(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}")) |>
-  ungroup()
+  summarize(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}"), .groups="drop")
 
 toc_lfpse <- Sys.time()
 
