@@ -38,7 +38,7 @@ analysis_table_names <- c(
 # bring all tables together
 analysis_tables <- lapply(analysis_table_names, function(x) {
   table <- tbl(con_lfpse, in_schema("analysis", x))
-    #Rename EntityId column for DmdMedication_Responses
+    #Rename EntityId in DmdMedication_Responses so it has a different name to the patient EntityId column
     if(x == "DmdMedication_Responses") {table <- table |> rename(DmdEntityId = EntityId)}
   return(table)
 })
@@ -124,9 +124,9 @@ message(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filte
 if (sum(!is.na(text_terms))>0) {
   message(glue("Running {dataset} text search..."))
 
-  #A002 may need to be added for a medication incident
+  #A002 may need to be removed if adding noise to the output
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, DMD002, DMD004,
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, A002, DMD002, DMD004,
                             sep=" "))
   
   groups <- names(text_terms)
