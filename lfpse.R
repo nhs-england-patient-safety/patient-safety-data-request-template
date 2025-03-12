@@ -42,11 +42,19 @@ analysis_tables <- lapply(analysis_table_names, function(x) {
 
 lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
 
+# separately prepare the DmdMedication_Responses analysis tables
+dmd_db <- tbl(con_lfpse, in_schema("analysis", "DmdMedication_Responses")) |>
+  group_by(Reference, Revision) |>
+  summarize(across(c(DMD002, DMD004), ~ str_flatten(., collapse = ", "))) |>
+  ungroup()
+
+
 # duplicates will be present due to inclusion of Patient_Responses which is one row per patient (EntityId)
 lfpse_parsed <- reduce(lfpse_analysis_tables,
                        left_join,
                        by = c("Reference", "Revision")
 ) |>
+  left_join(dmd_db, by = c("Reference", "Revision")) |>
   rename(occurred_date = T005) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
