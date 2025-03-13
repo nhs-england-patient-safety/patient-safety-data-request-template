@@ -1,3 +1,11 @@
+#not a function- but this creates the object "date_filter" from date_type
+date_filter <- if (date_type == 'occurring') {
+  expr(occurred_date)
+} else if (date_type == 'reported') {
+  expr(reported_date)
+}
+
+
 #function to find the minimum number in a vector, and return NA if all values are NA
 # This is required to find the minimum physical or psychological harm level
 min_safe<- function(vec){

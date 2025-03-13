@@ -13,9 +13,6 @@ search_steis <- T
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
-source("functions.R")
-source("column_selection_lookups.R")
-source("styles.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
@@ -44,7 +41,11 @@ text_terms <- list(
 text_filter <- expr((group_A | group_B) & group_C)
 
 #text_terms<- list()
-#text_filter<- expr(0)
+#text_filter<- expr(1 == 1)
+
+
+# neopaed logic (neonate/paed/either/none)
+is_neopaed <- "neonate"
 
 # is incident level data required? "yes" or "no"
 incident_level_required<- "yes"
@@ -79,4 +80,11 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 # TODO: custom
 sampling_strategy <- "default"
 
+#source helper files
+source("functions.R")
+source("column_selection_lookups.R")
+source("styles.R")
+source("neopaeds.R")
+
+#start flow
 source("flow.R")
