@@ -89,6 +89,8 @@ rename_lookup_lfpse<-c(
   "OT002 - Psychological harm" = "OT002",#required
   "OT008 - Outcome Type" = "OT008",
   "A002 - Medicine types involved" = "A002",
+  "DMD002 - Medicine types (VTM)" = "DMD002",
+  "DMD004 - Medicine types (VMP)" = "DMD004",
   "A016 - BuildingsInfrastructure" = "A016",
   "A016_Other - BuildingsInfrastructure (other)" = "A016_Other",
   #"Largest physical or psychological harm (across all patients in incident)" = "max_harm_level",
