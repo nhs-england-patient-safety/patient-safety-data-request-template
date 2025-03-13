@@ -138,7 +138,7 @@ message(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filte
 if (sum(!is.na(text_terms))>0) {
   message(glue("Running {dataset} text search..."))
 
-  #A002 may need to be removed if adding noise to the output
+  #A002, DMD002, DMD004 may need to be removed if adding noise to a non medication-related request
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
     mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, A002, DMD002, DMD004,
                             sep=" "))
