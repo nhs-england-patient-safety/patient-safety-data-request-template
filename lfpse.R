@@ -123,7 +123,8 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   # this step is done after collecting because putting it before slowed down collection process substantially
   # summarise and str_flatten to combine DMD rows into comma seperated string
   group_by(across(-starts_with("DMD"))) |>
-  summarize(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}"), .groups="drop")
+  summarise(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}"), .groups="drop")
+
 
 toc_lfpse <- Sys.time()
 
