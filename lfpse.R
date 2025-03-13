@@ -30,14 +30,17 @@ analysis_table_names <- c(
   "Medication_Responses",
   "Devices_Responses",
   "Reporter_Responses",
-  "Governance_Responses" # ,
+  "Governance_Responses",
   # "Findings_Responses"#,
-  # "DmdMedication_Responses"
+  "DmdMedication_Responses"
 )
 
 # bring all tables together
 analysis_tables <- lapply(analysis_table_names, function(x) {
-  tbl(con_lfpse, in_schema("analysis", x))
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+    #Rename EntityId in DmdMedication_Responses so it has a different name to the patient EntityId column
+    if(x == "DmdMedication_Responses") {table <- table |> rename(DmdEntityId = EntityId)}
+  return(table)
 })
 
 lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
@@ -58,21 +61,29 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
 tic_lfpse <- Sys.time()
 
 lfpse_filtered_categorical <- lfpse_parsed |>
+  
+  ### Apply categorical and date filters
   filter(
     between(date_filter, start_date, end_date),
     # apply categorical filters here
     lfpse_categorical
   ) |>
-  #select only relevant columns- use the lookup but do not rename at this step
+  
+  ### Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
   select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
+  
+  ### Generate additional columns (grouping by Reference)
   group_by(Reference)  |>
   mutate(OT001_min= min(as.numeric(OT001)), #calculate the worst physical harm per incident
          OT002_min= min(as.numeric(OT002)), # calculate the worst psychological harm per incident
          npatient = max(EntityId)) |># calculate the number of incidents
   ungroup() |>
-  # collecting here so that we can apply text filters later
+  
+  ### Collecting here so that we can apply text filters later
   collect() |>
+  
+  ### Generate additional columns (without grouping)
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
@@ -81,11 +92,13 @@ lfpse_filtered_categorical <- lfpse_parsed |>
          occurred_date = as.character(occurred_date),
          OT002_min_plus_one = OT002_min + 1 #to make psychological and physical harm comparable, add 1 to psychological (as there is no fatal psychological harm)
   )|>
+  
+  ### Combine physical harm and psychological harm to find maximum harm (of any type)- rowwise calculation
   rowwise() |>
-  #combine physical harm and psychological harm to find maximum harm (of any type)
   mutate(max_harm= min_safe(c(OT001_min, OT002_min_plus_one))) |>
   ungroup() |>
-  #label the different harm levels 
+  
+  ## Label the different harm levels 
   mutate(max_harm_level= case_when(max_harm==1 ~ "Fatal",
                                    max_harm==2 ~ "Severe harm",
                                    max_harm==3 ~ "Moderate harm",
@@ -101,8 +114,17 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                                  OT002_min==3 ~ "Low psychological harm",
                                                  OT002_min==4 ~ "No psychological harm")
   ) |>
+  
+  ### Remove columns that are not required
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
-         -max_harm) #remove max_harm as we do not use currently
+         -max_harm) |> #remove max_harm as we do not use currently
+  
+  ### Handle row duplication brought in by the DMD table
+  # this step is done after collecting because putting it before slowed down collection process substantially
+  # summarise and str_flatten to combine DMD rows into comma seperated string
+  group_by(across(-starts_with("DMD"))) |>
+  summarise(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}"), .groups="drop")
+
 
 toc_lfpse <- Sys.time()
 
@@ -116,9 +138,10 @@ message(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filte
 if (sum(!is.na(text_terms))>0) {
   message(glue("Running {dataset} text search..."))
 
-  #A002 may need to be added for a medication incident
+  #A002, DMD002, DMD004 may need to be removed if adding noise to a non medication-related request
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, sep=" "))
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, A002, DMD002, DMD004,
+                            sep=" "))
   
   groups <- names(text_terms)
   for (group in groups) {
