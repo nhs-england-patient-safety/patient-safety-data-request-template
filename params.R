@@ -54,7 +54,7 @@ message(expanded_categorical_filter_steis)
 #example below- not real example
 text_terms <- list(
   group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
-  group_B = c("(i)\\bibuprofen"),
+  group_B = c("(?i)\\bibuprofen"),
   group_C = c("(?i)\\bunwell")
 )
 
