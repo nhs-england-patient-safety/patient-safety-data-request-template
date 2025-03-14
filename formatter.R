@@ -72,7 +72,8 @@ for (group in 1:length(text_terms)){
       str_replace_all(pattern = "\\|", " OR ") |>
       str_replace_all(pattern = fixed('\\b'), "%") |>
 
-      str_replace_all(pattern = "\\(\\?i\\)", "") |>
+      str_replace_all(pattern = fixed('(?i)'), "" ) |>
+
       str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
     text_terms_pretty[[group]][term]<-prettier_term
   }
