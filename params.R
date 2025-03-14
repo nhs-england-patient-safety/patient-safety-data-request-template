@@ -30,7 +30,7 @@ cols_to_extract <- "default"
 # - the code uses |, & and brackets to split the long filter into individual filters
 # - filters can be combined using & or | - however | and & may not be used within a filter (i.e. A001== 3|4 would cause an error)
 # - brackets can be used to create more complex logic
-# for example expr((A001 == "3") & (A008 %in% c("1","2") & is.na(A001) & !is.na(A001) & ' ' + A001 +  ' ' %LIKE% '% 3 %') |  (!is.na(A001)))
+# for example 
 
 # nrls categorical filters (wrap in expr() or set to 0)
 nrls_categorical <- expr(IN05_LVL1 == 10)
