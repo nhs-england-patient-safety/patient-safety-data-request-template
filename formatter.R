@@ -70,7 +70,8 @@ for (group in 1:length(text_terms)){
     prettier_term<-text_terms[[group]][term] |>
       str_replace_all(pattern = "\\|", " OR ") |>
       str_replace_all(pattern = "\\|", " OR ") |>
-      str_replace_all(pattern = "\\\\b", "%") |>
+      str_replace_all(pattern = fixed('\\b'), "%") |>
+
       str_replace_all(pattern = "\\(\\?i\\)", "") |>
       str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
     text_terms_pretty[[group]][term]<-prettier_term
