@@ -28,8 +28,8 @@ cols_to_extract <- "default"
 
 # translate_categorical_string() can translate filters from the codes used to access the database, to more readable code.
 # it splits up filters by & or | and translates each filter one by one. some examples of filters it can translate are:
-nrls_categorical <- expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & (IN04 == 1 | IN04 %in% c(97, 99) & !is.na(RP07) | is.na(IN04) & !is.na(RP07)))
-lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
+#nrls_categorical <- expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & (IN04 == 1 | IN04 %in% c(97, 99) & !is.na(RP07) | is.na(IN04) & !is.na(RP07)))
+#lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
 
 # nrls categorical filters (wrap in expr() or set to 0)
 nrls_categorical <- expr(IN05_LVL1 == 10 )
