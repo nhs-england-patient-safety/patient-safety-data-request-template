@@ -331,7 +331,7 @@ get_code_text <-function(column, code, database_name){
     code_text_df<-ResponseReference |> 
       filter(QuestionId==column, ResponseCode==code) |>
       filter(TaxonomyVersion==max(TaxonomyVersion)) |>
-      select(ResponseText) %>%
+      select(ResponseText) |>
       distinct(ResponseText)
   }
   if (nrow(code_text_df) == 1) {
@@ -354,8 +354,8 @@ get_column_text<-function(column, database_name){
       distinct(QuestionId, Property) |>
       select(Property)
   }else if (database_name=="nrls"){
-    column_text_df<- nrls_lookup %>% 
-      filter(Code==column) %>% 
+    column_text_df<- nrls_lookup |> 
+      filter(Code==column) |> 
       select(Label)
   }
   if (nrow(column_text_df) == 1){
@@ -374,16 +374,16 @@ translate_individual_filter <- function(individual_filter, database_name){
   #different logic depending on what the filter is
   if (str_detect(individual_filter,"IS IN")){
     
-    split_string<- str_split(individual_filter,"IS IN") %>% unlist()
-    column<- split_string[1]%>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    split_string<- str_split(individual_filter,"IS IN") |> unlist()
+    column<- split_string[1]|> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim()
-    value <- split_string[2]%>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    value <- split_string[2]|> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim()
-    value_split <- str_split(value, ",") %>% unlist()
+    value_split <- str_split(value, ",") |> unlist()
     
     column_new <- get_column_text(column, database_name)  
     
@@ -397,40 +397,40 @@ translate_individual_filter <- function(individual_filter, database_name){
     
     value_new<-str_c(value_new, collapse=", ")
     
-    translated_filter<- individual_filter %>%
-      str_replace(column, column_new) %>%
+    translated_filter<- individual_filter |>
+      str_replace(column, column_new) |>
       str_replace(value, value_new)
     
     
   }else if (str_detect(individual_filter, "CONTAINS")){
 
-    split_string<- str_split(individual_filter,"CONTAINS") %>% unlist()
-    column<- split_string[1] %>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    split_string<- str_split(individual_filter,"CONTAINS") |> unlist()
+    column<- split_string[1] |> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim() 
-    value <- split_string[2] %>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    value <- split_string[2] |> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim()
     column_new <- get_column_text(column, database_name)  
     value_new <- get_code_text(column, value, database_name)
     
-    translated_filter<- individual_filter %>%
-      str_replace(str_glue("\\( *{column} *\\)"), column_new) %>%
-      str_replace(str_glue("{column}"), column_new) %>%
+    translated_filter<- individual_filter |>
+      str_replace(str_glue("\\( *{column} *\\)"), column_new) |>
+      str_replace(str_glue("{column}"), column_new) |>
       str_replace(value, value_new)
     
    }else if (str_detect(individual_filter, "IS NA")){
 
      split_string<- str_replace(individual_filter,"IS NA", "") 
-     column<- split_string %>% 
-       str_replace_all(fixed("("),"") %>%
-       str_replace_all(fixed(")"),"") %>%
+     column<- split_string |> 
+       str_replace_all(fixed("("),"") |>
+       str_replace_all(fixed(")"),"") |>
        str_trim()
      column_new <- get_column_text(column, database_name)  
     
-     translated_filter<-   individual_filter %>%
+     translated_filter<-   individual_filter |>
        str_replace(str_glue("IS NA\\({column}"), str_glue("{column_new} IS NA")) 
      
      
@@ -438,34 +438,34 @@ translate_individual_filter <- function(individual_filter, database_name){
 
      split_string<- str_replace(individual_filter,"IS NOT NA", "") 
      
-     column<- split_string %>% 
-       str_trim() %>%
-       str_replace_all(fixed("("),"") %>%
+     column<- split_string |> 
+       str_trim() |>
+       str_replace_all(fixed("("),"") |>
         str_replace_all(fixed(")"),"")
      
      column_new <- get_column_text(column, database_name)  
      
-     translated_filter<-   individual_filter %>%
+     translated_filter<-   individual_filter |>
        str_replace(str_glue("IS NOT NA\\({column}"), 
                    str_glue("{column_new} IS NOT NA")) 
      
   } else if(str_detect(individual_filter,"IS")){
 
         
-    split_string<- str_split(individual_filter,"IS") %>% unlist()
-    column<- split_string[1] %>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    split_string<- str_split(individual_filter,"IS") |> unlist()
+    column<- split_string[1] |> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim()
-    value <- split_string[2] %>% 
-      str_replace_all(fixed("("),"") %>%
-      str_replace_all(fixed(")"),"") %>%
+    value <- split_string[2] |> 
+      str_replace_all(fixed("("),"") |>
+      str_replace_all(fixed(")"),"") |>
       str_trim()
     column_new <- get_column_text(column, database_name)  
     value_new <- get_code_text(column, value, database_name)
     
-    translated_filter<- individual_filter %>%
-    str_replace(column, column_new) %>%
+    translated_filter<- individual_filter |>
+    str_replace(column, column_new) |>
       str_replace(value, value_new)
 
   }
@@ -492,25 +492,25 @@ translate_categorical_string<- function(categorical_filter, database_name){
   }
   
   #translate filter into more human readable format, including removing speech marks
-  categorical_filter_copy<- categorical_filter_string %>%
-    str_replace_all(fixed('"'), "") %>% 
-    str_replace_all('==', "IS") %>%
-    str_replace_all(fixed('+'), "") %>% 
-    str_replace_all('!is.na', "IS NOT NA") %>%
-    str_replace_all('is.na', "IS NA") %>% 
-    str_replace_all('(?i)%LIKE%', "CONTAINS") %>% 
-    str_replace_all('(?i)%IN%', "IS IN") %>% 
-    str_replace_all('%', "") %>% 
-    str_replace_all('&', "AND") %>% 
-    str_replace_all('c\\(', "(") %>% 
-    str_replace_all(fixed('|'), "OR") %>% 
+  categorical_filter_copy<- categorical_filter_string |>
+    str_replace_all(fixed('"'), "") |> 
+    str_replace_all('==', "IS") |>
+    str_replace_all(fixed('+'), "") |> 
+    str_replace_all('!is.na', "IS NOT NA") |>
+    str_replace_all('is.na', "IS NA") |> 
+    str_replace_all('(?i)%LIKE%', "CONTAINS") |> 
+    str_replace_all('(?i)%IN%', "IS IN") |> 
+    str_replace_all('%', "") |> 
+    str_replace_all('&', "AND") |> 
+    str_replace_all('c\\(', "(") |> 
+    str_replace_all(fixed('|'), "OR") |> 
     str_replace_all(" +", " ")
   
   string_to_split_by<-"(OR|AND)"
   #if the string contains AND  or OR, we'll need to seperate and loop through  
-  categorical_filter_copy_split <- str_split(categorical_filter_copy,string_to_split_by) %>% unlist()
+  categorical_filter_copy_split <- str_split(categorical_filter_copy,string_to_split_by) |> unlist()
   #pull out whether split by and or or 
-  bracket_breaks<-str_extract_all(categorical_filter_copy, string_to_split_by) %>% unlist()
+  bracket_breaks<-str_extract_all(categorical_filter_copy, string_to_split_by) |> unlist()
   
   translated_filters<- ""
   for (filter_number in 1:length(categorical_filter_copy_split)){
