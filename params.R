@@ -26,16 +26,15 @@ date_type <- "occurring"
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
 
-# Note- to allow the translate_categorical_string function to work properly, filters should be written in a specific way:
-# - the code uses |, & and brackets to split the long filter into individual filters
-# - filters can be combined using & or | - however | and & may not be used within a filter (i.e. A001== 3|4 would cause an error)
-# - brackets can be used to create more complex logic
-# for example 
+# translate_categorical_string() can translate filters from the codes used to access the database, to more readable code.
+# it splits up filters by & or | and translates each filter one by one. some examples of filters it can translate are:
+nrls_categorical <- expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & (IN04 == 1 | IN04 %in% c(97, 99) & !is.na(RP07) | is.na(IN04) & !is.na(RP07)))
+lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr(IN05_LVL1 == 10)
+nrls_categorical <- expr(IN05_LVL1 == 10 )
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- expr(A001 == '4')
+lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
 steis_filename <- 'SUI_2_87360.csv'
