@@ -366,45 +366,28 @@ get_column_text<-function(column, database_name){
   }
   return(column_new)   
 }
-
-
 #function to translate an individual filter into a more human readable value, given the filter string and database name
 translate_individual_filter <- function(individual_filter, database_name){
 
   #different logic depending on what the filter is
-  if (str_detect(individual_filter,"IS IN")){
+  if (str_detect(individual_filter, "(IS NOT NA)|(IS NA)")){
+  
+  split_string<- str_replace(individual_filter,"(IS NOT NA)|(IS NA)", "") 
+  column<- split_string |> 
+    str_replace_all(fixed("("),"") |>
+    str_replace_all(fixed(")"),"") |>
+    str_trim()
+  column_new <- get_column_text(column, database_name)  
+  
+  translated_filter<-   individual_filter |>
+    #replace IS NOT NA
+    str_replace(str_glue("IS NOT NA\\({column}\\)"),str_glue("{column_new} IS NOT NA")) |>
+    #replace IS NA
+    str_replace(str_glue("IS NA\\({column}\\)"),str_glue("{column_new} IS NA")) 
+  
+  }else if (str_detect(individual_filter, "(CONTAINS)|(IS IN)|(IS)")){
     
-    split_string<- str_split(individual_filter,"IS IN") |> unlist()
-    column<- split_string[1]|> 
-      str_replace_all(fixed("("),"") |>
-      str_replace_all(fixed(")"),"") |>
-      str_trim()
-    value <- split_string[2]|> 
-      str_replace_all(fixed("("),"") |>
-      str_replace_all(fixed(")"),"") |>
-      str_trim()
-    value_split <- str_split(value, ",") |> unlist()
-    
-    column_new <- get_column_text(column, database_name)  
-    
-    value_new<- c()
-    for (each_value in value_split){
-      #find the text corresponding to the code
-      code_text <- get_code_text(column, str_replace(each_value," ",""), database_name)
-      #append this value to a vector of values
-      value_new <- append(value_new, code_text)
-    }
-    
-    value_new<-str_c(value_new, collapse=", ")
-    
-    translated_filter<- individual_filter |>
-      str_replace(column, column_new) |>
-      str_replace(value, value_new)
-    
-    
-  }else if (str_detect(individual_filter, "CONTAINS")){
-
-    split_string<- str_split(individual_filter,"CONTAINS") |> unlist()
+    split_string<- str_split(individual_filter,"(CONTAINS)|(IS IN)|(IS)") |> unlist()
     column<- split_string[1] |> 
       str_replace_all(fixed("("),"") |>
       str_replace_all(fixed(")"),"") |>
@@ -414,61 +397,34 @@ translate_individual_filter <- function(individual_filter, database_name){
       str_replace_all(fixed(")"),"") |>
       str_trim()
     column_new <- get_column_text(column, database_name)  
-    value_new <- get_code_text(column, value, database_name)
+    
+    
+    if( str_detect(individual_filter, "(IS IN)")){
+      value_new<- c()
+      value_split <- str_split(value, ",") |> unlist()
+      for (each_value in value_split){
+        #find the text corresponding to the code
+        code_text <- get_code_text(column, str_replace(each_value," ",""), database_name)
+        #append this value to a vector of values
+        value_new <- append(value_new, code_text)
+      }
+      
+      value_new<-str_c(value_new, collapse=", ")
+    }else{
+      value_new <- get_code_text(column, value, database_name)
+    }
+    
     
     translated_filter<- individual_filter |>
-      str_replace(str_glue("\\( *{column} *\\)"), column_new) |>
+      #if brackets around both sides of column name- replace brackets (this is relevant for CONTAINS)
+      #(this is a separate step because we only want to remove brackets where they occur on both sides)
+      str_replace(str_glue("\\( *{column} *\\)"), column_new) |> 
+      # if brackets not around column name- replace column name
       str_replace(str_glue("{column}"), column_new) |>
       str_replace(value, value_new)
     
-   }else if (str_detect(individual_filter, "IS NA")){
+  }  
 
-     split_string<- str_replace(individual_filter,"IS NA", "") 
-     column<- split_string |> 
-       str_replace_all(fixed("("),"") |>
-       str_replace_all(fixed(")"),"") |>
-       str_trim()
-     column_new <- get_column_text(column, database_name)  
-    
-     translated_filter<-   individual_filter |>
-       str_replace(str_glue("IS NA\\({column}\\)"), str_glue("{column_new} IS NA")) 
-     
-     
-   }else if (str_detect(individual_filter, "IS NOT NA")){
-
-     split_string<- str_replace(individual_filter,"IS NOT NA", "") 
-     
-     column<- split_string |> 
-       str_trim() |>
-       str_replace_all(fixed("("),"") |>
-        str_replace_all(fixed(")"),"")
-     
-     column_new <- get_column_text(column, database_name)  
-     
-     translated_filter<-   individual_filter |>
-       str_replace(str_glue("IS NOT NA\\({column}\\)"), 
-                   str_glue("{column_new} IS NOT NA")) 
-     
-  } else if(str_detect(individual_filter,"IS")){
-
-        
-    split_string<- str_split(individual_filter,"IS") |> unlist()
-    column<- split_string[1] |> 
-      str_replace_all(fixed("("),"") |>
-      str_replace_all(fixed(")"),"") |>
-      str_trim()
-    value <- split_string[2] |> 
-      str_replace_all(fixed("("),"") |>
-      str_replace_all(fixed(")"),"") |>
-      str_trim()
-    column_new <- get_column_text(column, database_name)  
-    value_new <- get_code_text(column, value, database_name)
-    
-    translated_filter<- individual_filter |>
-    str_replace(column, column_new) |>
-      str_replace(value, value_new)
-
-  }
   return(translated_filter)
 }
 
@@ -520,7 +476,7 @@ translate_categorical_string<- function(categorical_filter, database_name){
     break_between_filters<-if_else(is.na(bracket_breaks[filter_number]), "" ,bracket_breaks[filter_number])
     # add the translated filter and AND or OR to the translated_filters string
     translated_filters<- str_c(translated_filters,  individual_filter_translated, break_between_filters )
-    }
+  }
 
   return(translated_filters)
   
