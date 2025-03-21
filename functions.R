@@ -503,7 +503,8 @@ translate_categorical_string<- function(categorical_filter, database_name){
     str_replace_all('%', "") |> 
     str_replace_all('&', "AND") |> 
     str_replace_all('c\\(', "(") |> 
-    str_replace_all(fixed('|'), "OR") 
+    str_replace_all(fixed('|'), "OR") |>
+    str_replace_all(" +", " ") # this replaces multiple spaces with a single space
   
   string_to_split_by<-"(OR|AND)"
   #if the string contains AND  or OR, we'll need to separate and loop through  
