@@ -431,7 +431,7 @@ translate_individual_filter <- function(individual_filter, database_name){
      column_new <- get_column_text(column, database_name)  
     
      translated_filter<-   individual_filter |>
-       str_replace(str_glue("IS NA\\({column}"), str_glue("{column_new} IS NA")) 
+       str_replace(str_glue("IS NA\\({column}\\)"), str_glue("{column_new} IS NA")) 
      
      
    }else if (str_detect(individual_filter, "IS NOT NA")){
@@ -446,7 +446,7 @@ translate_individual_filter <- function(individual_filter, database_name){
      column_new <- get_column_text(column, database_name)  
      
      translated_filter<-   individual_filter |>
-       str_replace(str_glue("IS NOT NA\\({column}"), 
+       str_replace(str_glue("IS NOT NA\\({column}\\)"), 
                    str_glue("{column_new} IS NOT NA")) 
      
   } else if(str_detect(individual_filter,"IS")){
