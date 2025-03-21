@@ -97,7 +97,7 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_one_col_name<- sym(renamed_variable_to_tabulate_by_one) 
     
     summary_table <- df_to_create_summary_table |>
-      #seperate multi select values
+      #separate multi select values
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ")|>
       convert_columns_to_factors(database_name) |>
       #use count to tabulate
@@ -131,7 +131,7 @@ create_summary_table<-function(df_to_create_summary_table,
     renamed_variable_to_tabulate_by_two_col_name<- sym(renamed_variable_to_tabulate_by_two) 
     
     summary_table <- df_to_create_summary_table |>
-      #seperate multi select values
+      #separate multi select values
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name,sep = " {~@~} ") |>
       separate_rows(!!renamed_variable_to_tabulate_by_two_col_name,sep = " {~@~} ") |>
       convert_columns_to_factors(database_name) |> 
@@ -507,7 +507,7 @@ translate_categorical_string<- function(categorical_filter, database_name){
     str_replace_all(" +", " ")
   
   string_to_split_by<-"(OR|AND)"
-  #if the string contains AND  or OR, we'll need to seperate and loop through  
+  #if the string contains AND  or OR, we'll need to separate and loop through  
   categorical_filter_copy_split <- str_split(categorical_filter_copy,string_to_split_by) |> unlist()
   #pull out whether split by and or or 
   bracket_breaks<-str_extract_all(categorical_filter_copy, string_to_split_by) |> unlist()
