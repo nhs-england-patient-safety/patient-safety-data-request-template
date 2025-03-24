@@ -37,10 +37,11 @@ metadata <- c(
   "",
   "LFPSE categorical criteria:",
   "",
+  "Sampling strategy:",
+  "",
   "Free text filters:",
   "",
-  "",
-  "Sampling strategy:"
+  ""
 )
 
 ref_no <- substr(title, 5, 8)
@@ -62,6 +63,22 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
+
+text_terms_pretty <- text_terms
+for (group in 1:length(text_terms)){
+  for (term in 1:length(text_terms[[group]])){
+      prettier_term<-text_terms[[group]][term] |>
+      str_replace_all(pattern = "\\|", " OR ") |>
+      str_replace_all(pattern = "\\|", " OR ") |>
+      str_replace_all(pattern = fixed('\\b'), "%") |>
+
+      str_replace_all(pattern = fixed('(?i)'), "" ) |>
+
+      str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
+    text_terms_pretty[[group]][term]<-prettier_term
+  }
+}
+
 metadata_answers <- c(
   ref_no,
   "",
@@ -71,22 +88,28 @@ metadata_answers <- c(
   "",
   date_range,
   "",
-  deparse(nrls_categorical,width.cutoff = 500),
+  expanded_categorical_filter_nrls,
   "",
-  deparse(steis_categorical, width.cutoff = 500),
+  expanded_categorical_filter_steis,
   "",
-  deparse(lfpse_categorical, width.cutoff = 500),
+  expanded_categorical_filter_lfpse,
   "",
-  deparse(text_terms,width.cutoff = 500),
+  deparse(sampling_strategy),
+  "",
+  "Free text search based the following terms (case insensitive):",
+  deparse(text_terms_pretty,width.cutoff = 500),
   deparse(text_filter, width.cutoff = 500),
   "",
-  deparse(sampling_strategy)
-)
+  "Notes:",
+  "'%' represents a boundary",
+  "'~' represents an optional space that can be filled by any character")
 
-addStyle(wb, sheet = cover_sheet_name, textStyle, rows = 2:24, cols = 2)
-writeData(wb, cover_sheet_name, metadata, startRow = 2, startCol = 2)
-writeData(wb, cover_sheet_name, metadata_answers, startRow = 2, startCol = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 2:30, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
 
+writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
+writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 # Add worksheets ----------------------------------------------------------
 

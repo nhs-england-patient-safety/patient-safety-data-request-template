@@ -20,24 +20,37 @@ source("styles.R")
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
 end_date <- "2024-03-30"
+
 date_type <- "occurring"
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
 
+# translate_categorical_string() can translate filters from the codes used to access the database, to more readable code.
+# it splits up filters by & or | and translates each filter one by one. some examples of filters it can translate are:
+#nrls_categorical <- expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & (IN04 == 1 | IN04 %in% c(97, 99) & !is.na(RP07) | is.na(IN04) & !is.na(RP07)))
+#lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
+
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr(IN05_LVL1 == 10)
+nrls_categorical <- expr(IN05_LVL1 == 10 )
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- expr(A001 == '4')
+lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
 steis_filename <- 'SUI_2_87360.csv'
+
+expanded_categorical_filter_lfpse<-translate_categorical_string(lfpse_categorical, "lfpse")
+expanded_categorical_filter_nrls<-translate_categorical_string(nrls_categorical, "nrls")
+expanded_categorical_filter_steis<-translate_categorical_string(steis_categorical, "steis")
+message(str_glue("LFPSE filter is: \n{expanded_categorical_filter_lfpse}"))
+message(str_glue("NRLS filter is: \n{expanded_categorical_filter_nrls}"))
+message(str_glue("StEIS filter is: \n{expanded_categorical_filter_steis}"))
 
 # text terms
 #example below- not real example
 text_terms <- list(
   group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
-  group_B = c("(i)\\bibuprofen"),
+  group_B = c("(?i)\\bibuprofen"),
   group_C = c("(?i)\\bunwell")
 )
 
