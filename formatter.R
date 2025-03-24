@@ -252,4 +252,4 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-#source('microsoft365R.R')
+source('microsoft365R.R')
