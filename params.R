@@ -11,14 +11,23 @@ search_nrls <- T
 search_lfpse <- T
 search_steis <- T
 
-# connect to (relevant) data bases and bring corresponding look ups 
-source("connections.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-03-30"
+end_date <- "2024-12-31"
 
 date_type <- "occurring"
+
+
+# connect to (relevant) data bases and bring corresponding look ups 
+source("connections.R")
+
+#source helper files
+source("functions.R") 
+source("column_selection_lookups.R") # contains column names to be extracted
+source("styles.R") #contains styles used by openxlsx
+source("neopaeds.R") #contains search terms used to categorise incidents as neonate/paediatric
+
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -93,11 +102,6 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 # TODO: custom
 sampling_strategy <- "default"
 
-#source helper files
-source("functions.R")
-source("column_selection_lookups.R")
-source("styles.R")
-source("neopaeds.R")
 
 #start flow
 source("flow.R")
