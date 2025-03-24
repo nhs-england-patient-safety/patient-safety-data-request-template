@@ -13,7 +13,7 @@ search_steis <- T
 
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
+start_date <- "2023-01-01"
 end_date <- "2024-12-31"
 
 date_type <- "occurring"
@@ -105,3 +105,4 @@ sampling_strategy <- "default"
 
 #start flow
 source("flow.R")
+
