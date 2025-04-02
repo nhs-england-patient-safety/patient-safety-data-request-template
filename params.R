@@ -6,6 +6,9 @@ library(openxlsx)
 library(glue)
 library(Microsoft365R)
 
+# write output (T/F)
+write_to_sp <- F
+
 # datasets to be searched (T/F)
 search_nrls <- T
 search_lfpse <- T
@@ -18,7 +21,7 @@ source("column_selection_lookups.R")
 source("styles.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
+start_date <- "2024-03-01"
 end_date <- "2024-03-30"
 
 date_type <- "occurring"
