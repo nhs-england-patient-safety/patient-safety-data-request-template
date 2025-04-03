@@ -151,6 +151,27 @@ create_summary_table <- function(df_to_create_summary_table,
   return(summary_table)
 }
 
+# function to create term tally table
+create_term_tally_table <- function(df_to_create_term_tally) {
+  
+  # select all term columns
+  term_columns <- grep("term", names(df_to_create_term_tally), value = TRUE)
+  
+  # verify that text terms have been provided
+  if(length(term_columns) < 1){
+    message(str_glue("No search terms provided. Table cannot be created."))
+    return(tibble(`Table could not be made` = str_glue("No search terms provided.")))
+  }
+  
+  # calculate the number of incidences identified by each search term (by summing number of TRUE values)
+  summary_table <- df_to_create_term_tally |>
+    summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
+    pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
+  
+  return(summary_table)
+}
+
+
 # function to convert month and level of harm columns to factors (depending on database)
 convert_columns_to_factors <- function(df_without_factors, database_name) {
   # convert month and harm level to ordered factors
