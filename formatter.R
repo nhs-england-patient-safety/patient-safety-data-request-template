@@ -195,6 +195,20 @@ for (i in file_list) {
       
     }
   
+  # add in a note between this table and the term tally table
+  note <- c(
+    "Explain table",
+    "Note: Caveat"
+    )
+  writeData(wb, 
+            sheet = summary_sheet_name, 
+            x = note, 
+            startRow = table_start_row, 
+            startCol = 1)
+  
+  # increment start row to allow next table to be further down on page
+  table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
+  
   # repeat for term tally tables for the same sheets
   for (term_columns in database_name) {
     # create term tally table for unsampled data and add to sheet with styling
@@ -215,6 +229,9 @@ for (i in file_list) {
                                  #this is printed to the right of the unsampled dataframe
                                  table_start_col = ncol(summary_table_unsampled)+2)
     }
+    
+    # increment start row to allow next table to be further down on page
+    table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
   }
   
     ## CREATE INCIDENT LEVEL DATA IF REQUIRED
@@ -273,5 +290,6 @@ tf <- tempfile(fileext = ".xlsx")
 saveWorkbook(wb, 
              file = tf,
              overwrite = T)
+
 
 source('microsoft365R.R')
