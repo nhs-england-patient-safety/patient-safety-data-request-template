@@ -168,6 +168,10 @@ create_term_tally_table <- function(df_to_create_term_tally) {
     summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
     pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
   
+  # add a total row which calculates the total number of incidents in the data frame
+  total_row <- tibble(`Search term` = "Total", `n` = nrow(df_to_create_term_tally))
+  summary_table <- bind_rows(summary_table, total_row)
+  
   return(summary_table)
 }
 
