@@ -195,6 +195,28 @@ for (i in file_list) {
       
     }
   
+  # repeat for term tally tables for the same sheets
+  for (term_columns in database_name) {
+    # create term tally table for unsampled data and add to sheet with styling
+    term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level)
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               term_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1)
+    
+    #if the sampled and unsampled data have different lengths, then create and add a summary table for the sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level)
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name,
+                                 term_tally_table_sampled, 
+                                 table_start_row,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(summary_table_unsampled)+2)
+    }
+  }
+  
     ## CREATE INCIDENT LEVEL DATA IF REQUIRED
   
     #if incident level data is required, then we add a sheet with this data  
