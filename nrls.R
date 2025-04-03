@@ -77,7 +77,8 @@ if (sum(!is.na(text_terms)) > 0) {
     # apply text filter logic
     filter(!!text_filter) |>
     # drop individual term columns
-    select(!c(contains("_term_"), concat_col))
+    #select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
