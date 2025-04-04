@@ -195,19 +195,11 @@ for (i in file_list) {
       
     }
   
-  # add in a note between this table and the term tally table
-  note <- c(
-    "Explain table",
-    "Note: Caveat"
-    )
-  writeData(wb, 
-            sheet = summary_sheet_name, 
-            x = note, 
-            startRow = table_start_row, 
-            startCol = 1)
   
   # increment start row to allow next table to be further down on page
-  table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
+  table_start_row <- add_term_tally_table_header(wb, 
+                                                 sheet = summary_sheet_name,
+                                                 content_start_row = table_start_row)
   
   # repeat for term tally tables for the same sheets
   for (term_columns in database_name) {

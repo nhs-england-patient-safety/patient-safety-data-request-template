@@ -75,6 +75,38 @@ add_header_to_sheet <- function(wb, title,
 }
 
 
+# this function adds a note prior to the term tally table in the summary sheets
+add_term_tally_table_header <- function(wb, 
+                                        sheet,
+                                        content_start_row) {
+  # Explain what the term tally table is
+  writeData(
+    wb,
+    sheet,
+    paste(str_glue("The following number of incidents were retrieved by each term in the search strategy.")),
+    startCol = 1,
+    startRow = content_start_row
+  )
+  
+  # Add in caveat for term tally table about why the number of incidents don't equal the total
+  writeData(
+    wb,
+    sheet,
+    paste(str_glue("Note: The total number of incidents retrieved may not match the sum of incidents for each term as multiple search terms can be used to identify a single incident.")),
+    startCol = 1,
+    startRow = content_start_row + 1
+  )
+  
+  # set start row for term tally tables
+  table_start_row <- content_start_row + 3
+  
+  # Add text style
+  addStyle(wb, sheet = sheet, textStyle, rows = 1:(table_start_row - 1), cols = 1)
+  
+  return(table_start_row)
+}
+
+
 # this function creates a summary table from a dataframe and a list containing the variables to tabulate by
 create_summary_table <- function(df_to_create_summary_table,
                                  variables_to_tabulate_by_list,
