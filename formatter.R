@@ -196,12 +196,12 @@ for (i in file_list) {
     }
   
   
-  # increment start row to allow next table to be further down on page
+  # header for the term tally table
   table_start_row <- add_term_tally_table_header(wb, 
                                                  sheet = summary_sheet_name,
                                                  content_start_row = table_start_row)
   
-  # repeat for term tally tables for the same sheets
+  # create and add the term tally tables underneath the header
   for (term_columns in database_name) {
     # create term tally table for unsampled data and add to sheet with styling
     term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level)
@@ -222,7 +222,7 @@ for (i in file_list) {
                                  table_start_col = ncol(summary_table_unsampled)+2)
     }
     
-    # increment start row to allow next table to be further down on page
+    # increment start row to allow next table/content to be further down on page
     table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
   }
   
