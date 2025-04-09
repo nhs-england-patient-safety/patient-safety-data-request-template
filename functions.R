@@ -101,7 +101,7 @@ add_term_tally_table_header <- function(wb,
   table_start_row <- content_start_row + 3
   
   # Add text style
-  addStyle(wb, sheet = sheet, textStyle, rows = 1:(table_start_row - 1), cols = 1)
+  addStyle(wb, sheet = sheet, textStyle, rows = content_start_row:(table_start_row - 1), cols = 1)
   
   return(table_start_row)
 }
