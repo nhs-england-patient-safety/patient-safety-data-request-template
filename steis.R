@@ -80,8 +80,6 @@ if (sum(!is.na(text_terms))>0) {
   steis_filtered_text <- steis_filtered_text_precursor %>%
     # apply text filter logic
     filter(!!text_filter) %>%
-    # drop individual term columns
-    #select(!c(contains("_term_"), concat_col)) %>%
     select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
@@ -110,12 +108,12 @@ if(nrow(steis_filtered_text) != 0){
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_unsampled_pt_level<- steis_for_release|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_sampled_pt_level <- steis_for_release|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
    
   }
