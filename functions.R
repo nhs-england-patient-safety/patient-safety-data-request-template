@@ -209,7 +209,8 @@ create_term_tally_table <- function(df_to_create_term_tally) {
     mutate(
       `Search term` = str_replace_all(`Search term`, "_", " "),
       `Search term` = str_replace(`Search term`, "term", "term:"),
-      #`Search term` = str_to_title(`Search term`)
+      `Search term` = str_to_upper(str_sub(`Search term`, 1, 1)) |>
+        paste0(str_sub(`Search term`, 2, nchar(`Search term`)))
     )
   
   return(summary_table)
