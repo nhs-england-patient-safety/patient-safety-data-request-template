@@ -9,7 +9,7 @@ rename_lookup_nrls<- c(
   `RP07 NHS Organisation Code` = "RP07", #required for join
   `Organisation Name` = "ORGANISATIONNAME",
   `Date of Incident` = "occurred_date",         #required 
-  `Date incident received by NRLS` = "reported_date",#required
+  `Date incident received by NRLS` = "reported_datetime",#required
   `Month` = "month_reported_or_occurred",
   `Year` = "year_reported_or_occurred",
   `Month - Year` = "month_year_reported_or_occurred",
@@ -52,7 +52,7 @@ rename_lookup_lfpse<-c(
   "Occurred Organisation Code" = "OccurredOrganisationCode",
   "Reporter Organisation Code" = "ReporterOrganisationCode",
   "T005 - Event date" = "occurred_date", #required
-  "Reported Date" = "reported_date",#required
+  "Reported Date" = "reported_datetime",#required
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
   `Month - Year` = "month_year_reported_or_occurred",#required
@@ -102,7 +102,7 @@ rename_lookup_steis<-c(
   `CCG/CSU Name` = "ccg_csu_name",
   `Region - Geography` = "region_geography",
   `Status` = "status",
-  `Date Incident Reported` = "reported_date",#required
+  `Date Incident Reported` = "reported_datetime",#required
   `Date of Incident`= "occurred_date",#required
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
