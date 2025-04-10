@@ -204,6 +204,14 @@ create_term_tally_table <- function(df_to_create_term_tally) {
   total_row <- tibble(`Search term` = "Total", `n` = nrow(df_to_create_term_tally))
   summary_table <- bind_rows(summary_table, total_row)
   
+  # add styling to improve look of the Search term column in the output tables
+  summary_table <- summary_table |>
+    mutate(
+      `Search term` = str_replace_all(`Search term`, "_", " "),
+      `Search term` = str_replace(`Search term`, "term", "term:"),
+      #`Search term` = str_to_title(`Search term`)
+    )
+  
   return(summary_table)
 }
 
@@ -537,4 +545,14 @@ translate_categorical_string <- function(categorical_filter, database_name) {
   }
 
   return(translated_filters)
+}
+
+
+
+make_text_terms_pretty <- function(term){
+  term |>
+    str_replace_all(pattern = fixed("(?:\\W|"), "~") |>
+    str_replace_all(pattern = "\\|", " OR ") |>
+    str_replace_all(pattern = fixed('\\b'), "%" ) |>
+    str_replace_all(pattern = fixed('(?i)'), "" )
 }
