@@ -51,7 +51,6 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
                        by = c("Reference", "Revision")
 ) |>
   rename(occurred_date = T005) |>
-  mutate(reported_datetime = reported_date) |>
   mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
@@ -74,7 +73,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ### Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
   # reported_date added here because we want to use the reported datetime for the output, but reported date is required for the next steps.
-  select(any_of(unname(rename_lookup[["LFPSE"]])), reported_date)|> 
+  select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
   
   ### Generate additional columns (grouping by Reference)
   group_by(Reference)  |>

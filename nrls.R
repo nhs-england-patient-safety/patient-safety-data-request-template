@@ -23,7 +23,6 @@ nrls_parsed <- nrls |>
     occurred_date = IN01,
     reported_date = CREATEDDT
   ) |>
-  mutate(reported_datetime = reported_date) |>
   mutate(reported_date = sql('CAST("reported_date" AS DATE)')) 
 
 # categorical filters ####
@@ -35,7 +34,7 @@ nrls_filtered_categorical <- nrls_parsed |>
   filter(!!nrls_categorical) |>
   #select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
-  select(any_of(unname(rename_lookup[["NRLS"]])), reported_date)|>
+  select(any_of(unname(rename_lookup[["NRLS"]])))|>
   # collecting here so that we can apply text filters later
   collect() |>
   mutate(year_reported_or_occurred = year(!!date_filter),
