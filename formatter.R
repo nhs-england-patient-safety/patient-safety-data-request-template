@@ -204,7 +204,8 @@ for (i in file_list) {
                                sheet = summary_sheet_name,
                                term_tally_table_unsampled,
                                table_start_row,
-                               table_start_col = 1)
+                               table_start_col = 1,
+                               Total_row = FALSE)
     
     #if the sampled and unsampled data have different lengths, then do the same for the sampled data
     if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
@@ -215,7 +216,8 @@ for (i in file_list) {
                                  term_tally_table_sampled, 
                                  table_start_row,
                                  #this is printed to the right of the unsampled dataframe
-                                 table_start_col = ncol(summary_table_unsampled)+2)
+                                 table_start_col = ncol(summary_table_unsampled)+2,
+                                 Total_row = FALSE)
     }
     
     # increment start row to allow next table/content to be further down on page

@@ -200,10 +200,6 @@ create_term_tally_table <- function(df_to_create_term_tally) {
     summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
     pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
   
-  # add a total row which calculates the total number of incidents in the data frame
-  total_row <- tibble(`Search term` = "Total", `n` = nrow(df_to_create_term_tally))
-  summary_table <- bind_rows(summary_table, total_row)
-  
   # add styling to improve look of the Search term column in the output tables
   summary_table <- summary_table |>
     mutate(
@@ -290,7 +286,8 @@ add_summary_table_to_sheet <- function(wb,
                                        sheet,
                                        summary_table,
                                        table_start_row,
-                                       table_start_col) {
+                                       table_start_col,
+                                       Total_row = TRUE) {
   # add summary table to sheet
   writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
 
@@ -314,7 +311,7 @@ add_summary_table_to_sheet <- function(wb,
     wb,
     sheet = sheet,
     rowTitleStyle,
-    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
     cols = table_start_col
   )
 
@@ -323,21 +320,24 @@ add_summary_table_to_sheet <- function(wb,
     wb,
     sheet = sheet,
     bodyStyleNoBorder,
-    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
     cols = (table_start_col + 1):(table_start_col + ncol(summary_table) - 1),
     gridExpand = T
   )
 
-  # style table- header and footer
-  addStyle(
-    wb,
-    sheet = sheet,
-    summaryTableTopBottomStyle,
-    rows = nrow(summary_table) + table_start_row,
-    cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
-    gridExpand = T
-  )
+  # style table- footer with border when there is a total row
+  if(Total_row == T){
+    addStyle(
+        wb,
+        sheet = sheet,
+        summaryTableTopBottomStyle,
+        rows = nrow(summary_table) + table_start_row,
+        cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
+        gridExpand = T
+      ) 
+  }
 }
+
 
 # this function adds a data table to a sheet and styles it
 add_data_table_to_sheet <- function(wb,
