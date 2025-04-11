@@ -22,7 +22,8 @@ nrls_parsed <- nrls |>
     IN05_LVL2 = IN05_lvl2,
     occurred_date = IN01,
     reported_date = CREATEDDT
-  )
+  ) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) 
 
 # categorical filters ####
 tic_nrls <- Sys.time()
