@@ -72,7 +72,6 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   
   ### Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
-  # reported_date added here because we want to use the reported datetime for the output, but reported date is required for the next steps.
   select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
   
   ### Generate additional columns (grouping by Reference)
