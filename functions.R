@@ -184,31 +184,45 @@ create_summary_table <- function(df_to_create_summary_table,
 }
 
 # function to create term tally table
-create_term_tally_table <- function(df_to_create_term_tally) {
+create_term_tally_table <- function(df_to_create_term_tally,
+                                    cols_to_use = c("term_columns")) {
   
-  # select all term columns
-  term_columns <- grep("term", names(df_to_create_term_tally), value = TRUE)
-  
-  # verify that text terms have been provided
-  if(length(term_columns) < 1){
-    message(str_glue("No search terms provided. Table cannot be created."))
-    return(tibble(`Table could not be made` = str_glue("No search terms provided.")))
-  }
-  
-  # calculate the number of incidences identified by each search term (by summing number of TRUE values)
-  summary_table <- df_to_create_term_tally |>
-    summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
-    pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
-  
-  # add styling to improve look of the Search term column in the output tables
-  summary_table <- summary_table |>
-    mutate(
-      `Search term` = str_replace_all(`Search term`, "_", " "),
-      `Search term` = str_replace(`Search term`, "term", "term:"),
-      `Search term` = str_to_upper(str_sub(`Search term`, 1, 1)) |>
+  # calculate the number of incidences identified by each search term
+  if(cols_to_use=="term_columns") {
+    # identify the term columns
+    term_columns <- grep("term", names(df_to_create_term_tally), value = TRUE)
+    # sum the number of True values in each column
+    summary_table <- df_to_create_term_tally |>
+      summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
+      pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
+    # style the format of the search terms in the table
+    summary_table <- summary_table |>
+      mutate(
+        `Search term` = str_replace_all(`Search term`, "_", " "),
+        `Search term` = str_replace(`Search term`, "term", "term:"),
+        `Search term` = str_to_upper(str_sub(`Search term`, 1, 1)) |>
         paste0(str_sub(`Search term`, 2, nchar(`Search term`)))
-    )
-  
+      )
+  }
+
+  # calculate the number of incidences identified by each search group
+  if(cols_to_use=="group_columns") {
+    # identify the group columns
+    group_columns <- grep("group", names(df_to_create_term_tally), value = TRUE)
+    group_columns <- group_columns[!grepl("term", group_columns)]
+    # sum the number of True values in each column
+    summary_table <- df_to_create_term_tally |>
+      summarise(across(all_of(group_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
+      pivot_longer(cols = everything(), names_to = "Group", values_to = "n")
+    # style the format of the groups in the table
+    summary_table <- summary_table |>
+      mutate(
+        Group = Group |> 
+          str_replace_all("_", " ") |> 
+          str_to_title()
+      )
+  }
+
   return(summary_table)
 }
 
