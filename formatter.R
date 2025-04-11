@@ -71,6 +71,8 @@ if(sum(!is.na(text_terms)) > 0) {
       text_terms_pretty[[group]][term] <- prettier_term
     }
   }
+} else  {
+  text_terms_pretty <- "No text filters"
 }
 
 metadata_answers <- c(
