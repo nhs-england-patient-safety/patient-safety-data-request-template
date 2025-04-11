@@ -83,7 +83,7 @@ add_term_tally_table_header <- function(wb,
   writeData(
     wb,
     sheet,
-    paste(str_glue("The following number of incidents were retrieved by each term in the search strategy.")),
+    paste(str_glue("The tables below present the number of incidents identified by each group and text term in the search strategy.")),
     startCol = 1,
     startRow = content_start_row
   )
@@ -92,7 +92,7 @@ add_term_tally_table_header <- function(wb,
   writeData(
     wb,
     sheet,
-    paste(str_glue("Note: The total number of incidents retrieved may not match the sum of incidents for each term as multiple search terms can be used to identify a single incident.")),
+    paste(str_glue("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable.")),
     startCol = 1,
     startRow = content_start_row + 1
   )
