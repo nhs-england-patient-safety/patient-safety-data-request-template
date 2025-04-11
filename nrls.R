@@ -40,6 +40,10 @@ nrls_filtered_categorical <- nrls_parsed |>
   mutate(year_reported_or_occurred = year(!!date_filter),
          month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
          month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
+         financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
+                                                      (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
+                                                      paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
+         ),
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date))
 
