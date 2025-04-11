@@ -31,7 +31,7 @@ analysis_table_names <- c(
   "Devices_Responses",
   "Reporter_Responses",
   "Governance_Responses",
-  # "Findings_Responses"#,
+  #"Findings_Responses"#,
   "DmdMedication_Responses"
 )
 
@@ -52,9 +52,27 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
 ) |>
   rename(occurred_date = T005) |>
   mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
+  mutate(occurred_date_end=substr(occurred_date, 9,10) )|>
+  mutate(occurred_date_end_2=if_else(occurred_date_end=="","01", occurred_date_end))%>%
+  mutate(occurred_date_start=substr(occurred_date,1,7))%>%
+  mutate(new_date= paste0(occurred_date_start, "-", occurred_date_end_2)) %>%
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
   mutate(P004_days = as.numeric(P004))
+
+
+# dates<-reduce(lfpse_analysis_tables,
+#                         left_join,
+#                         by = c("Reference", "Revision")) %>% 
+#   rename(occurred_date = T005) |>
+#   mutate(occurred_date_end=substr(occurred_date, 9,10) )|>
+#   mutate(occurred_date_end_2=if_else(occurred_date_end=="","01", occurred_date_end))%>%
+#   mutate(occurred_date_start=substr(occurred_date,1,7))%>%
+#   mutate(new_date= paste0(occurred_date_start, "-", occurred_date_end_2)) %>%
+#   select(occurred_date, occurred_date_end, occurred_date_end_2, occurred_date_start, new_date) %>%
+#   collect()
+
+#a=dates %>% mutate(occ_len=str_length(occurred_date)) %>% filter(occ_len<10) 
 
 # sql_render(lfpse_parsed) this is a useful step to check the SQL has rendered sensibly
 
@@ -73,7 +91,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ### Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
   # reported_date added here because we want to use the reported datetime for the output, but reported date is required for the next steps.
-  select(any_of(unname(rename_lookup[["LFPSE"]])))|> 
+  select(any_of(unname(rename_lookup[["LFPSE"]])),occurred_date, occurred_date_end, occurred_date_end_2, occurred_date_start, new_date)|> 
   
   ### Generate additional columns (grouping by Reference)
   group_by(Reference)  |>

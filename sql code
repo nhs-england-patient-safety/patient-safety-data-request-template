@@ -1,0 +1,16 @@
+selecT *,
+CONCAT(test,'-',new_test_2) as new_date FROM
+(SELECT *,
+IIF(LEN(test2)=0, '01', test2) new_test_2
+FROM (SELECT [Reference]
+      ,[Revision]
+      ,[T001]
+      ,[T003]
+      ,[T005]
+      ,[T006]
+      ,[T007]
+      ,[T008]
+	  , SUBSTRING(T005,1,7) AS test
+	  , SUBSTRING(T005, 9,10) AS test2
+  FROM [analysis].[EventTime_Responses]
+  WHERE LEN(T005)=7)A)B

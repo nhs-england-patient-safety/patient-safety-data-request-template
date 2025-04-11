@@ -19,9 +19,9 @@ source("styles.R")
 
 # date filter (type is occurring/reported)
 start_date <- "2024-01-01"
-end_date <- "2024-03-30"
+end_date <- "2024-03-31"
 
-date_type <- "occurring"
+date_type <- "reported"
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -32,12 +32,12 @@ cols_to_extract <- "default"
 #lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr(IN05_LVL1 == 10 )
+nrls_categorical <- 0
 # lfpse categorical filters (wrap in expr() or set to 0)
 lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 # steis categorical filters (wrap in expr() or set to 0)
-steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
-steis_filename <- 'SUI_2_87360.csv'
+steis_categorical <- 0
+steis_filename <- 'SUI_2_14784.csv'
 
 expanded_categorical_filter_lfpse<-translate_categorical_string(lfpse_categorical, "lfpse")
 expanded_categorical_filter_nrls<-translate_categorical_string(nrls_categorical, "nrls")
@@ -56,8 +56,8 @@ text_terms <- list(
 
 text_filter <- expr((group_A | group_B) & group_C)
 
-#text_terms<- list()
-#text_filter<- expr(0)
+text_terms<- list()
+text_filter<- expr(0)
 
 # is incident level data required? "yes" or "no"
 incident_level_required<- "yes"
