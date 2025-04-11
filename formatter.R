@@ -78,7 +78,7 @@ if (sum(!is.na(text_terms)) > 0) {
     }
   }
 } else {
-  # text_terms_pretty <- "No text filters"
+  text_terms_pretty <- "No text filters"
 }
 
 metadata_answers <- c(

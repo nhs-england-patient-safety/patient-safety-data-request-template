@@ -87,6 +87,11 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
+         # create financial year while month_reported_or_occurred is still a number
+         financial_year_reported_or_occurred = ifelse(month_reported_or_occurred>3,
+                                                      (paste0(year_reported_or_occurred, '/', year_reported_or_occurred+1)),
+                                                      paste0(year_reported_or_occurred-1,  '/', year_reported_or_occurred)
+         ),
          month_reported_or_occurred= month.abb[month_reported_or_occurred],
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date),
