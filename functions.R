@@ -79,7 +79,7 @@ add_header_to_sheet <- function(wb, title,
 add_term_tally_table_header <- function(wb, 
                                         sheet,
                                         content_start_row) {
-  # Explain what the term tally table is
+  # Explain what the group/term tally tables show
   writeData(
     wb,
     sheet,
@@ -88,7 +88,7 @@ add_term_tally_table_header <- function(wb,
     startRow = content_start_row
   )
   
-  # Add in caveat for term tally table about why the number of incidents don't equal the total
+  # Add in caveat about not being able to sum the numbers of terms/groups
   writeData(
     wb,
     sheet,
