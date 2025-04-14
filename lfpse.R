@@ -223,11 +223,10 @@ if (nrow(lfpse_filtered_text) != 0) {
         is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
         .default = 'other' 
       ),
-      L006 = if_else(is.na(L006),"", L006), #required for text search to work as expected- if it is NA, str_detect will return NA
       #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
       neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      adult_specialty_flag = str_detect(L006, adult_specialty_terms),
+      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T) | is.na(L006), # we want this to be TRUE if L006 is NA
       paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
       paediatric_term_flag = str_detect(concat_col, paediatric_terms),
       neonate_category = case_when(
@@ -236,7 +235,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Neonate by specialty: age is 0 or NA and specialty indicates neonate
         neonate_specialty_flag ~ "neonate_by_specialty",
         # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
-        (neonate_terms_flag & ! adult_specialty_flag) ~ "neonate_by_text",
+        (neonate_terms_flag & no_adult_specialty_flag) ~ "neonate_by_text",
         # Default: not neonate-related
         .default = "not neonate related"
       ),
