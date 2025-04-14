@@ -212,7 +212,6 @@ if (nrow(lfpse_filtered_text) != 0) {
       age_compliance == "yes", P004_days, NA
     ))
   
-  
   lfpse_age_classified <- lfpse_age_validated |>
     mutate(
       concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
@@ -245,7 +244,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
         paediatric_specialty_flag ~ "paediatric_by_specialty",
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-        (paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
+        (paediatric_term_flag & no_adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not paediatrics-related
         .default = "not paediatric related"
       )
@@ -257,13 +256,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     
     lfpse_neopaed <- lfpse_age_classified |>
       filter(neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text"))
-    
+
   } else if (is_neopaed == "paed") {
     print("- Running paediatric strategy...")
     
     lfpse_neopaed <- lfpse_age_classified |>
       filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text"))
-    
+
   } else if (is_neopaed == "either") {
     print("- Running paediatric strategy...")
     
