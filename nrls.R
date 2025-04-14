@@ -109,22 +109,18 @@ if (nrow(nrls_filtered_text) != 0) {
   # Searching PD01_B doesn't contain any more information than  AGE_AT_INCIDENTS (from SQL searches)- presume derived field, and removed it
   nrls_age_categorised <- nrls_labelled %>%
     mutate(
-           # this is required because we want the flags to be false if these columns are NA (e.g. if PD05_LVL2 is NA, specialty_neonatology should be false)
-           PD05_LVL1= if_else(is.na(PD05_LVL1), "", PD05_LVL1),
-           PD05_LVL2= if_else(is.na(PD05_LVL2), "", PD05_LVL2),
-           PD04 = if_else(is.na(PD04), "", PD04),
-           PD20 = if_else(is.na(PD20), "", PD20),
-           concat_col = paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = " "),
-           #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
-           age_less_28_days= !is.na(AGE_AT_INCIDENT) & between(AGE_AT_INCIDENT, 0, 28/365),
-           specialty_neonatology= PD05_LVL2 == 'Neonatology',
-           poss_neonate_specialty = (PD05_LVL1 == 'Obstetrics and gynaecology' | PD04 == 'A paediatrics specialty' | PD20 == 'Yes'),
-           neonate_terms_text = str_detect(concat_col, neonatal_terms),
-           age_over_28_days_under_18_years =!is.na(AGE_AT_INCIDENT) &  AGE_AT_INCIDENT >= (28/365) & AGE_AT_INCIDENT < 18,
-           camhs_and_age_na = PD05_LVL2 == 'Child and adolescent mental health' & is.na(AGE_AT_INCIDENT),
-           other_paed_specialty = PD05_LVL2 %in% c('Community paediatrics', 'Paedodontics'),
-           paed_flags = PD04 == 'A paediatrics specialty' | PD20 == 'Yes',
-           paed_terms_text = str_detect(concat_col, paediatric_terms))|>
+      #note that PD05_LVL1, PD05_LVL2, PD04 and PD20 contain NAs- this currently doesn't impact logic so these have been left in
+      concat_col = paste(IN07, IN10, IN11, IN05_TEXT, PD05_LVL1, PD05_LVL2, PD05_TEXT, sep = " "),
+      #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
+      age_less_28_days= between(AGE_AT_INCIDENT, 0, 28/365),
+      specialty_neonatology= PD05_LVL2 == 'Neonatology',
+      poss_neonate_specialty = (PD05_LVL1 == 'Obstetrics and gynaecology' | PD04 == 'A paediatrics specialty' | PD20 == 'Yes'),
+      neonate_terms_text = str_detect(concat_col, neonatal_terms),
+      age_over_28_days_under_18_years = AGE_AT_INCIDENT >= (28/365) & AGE_AT_INCIDENT < 18,
+      camhs_and_age_na = PD05_LVL2 == 'Child and adolescent mental health' & is.na(AGE_AT_INCIDENT),
+      other_paed_specialty = PD05_LVL2 %in% c('Community paediatrics', 'Paedodontics'),
+      paed_flags = PD04 == 'A paediatrics specialty' | PD20 == 'Yes',
+      paed_terms_text = str_detect(concat_col, paediatric_terms))|>
     #build up neonate and paediatric categories from these flags
     mutate(
       neonate_category = case_when(
@@ -148,6 +144,7 @@ if (nrow(nrls_filtered_text) != 0) {
         .default = "not paediatric related"
       )
     )
+  
   
   # Now filter based on `is_neopaed` parameter
   if (is_neopaed == "neonate") {
