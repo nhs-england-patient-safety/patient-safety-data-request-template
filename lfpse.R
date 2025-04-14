@@ -234,9 +234,9 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Neonate by age: age is between 0 and 28 days
         age_category == 'neonate' ~ "neonate_by_age",
         # Neonate by specialty: age is 0 or NA and specialty indicates neonate
-        age_category == 'unknown' &  neonate_specialty_flag ~ "neonate_by_specialty",
+        neonate_specialty_flag ~ "neonate_by_specialty",
         # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
-        (age_category == 'unknown' & neonate_terms_flag & ! adult_specialty_flag) ~ "neonate_by_text",
+        (neonate_terms_flag & ! adult_specialty_flag) ~ "neonate_by_text",
         # Default: not neonate-related
         .default = "not neonate related"
       ),
@@ -244,9 +244,9 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Paediatrics by age: age is older than 1 month and younger than 18 years
         age_category == 'paediatric' ~ "paediatric_by_age",
         # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
-        (age_category == 'unknown' & paediatric_specialty_flag) ~ "paediatric_by_specialty",
+        paediatric_specialty_flag ~ "paediatric_by_specialty",
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-        (age_category == 'unknown' & paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
+        (paediatric_term_flag & ! adult_specialty_flag) ~ "paediatric_by_text",
         # Default: not paediatrics-related
         .default = "not paediatric related"
       )
