@@ -70,7 +70,6 @@ if (sum(!is.na(text_terms)) > 0) {
       prettier_term <- text_terms[[group]][term] |>
         str_replace_all(pattern =  fixed("(?:\\W|)"), "~") |>
         str_replace_all(pattern = "\\|", " OR ") |>
-        str_replace_all(pattern = "\\|", " OR ") |>
         str_replace_all(pattern = fixed('\\b'), "%") |>
         str_replace_all(pattern = fixed('(?i)'), "" ) 
       
