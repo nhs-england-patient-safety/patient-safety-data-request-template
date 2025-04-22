@@ -63,20 +63,21 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
-
-text_terms_pretty <- text_terms
-for (group in 1:length(text_terms)){
-  for (term in 1:length(text_terms[[group]])){
-      prettier_term<-text_terms[[group]][term] |>
-      str_replace_all(pattern = "\\|", " OR ") |>
-      str_replace_all(pattern = "\\|", " OR ") |>
-      str_replace_all(pattern = fixed('\\b'), "%") |>
-
-      str_replace_all(pattern = fixed('(?i)'), "" ) |>
-
-      str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
-    text_terms_pretty[[group]][term]<-prettier_term
+if (sum(!is.na(text_terms)) > 0) {
+  text_terms_pretty <- text_terms
+  for (group in 1:length(text_terms)){
+    for (term in 1:length(text_terms[[group]])){
+      prettier_term <- text_terms[[group]][term] |>
+        str_replace_all(pattern =  fixed("(?:\\W|)"), "~") |>
+        str_replace_all(pattern = "\\|", " OR ") |>
+        str_replace_all(pattern = fixed('\\b'), "%") |>
+        str_replace_all(pattern = fixed('(?i)'), "" ) 
+      
+      text_terms_pretty[[group]][term]<-prettier_term
+    }
   }
+} else {
+  text_terms_pretty <- "No text filters"
 }
 
 metadata_answers <- c(
