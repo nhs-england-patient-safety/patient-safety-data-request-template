@@ -67,7 +67,7 @@ if(sum(!is.na(text_terms)) > 0) {
   text_terms_pretty <- text_terms
   for (group in 1:length(text_terms)){
     for (term in 1:length(text_terms[[group]])){
-      prettier_term <- make_text_terms_pretty((text_terms[[group]][term]))
+      prettier_term <- make_text_terms_pretty(text_terms[[group]][term])
       text_terms_pretty[[group]][term] <- prettier_term
     }
   }

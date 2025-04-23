@@ -189,37 +189,34 @@ create_term_tally_table <- function(df_to_create_term_tally,
   
   # calculate the number of incidences identified by each search term
   if(cols_to_use=="term_columns") {
-    # identify the term columns
-    term_columns <- grep("term", names(df_to_create_term_tally), value = TRUE)
-    # sum the number of True values in each column
+    # sum the number of True values in each term column
     summary_table <- df_to_create_term_tally |>
-      summarise(across(all_of(term_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
+      select(matches("term")) |>
+      summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
       pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
     # style the format of the search terms in the table
     summary_table <- summary_table |>
       mutate(
-        `Search term` = str_replace_all(`Search term`, "_", " "),
-        `Search term` = str_replace(`Search term`, "term", "term:"),
-        `Search term` = str_to_upper(str_sub(`Search term`, 1, 1)) |>
-        paste0(str_sub(`Search term`, 2, nchar(`Search term`)))
+        `Search term` = `Search term` |>
+          str_replace_all("_", " ") |>
+          str_replace("term", "term:") |>
+          str_replace_all("group", "Group")
       )
   }
 
   # calculate the number of incidences identified by each search group
   if(cols_to_use=="group_columns") {
-    # identify the group columns
-    group_columns <- grep("group", names(df_to_create_term_tally), value = TRUE)
-    group_columns <- group_columns[!grepl("term", group_columns)]
-    # sum the number of True values in each column
+    # sum the number of True values in each group column
     summary_table <- df_to_create_term_tally |>
-      summarise(across(all_of(group_columns), ~sum(. == TRUE, na.rm = TRUE))) |>
+      select(matches("group_\\D{1}\\b")) |>
+      summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
       pivot_longer(cols = everything(), names_to = "Group", values_to = "n")
     # style the format of the groups in the table
     summary_table <- summary_table |>
       mutate(
         Group = Group |> 
           str_replace_all("_", " ") |> 
-          str_to_title()
+          str_replace_all("group", "Group")
       )
   }
 
