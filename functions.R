@@ -331,8 +331,14 @@ add_summary_table_to_sheet <- function(wb,
 
   setColWidths(wb,
     sheet = sheet,
-    cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
-    widths = 20
+    cols = table_start_col,
+    widths = 30
+  )
+  
+  setColWidths(wb,
+    sheet = sheet,
+    cols = (table_start_col + 1):(table_start_col + ncol(summary_table) - 1),
+    widths = 15
   )
 
   # style table - header
