@@ -253,8 +253,7 @@ for (i in file_list) {
       # create term tally table for unsampled data and apply make_text_terms_pretty function
       term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
                                                             cols_to_use = "term_columns")
-      term_tally_table_unsampled <- sapply(term_tally_table_unsampled, make_text_terms_pretty)
-      
+
       #add headers for sampled/unsampled tables where sampling took place
       if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
         table_start_row <- add_text_to_summary_sheets(wb, 
@@ -275,7 +274,6 @@ for (i in file_list) {
       if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
         term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
                                                             cols_to_use = "term_columns")
-        term_tally_table_sampled <- sapply(term_tally_table_sampled, make_text_terms_pretty)
         add_summary_table_to_sheet(wb,
                                    sheet = summary_sheet_name,
                                    term_tally_table_sampled, 

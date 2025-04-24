@@ -221,14 +221,8 @@ create_term_tally_table <- function(df_to_create_term_tally,
       select(matches("term")) |>
       summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
       pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
-    # style the format of the search terms in the table
-    summary_table <- summary_table |>
-      mutate(
-        `Search term` = `Search term` |>
-          str_replace_all("_", " ") |>
-          str_replace("term", "term:") |>
-          str_replace_all("group", "Group")
-      )
+    # style the format of the search term column in the table
+    summary_table$`Search term` <- sapply(summary_table$`Search term`, make_text_terms_pretty)
   }
 
   # calculate the number of incidences identified by each search group
@@ -238,13 +232,8 @@ create_term_tally_table <- function(df_to_create_term_tally,
       select(matches("group_\\D{1}\\b")) |>
       summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
       pivot_longer(cols = everything(), names_to = "Group", values_to = "n")
-    # style the format of the groups in the table
-    summary_table <- summary_table |>
-      mutate(
-        Group = Group |> 
-          str_replace_all("_", " ") |> 
-          str_replace_all("group", "Group")
-      )
+    # style the format of the group column in the table
+    summary_table$Group <- sapply(summary_table$Group, make_text_terms_pretty)
   }
 
   return(summary_table)
@@ -599,5 +588,8 @@ make_text_terms_pretty <- function(term){
     str_replace_all(pattern = fixed("(?:\\W|"), "~") |>
     str_replace_all(pattern = "\\|", " OR ") |>
     str_replace_all(pattern = fixed('\\b'), "%" ) |>
-    str_replace_all(pattern = fixed('(?i)'), "" )
+    str_replace_all(pattern = fixed('(?i)'), "" ) |>
+    str_replace_all("_", " ") |>
+    str_replace("term", "term:") |>
+    str_replace_all("group", "Group")
 }
