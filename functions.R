@@ -76,32 +76,59 @@ add_header_to_sheet <- function(wb, title,
 
 
 # this function adds a note prior to the term tally table in the summary sheets
-add_term_tally_table_header <- function(wb, 
-                                        sheet,
-                                        content_start_row) {
-  # Explain what the group/term tally tables show
-  writeData(
-    wb,
-    sheet,
-    paste(str_glue("The tables below present the number of incidents identified by each group and text term in the search strategy.")),
-    startCol = 1,
-    startRow = content_start_row
-  )
+add_text_to_summary_sheets <- function(wb, sheet,
+                                       content_start_row,
+                                       text_to_add) {
   
-  # Add in caveat about not being able to sum the numbers of terms/groups
-  writeData(
-    wb,
-    sheet,
-    paste(str_glue("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable.")),
-    startCol = 1,
-    startRow = content_start_row + 1
-  )
+  table_start_row
   
-  # set start row for term tally tables
-  table_start_row <- content_start_row + 3
+  if(text_to_add=="term_tally_table_heading"){
+    # Explain what the group/term tally tables show
+    writeData(
+      wb, sheet,
+      paste(str_glue("The tables below present the number of incidents identified by each group and text term in the search strategy.")),
+      startCol = 1,
+      startRow = content_start_row
+    )
+    
+    # Add in caveat about not being able to sum the numbers of terms/groups
+    writeData(
+      wb, sheet,
+      paste(str_glue("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable.")),
+      startCol = 1,
+      startRow = content_start_row + 1
+    )
+    
+    # set start row for next content
+    table_start_row <- content_start_row + 3
+    
+    # Add text style
+    addStyle(wb, sheet = sheet, textStyle, rows = content_start_row:(content_start_row + 1), cols = 1)
+  }
   
-  # Add text style
-  addStyle(wb, sheet = sheet, textStyle, rows = content_start_row:(table_start_row - 1), cols = 1)
+  if(text_to_add=="sampled_table_headers"){
+    # Add header for unsampled tables
+    writeData(
+      wb, sheet,
+      paste(str_glue("Search strategy:")),
+      startCol = 1,
+      startRow = content_start_row
+    )
+    
+    # Add header for sampled tables
+    writeData(
+      wb, sheet,
+      paste(str_glue("Sample:")),
+      startCol = ncol(summary_table_unsampled) + 2,
+      startRow = content_start_row
+    )
+    
+    # set the start row for tables
+    table_start_row <- content_start_row + 2
+    
+    # Add text style
+    addStyle(wb, sheet = sheet, textStyle, rows = content_start_row, cols = 1:(ncol(summary_table_unsampled) + 2))
+  }
   
   return(table_start_row)
 }
