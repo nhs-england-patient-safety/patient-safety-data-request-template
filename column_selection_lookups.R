@@ -99,7 +99,8 @@ rename_lookup_lfpse<-c(
   "A017 - Estates" = "A017",
   "A017_Other - Estates" = "A017_Other",
   "PB093 - IT systems" = "PB093",
-  "PB062 - Tissues" = "PB062"
+  "PB062 - Tissues" = "PB062",
+  "PB091 - Blood transfusion" = "PB091"
 )
 
 rename_lookup_steis<-c(
