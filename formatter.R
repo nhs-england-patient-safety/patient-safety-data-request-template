@@ -199,7 +199,7 @@ for (i in file_list) {
       
     }
   
-  # checking that there are text terms in search strategy
+  # create group and text term tally tables if there are text terms in search strategy and this is set to do so in params
   if(sum(!is.na(text_terms)) > 0 && include_term_tally_table == "yes"){
     
     # header for the group/term tally table
@@ -209,83 +209,70 @@ for (i in file_list) {
                                                   text_to_add = "term_tally_table_heading"
                                                   )
     
-    # create and add the group tally tables underneath the header
-    for (group_columns in database_name) {
-      # create term tally table for unsampled data and apply make_text_terms_pretty function
-      group_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
-                                                             cols_to_use = "group_columns")
+    # create unsampled group tally table
+    group_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                           cols_to_use = "group_columns")
+    
+    #add headers for sampled/unsampled tables if needed
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      table_start_row <- add_text_to_summary_sheets(wb, 
+                                                    sheet = summary_sheet_name,
+                                                    content_start_row = table_start_row,
+                                                    text_to_add = "sampled_table_headers")
+    }
       
-      #add headers for sampled/unsampled tables where sampling took place
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-        table_start_row <- add_text_to_summary_sheets(wb, 
-                                                      sheet = summary_sheet_name,
-                                                      content_start_row = table_start_row,
-                                                      text_to_add = "sampled_table_headers")
-      }
-      
-      # add this table to the summary sheet
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               group_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat for sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      group_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                           cols_to_use = "group_columns")
       add_summary_table_to_sheet(wb,
                                  sheet = summary_sheet_name,
-                                 group_tally_table_unsampled,
+                                 group_tally_table_sampled, 
                                  table_start_row,
-                                 table_start_col = 1,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(group_tally_table_unsampled)+3,
                                  Total_row = FALSE)
-      
-      #if the sampled and unsampled data have different lengths, then do the same for the sampled data
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-        group_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
-                                                             cols_to_use = "group_columns")
-        add_summary_table_to_sheet(wb,
-                                   sheet = summary_sheet_name,
-                                   group_tally_table_sampled, 
-                                   table_start_row,
-                                   #this is printed to the right of the unsampled dataframe
-                                   table_start_col = ncol(group_tally_table_unsampled)+3,
-                                   Total_row = FALSE)
-      }
-      
-      # increment start row to allow next table/content to be further down on page
-      table_start_row <- table_start_row + nrow(group_tally_table_unsampled) + 3
     }
     
-  # create and add the term tally tables underneath the header
-    for (term_columns in database_name) {
-      # create term tally table for unsampled data and apply make_text_terms_pretty function
-      term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
-                                                            cols_to_use = "term_columns")
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(group_tally_table_unsampled) + 3
+    
 
-      #add headers for sampled/unsampled tables where sampling took place
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-        table_start_row <- add_text_to_summary_sheets(wb, 
-                                                      sheet = summary_sheet_name,
-                                                      content_start_row = table_start_row,
-                                                      text_to_add = "sampled_table_headers")
-      }
-      
-      # add this table to the summary sheet
+    # create unsampled term tally table
+    term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                          cols_to_use = "term_columns")
+    
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               term_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                          cols_to_use = "term_columns")
       add_summary_table_to_sheet(wb,
                                  sheet = summary_sheet_name,
-                                 term_tally_table_unsampled,
+                                 term_tally_table_sampled, 
                                  table_start_row,
-                                 table_start_col = 1,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(term_tally_table_unsampled)+3,
                                  Total_row = FALSE)
-      
-      #if the sampled and unsampled data have different lengths, then do the same for the sampled data
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-        term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
-                                                            cols_to_use = "term_columns")
-        add_summary_table_to_sheet(wb,
-                                   sheet = summary_sheet_name,
-                                   term_tally_table_sampled, 
-                                   table_start_row,
-                                   #this is printed to the right of the unsampled dataframe
-                                   table_start_col = ncol(term_tally_table_unsampled)+3,
-                                   Total_row = FALSE)
-      }
-      
-      # increment start row to allow next table/content to be further down on page
-      table_start_row <- table_start_row + nrow(term_tally_table_unsampled) + 3
     }
+    
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(term_tally_table_unsampled) + 3
   }
   
     ## CREATE INCIDENT LEVEL DATA IF REQUIRED

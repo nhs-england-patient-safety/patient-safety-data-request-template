@@ -80,8 +80,6 @@ add_text_to_summary_sheets <- function(wb, sheet,
                                        content_start_row,
                                        text_to_add) {
   
-  table_start_row
-  
   if(text_to_add=="term_tally_table_heading"){
     # Explain what the group/term tally tables show
     writeData(
@@ -589,7 +587,7 @@ make_text_terms_pretty <- function(term){
     str_replace_all(pattern = "\\|", " OR ") |>
     str_replace_all(pattern = fixed('\\b'), "%" ) |>
     str_replace_all(pattern = fixed('(?i)'), "" ) |>
-    str_replace_all("_", " ") |>
-    str_replace("term", "term:") |>
-    str_replace_all("group", "Group")
+    str_replace("term_", "term: ") |>
+    str_replace_all("group_", "Group ") |>
+    str_replace_all("_", " ")
 }
