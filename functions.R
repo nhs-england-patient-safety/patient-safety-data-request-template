@@ -598,7 +598,7 @@ translate_categorical_string <- function(categorical_filter, database_name) {
 
 make_text_terms_pretty <- function(term){
   term |>
-    str_replace_all(pattern = fixed("(?:\\W|"), "~") |>
+    str_replace_all(pattern = fixed("(?:\\W|)"), "~") |>
     str_replace_all(pattern = "\\|", " OR ") |>
     str_replace_all(pattern = fixed('\\b'), "%" ) |>
     str_replace_all(pattern = fixed('(?i)'), "" ) |>
