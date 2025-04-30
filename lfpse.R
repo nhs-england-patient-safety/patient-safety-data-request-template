@@ -51,6 +51,7 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
                        by = c("Reference", "Revision")
 ) |>
   rename(occurred_date = T005) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
   mutate(P004_days = as.numeric(P004))
@@ -88,6 +89,11 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
+         # create financial year while month_reported_or_occurred is still a number
+         financial_year_reported_or_occurred = ifelse(month_reported_or_occurred>3,
+                                                      (paste0(year_reported_or_occurred, '/', year_reported_or_occurred+1)),
+                                                      paste0(year_reported_or_occurred-1,  '/', year_reported_or_occurred)
+         ),
          month_reported_or_occurred= month.abb[month_reported_or_occurred],
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date),
@@ -115,7 +121,6 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                                  OT002_min==3 ~ "Low psychological harm",
                                                  OT002_min==4 ~ "No psychological harm")
   ) |>
-  
   ### Remove columns that are not required
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
          -max_harm) |> #remove max_harm as we do not use currently
@@ -158,7 +163,7 @@ if (sum(!is.na(text_terms))>0) {
   
   lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
     filter(!!text_filter) %>%
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -358,13 +363,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))
