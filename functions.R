@@ -48,11 +48,16 @@ add_header_to_sheet <- function(wb, title,
     !summary_sheet & database_name == "LFPSE" ~ " (patient level)",
     .default = ""
   )
+  
+  # format number of sampled/unsampled incidents to have comma separation
+  number_of_rows_unsampled_formatted <- format(number_of_rows_unsampled, big.mark = ",", scientific=F)
+  number_of_rows_sampled_formatted <- format(number_of_rows_sampled, big.mark = ",", scientific=F)
+  
   # write number of incidents
   writeData(
     wb,
     sheet,
-    paste(str_glue("Number of Incidents retrieved by search strategy{incident_or_pt_level}: {number_of_rows_unsampled}")),
+    paste(str_glue("Number of Incidents retrieved by search strategy{incident_or_pt_level}: {number_of_rows_unsampled_formatted}")),
     startCol = 1,
     startRow = content_start_row
   )
@@ -60,7 +65,7 @@ add_header_to_sheet <- function(wb, title,
   writeData(
     wb,
     sheet,
-    paste(str_glue("Number of Incidents in Sample{incident_or_pt_level}: {number_of_rows_sampled}")),
+    paste(str_glue("Number of Incidents in Sample{incident_or_pt_level}: {number_of_rows_sampled_formatted}")),
     startCol = 1,
     startRow = content_start_row + 1
   )
