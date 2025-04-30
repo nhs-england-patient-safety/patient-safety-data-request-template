@@ -63,20 +63,16 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
-if (sum(!is.na(text_terms)) > 0) {
+
+if(sum(!is.na(text_terms)) > 0) {
   text_terms_pretty <- text_terms
   for (group in 1:length(text_terms)){
     for (term in 1:length(text_terms[[group]])){
-      prettier_term <- text_terms[[group]][term] |>
-        str_replace_all(pattern =  fixed("(?:\\W|)"), "~") |>
-        str_replace_all(pattern = "\\|", " OR ") |>
-        str_replace_all(pattern = fixed('\\b'), "%") |>
-        str_replace_all(pattern = fixed('(?i)'), "" ) 
-      
-      text_terms_pretty[[group]][term]<-prettier_term
+      prettier_term <- make_text_terms_pretty(text_terms[[group]][term])
+      text_terms_pretty[[group]][term] <- prettier_term
     }
   }
-} else {
+} else  {
   text_terms_pretty <- "No text filters"
 }
 
@@ -163,6 +159,14 @@ for (i in file_list) {
       summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,
                                                      variables_to_tabulate_by_list, 
                                                      database_name)
+      
+      #add headers for sampled/unsampled tables where sampling took place
+      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+        table_start_row <- add_text_to_summary_sheets(wb, 
+                                                      sheet = summary_sheet_name,
+                                                      content_start_row = table_start_row,
+                                                      text_to_add = "sampled_table_headers")
+      }
 
       #add this summary table to the sheet, and adds styling
       add_summary_table_to_sheet(wb,
@@ -195,6 +199,82 @@ for (i in file_list) {
       table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
       
     }
+  
+  # create group and text term tally tables if there are text terms in search strategy and this is set to do so in params
+  if(sum(!is.na(text_terms)) > 0 && include_term_tally_table == "yes"){
+    
+    # header for the group/term tally table
+    table_start_row <- add_text_to_summary_sheets(wb, 
+                                                  sheet = summary_sheet_name,
+                                                  content_start_row = table_start_row,
+                                                  text_to_add = "term_tally_table_heading"
+                                                  )
+    
+    # create unsampled group tally table
+    group_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                           cols_to_use = "group_columns")
+    
+    #add headers for sampled/unsampled tables if needed
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      table_start_row <- add_text_to_summary_sheets(wb, 
+                                                    sheet = summary_sheet_name,
+                                                    content_start_row = table_start_row,
+                                                    text_to_add = "sampled_table_headers")
+    }
+      
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               group_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat for sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      group_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                           cols_to_use = "group_columns")
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name,
+                                 group_tally_table_sampled, 
+                                 table_start_row,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(group_tally_table_unsampled)+3,
+                                 Total_row = FALSE)
+    }
+    
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(group_tally_table_unsampled) + 3
+    
+
+    # create unsampled term tally table
+    term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                          cols_to_use = "term_columns")
+    
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               term_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                          cols_to_use = "term_columns")
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name,
+                                 term_tally_table_sampled, 
+                                 table_start_row,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(term_tally_table_unsampled)+3,
+                                 Total_row = FALSE)
+    }
+    
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(term_tally_table_unsampled) + 3
+  }
   
     ## CREATE INCIDENT LEVEL DATA IF REQUIRED
   
@@ -252,5 +332,6 @@ tf <- tempfile(fileext = ".xlsx")
 saveWorkbook(wb, 
              file = tf,
              overwrite = T)
+
 
 source('microsoft365R.R')

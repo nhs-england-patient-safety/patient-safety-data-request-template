@@ -162,7 +162,7 @@ if (sum(!is.na(text_terms))>0) {
   
   lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
     filter(!!text_filter) %>%
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -275,13 +275,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_labelled  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))

@@ -81,8 +81,7 @@ if (sum(!is.na(text_terms)) > 0) {
   nrls_filtered_text <- nrls_filtered_text_precursor |>
     # apply text filter logic
     filter(!!text_filter) |>
-    # drop individual term columns
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -171,13 +170,13 @@ if (nrow(nrls_filtered_text) != 0) {
   #create patient level table from sampled dataframe and rename columns - this is for data tab
   nrls_for_release_sampled_pt_level<- nrls_sampled |>
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_")) |>
-    select(-`Month`, -`Year`, -`Month - Year`)
+    select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
   
   #note: below is very similar to incident level dataframe as nrls is already one row per incident
   #create patient level table from unsampled dataframe and rename columns - this is for data tab
   nrls_for_release_unsampled_pt_level<- nrls_labelled |>
     select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))|>
-    select(-`Month`, -`Year`, -`Month - Year`)
+    select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
 
   message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled_incident_level)} unsampled incidents"))
   message(glue("- Final {dataset} dataset contains {nrow(nrls_for_release_sampled_incident_level)} sampled incidents."))
