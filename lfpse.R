@@ -145,8 +145,11 @@ if (sum(!is.na(text_terms))>0) {
 
   #A002, DMD002, DMD004 may need to be removed if adding noise to a non medication-related request
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, A002, DMD002, DMD004,
-                            A021, A016_Other, A017_Other, PB093,
+    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, #A008, 
+                            A002, DMD002, DMD004,
+                            A021, PB093,
+                            A016_Other, A017_Other, PB068_Other,
+                            PB092, PB057, PB063, PB074, PB078, PB091, PB062, PB058,
                             sep=" "))
   
   groups <- names(text_terms)

@@ -95,12 +95,26 @@ rename_lookup_lfpse<-c(
   #"Largest physical or psychological harm (across all patients in incident)" = "max_harm_level",
   "Largest psychological harm (across all patients in incident)" = "max_psychological_harm_level",
   "Largest physical harm (across all patients in incident)" =  "max_physical_harm_level",
+  
+  "PB062 - Tissues/organs for transplant" = "PB062",
+  
+  "PB091 - Blood transfusion" = "PB091",
+  
   "A021 - Blood products" = "A021",
-  "A017 - Estates" = "A017",
-  "A017_Other - Estates" = "A017_Other",
-  "PB093 - IT systems" = "PB093",
-  "PB062 - Tissues" = "PB062",
-  "PB091 - Blood transfusion" = "PB091"
+  "PB092 - Blood products" = "PB092",
+
+  "PB057 - Devices" = "PB057",
+  
+  "PB063 IT" = "PB063",
+  "PB093 IT" = "PB093",
+  
+  "PB074 - BuildingsInfrastructure" = "PB074",
+  
+  "A017_Other - Estates services" = "A017_Other",
+  "PB078 - Estates services" = "PB078",
+  
+  "PB068_Other - Medications" = "PB068_Other",
+  "PB058 - Medications" = "PB058"
 )
 
 rename_lookup_steis<-c(
