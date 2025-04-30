@@ -26,12 +26,16 @@ steis_deduped <- steis |>
 steis_parsed <- steis_deduped |>
   rename(occurred_date = date_of_incident,
          reported_date = created_on) |> 
-  mutate(
-    occurred_date = as.character(dmy(occurred_date)),
-    reported_date = as.character(dmy_hms(reported_date)),
+  mutate(occurred_date = as.character(dmy(occurred_date)),
+    reported_date = dmy_hms(reported_date),
+    reported_date = as.character(floor_date(reported_date, "days")),
     year_reported_or_occurred = year(!!date_filter),
     month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
     month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
+    financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
+                                                 (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
+                                                 paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
+    ),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
     patient_age_months = ifelse(patient_age_years < 2,

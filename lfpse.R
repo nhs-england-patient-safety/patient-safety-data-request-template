@@ -51,6 +51,7 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
                        by = c("Reference", "Revision")
 ) |>
   rename(occurred_date = T005) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
   # a conversion factor from days will be needed here, but appears to be DQ issues
   # suggest we wait for resolution before converting from days to years
   mutate(P004_days = as.numeric(P004))
@@ -87,6 +88,11 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
+         # create financial year while month_reported_or_occurred is still a number
+         financial_year_reported_or_occurred = ifelse(month_reported_or_occurred>3,
+                                                      (paste0(year_reported_or_occurred, '/', year_reported_or_occurred+1)),
+                                                      paste0(year_reported_or_occurred-1,  '/', year_reported_or_occurred)
+         ),
          month_reported_or_occurred= month.abb[month_reported_or_occurred],
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date),
@@ -114,7 +120,6 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                                  OT002_min==3 ~ "Low psychological harm",
                                                  OT002_min==4 ~ "No psychological harm")
   ) |>
-  
   ### Remove columns that are not required
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
          -max_harm) |> #remove max_harm as we do not use currently

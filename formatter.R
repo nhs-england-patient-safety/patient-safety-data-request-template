@@ -63,6 +63,7 @@ date_type_text <-
 
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
+
 if(sum(!is.na(text_terms)) > 0) {
   text_terms_pretty <- text_terms
   for (group in 1:length(text_terms)){
