@@ -84,7 +84,7 @@ add_text_to_summary_sheets <- function(wb, sheet,
     # Explain what the group/term tally tables show
     writeData(
       wb, sheet,
-      paste(str_glue("The tables below present the number of incidents identified by each group and text term in the search strategy.")),
+      paste("The tables below present the number of incidents identified by each group and text term in the search strategy."),
       startCol = 1,
       startRow = content_start_row
     )
@@ -92,7 +92,7 @@ add_text_to_summary_sheets <- function(wb, sheet,
     # Add in caveat about not being able to sum the numbers of terms/groups
     writeData(
       wb, sheet,
-      paste(str_glue("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable.")),
+      paste("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable."),
       startCol = 1,
       startRow = content_start_row + 1
     )
@@ -108,7 +108,7 @@ add_text_to_summary_sheets <- function(wb, sheet,
     # Add header for unsampled tables
     writeData(
       wb, sheet,
-      paste(str_glue("Search strategy:")),
+      paste("Search strategy:"),
       startCol = 1,
       startRow = content_start_row
     )
@@ -116,7 +116,7 @@ add_text_to_summary_sheets <- function(wb, sheet,
     # Add header for sampled tables
     writeData(
       wb, sheet,
-      paste(str_glue("Sample:")),
+      paste("Sample:"),
       startCol = ncol(summary_table_unsampled) + 2,
       startRow = content_start_row
     )
