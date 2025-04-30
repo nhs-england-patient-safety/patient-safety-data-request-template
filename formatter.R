@@ -37,19 +37,17 @@ metadata <- c(
   "",
   "LFPSE categorical criteria:",
   "",
-  "Neonate or paediatric filter:",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
   "Sampling strategy:",
   "",
   "Free text filters:",
   "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "Neonate or paediatric filter:",
   ""
 )
 
@@ -100,15 +98,6 @@ metadata_answers <- c(
   "",
   expanded_categorical_filter_lfpse,
   "",
-  is_neopaed,
-  "",
-  "Neonate and paediatric search uses the following definitions:",
-  str_glue("Neonatal text terms: {make_text_terms_pretty(neonatal_terms)}"),
-  str_glue("Paediatric text terms: {make_text_terms_pretty(paediatric_terms)}"),
-  str_glue("Neonatal specialty terms (used to identify neonates by speciality in LFPSE): {make_text_terms_pretty(neonatal_specialty_terms)}"),
-  str_glue("Paediatric specialty terms (used to identify paediatric incidents by speciality in LFPSE):: {make_text_terms_pretty(paediatric_specialty_terms)}"),
-  str_glue("Adult specialty terms (used to exclude incidents with an adult specialty for neonate and paediatric incidents by text in LFPSE): {make_text_terms_pretty(adult_specialty_terms)}"),
-  "",
   deparse(sampling_strategy),
   "",
   "Free text search based the following terms (case insensitive):",
@@ -117,15 +106,50 @@ metadata_answers <- c(
   "",
   "Notes:",
   "'%' represents a boundary",
-  "'~' represents an optional space that can be filled by any character")
+  "'~' represents an optional space that can be filled by any character",
+  "",
+  is_neopaed)
 
-addStyle(wb, "Search strategy", textStyle, rows = 2:30, cols = 2)
-addStyle(wb, "Search strategy", textStyle, rows = 27, cols = 5)
-addStyle(wb, "Search strategy", textStyle, rows = 31, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
 addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
 
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
+
+
+
+
+if (is_neopaed!="none"){
+
+
+  neopaed_logic<-
+    c(
+    "Neonate logic:",
+    str_glue("Neonate by age (NRLS): Age is between 0 and 28 days"),
+    str_glue("Neonate by specialty (NRLS): Specialty is Neonatology"),
+    str_glue("Neonate by text (NRLS): Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
+    str_glue("Neonate by age (LFPSE): Age (or age category) is between 0 and 28 days"),
+    str_glue("Neonate by specialty (LFPSE): Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
+    str_glue("Neonate by text (LFPSE):  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
+    "Paediatric logic:",
+    str_glue("Paediatric by age (NRLS): Age is between 28 days and 18 years"),
+    str_glue("Paediatric by specialty (NRLS): Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
+    str_glue("Paediatric by text (NRLS): PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
+    str_glue("Paediatric by age (LFPSE): Age (or age category) is  between 28 days and 18 years"),
+    str_glue("Paediatric by specialty (LFPSE): Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
+    str_glue("Paediatric by text (LFPSE):  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
+)
+  writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
+  writeData(wb, "Search strategy", neopaed_logic, startRow = 28, startCol = 5)
+
+  addStyle(wb, "Search strategy", textStyle, rows = 28, cols = 5)
+  addStyle(wb, "Search strategy", textStyle, rows = 35, cols = 5)
+}
+
+
+
+
 
 # Add worksheets ----------------------------------------------------------
 
@@ -333,6 +357,9 @@ for (i in file_list) {
   
 }
 
+
+
+
 # set date formats
 
 options(openxlsx.datetimeFormat = "dd-mmm-yyyy")
@@ -352,5 +379,4 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-saveWorkbook(wb, file="data/300425.xlsx", overwrite = T)
-#source('microsoft365R.R')
+source('microsoft365R.R')
