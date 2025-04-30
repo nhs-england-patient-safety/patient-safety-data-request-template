@@ -39,6 +39,13 @@ metadata <- c(
   "",
   "Neonate or paediatric filter:",
   "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
   "Sampling strategy:",
   "",
   "Free text filters:",
@@ -95,6 +102,13 @@ metadata_answers <- c(
   "",
   is_neopaed,
   "",
+  "Neonate and paediatric search uses the following definitions:",
+  str_glue("Neonatal text terms: {make_text_terms_pretty(neonatal_terms)}"),
+  str_glue("Paediatric text terms: {make_text_terms_pretty(paediatric_terms)}"),
+  str_glue("Neonatal specialty terms (used to identify neonates by speciality in LFPSE): {make_text_terms_pretty(neonatal_specialty_terms)}"),
+  str_glue("Paediatric specialty terms (used to identify paediatric incidents by speciality in LFPSE):: {make_text_terms_pretty(paediatric_specialty_terms)}"),
+  str_glue("Adult specialty terms (used to exclude incidents with an adult specialty for neonate and paediatric incidents by text in LFPSE): {make_text_terms_pretty(adult_specialty_terms)}"),
+  "",
   deparse(sampling_strategy),
   "",
   "Free text search based the following terms (case insensitive):",
@@ -106,8 +120,9 @@ metadata_answers <- c(
   "'~' represents an optional space that can be filled by any character")
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:30, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 27, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 31, cols = 5)
 addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
-addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
 
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
@@ -337,5 +352,5 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-
-source('microsoft365R.R')
+saveWorkbook(wb, file="data/300425.xlsx", overwrite = T)
+#source('microsoft365R.R')
