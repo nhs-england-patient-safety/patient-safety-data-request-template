@@ -225,7 +225,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
       neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T) | is.na(L006), # we want this to be TRUE if L006 is NA
+      missing_specialty = is.na(L006),
+      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T), 
       paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
       paediatric_term_flag = str_detect(concat_col, paediatric_terms),
       neonate_category = case_when(
@@ -234,7 +235,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Neonate by specialty: age is 0 or NA and specialty indicates neonate
         neonate_specialty_flag ~ "neonate_by_specialty",
         # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
-        (neonate_terms_flag & no_adult_specialty_flag) ~ "neonate_by_text",
+        (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
         # Default: not neonate-related
         .default = "not neonate related"
       ),
@@ -244,7 +245,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
         paediatric_specialty_flag ~ "paediatric_by_specialty",
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-        (paediatric_term_flag & no_adult_specialty_flag) ~ "paediatric_by_text",
+        (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
         # Default: not paediatrics-related
         .default = "not paediatric related"
       )
