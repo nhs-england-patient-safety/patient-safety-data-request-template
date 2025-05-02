@@ -110,9 +110,11 @@ rename_lookup_lfpse<-c(
   
   "PB074 - BuildingsInfrastructure" = "PB074",
   
+  "A017 - Estates services" = "A017",
   "A017_Other - Estates services" = "A017_Other",
   "PB078 - Estates services" = "PB078",
   
+  "PB068 - Medications" = "PB068",
   "PB068_Other - Medications" = "PB068_Other",
   "PB058 - Medications" = "PB058"
 )
