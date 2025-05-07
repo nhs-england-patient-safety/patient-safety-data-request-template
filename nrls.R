@@ -164,7 +164,7 @@ if (nrow(nrls_filtered_text) != 0) {
       filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text"))
     
   } else if (is_neopaed == "either") {
-    print("- Running paediatric strategy...")
+    print("- Running either strategy...")
     
     nrls_neopaed <- nrls_age_categorised %>%
       filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text")|
