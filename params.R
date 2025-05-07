@@ -69,6 +69,9 @@ text_filter <- expr((group_A | group_B) & group_C)
 # neopaed logic (neonate/paed/either/none)
 is_neopaed <- "neonate"
 
+# do you want to include term/group tally tables in the summary sheets? "yes" or "no"
+include_term_tally_table <- "yes"
+
 # is incident level data required? "yes" or "no"
 incident_level_required<- "yes"
 

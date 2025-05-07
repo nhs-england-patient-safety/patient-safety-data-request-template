@@ -58,11 +58,16 @@ add_header_to_sheet <- function(wb, title,
     !summary_sheet & database_name == "LFPSE" ~ " (patient level)",
     .default = ""
   )
+  
+  # format number of sampled/unsampled incidents to have comma separation
+  number_of_rows_unsampled_formatted <- format(number_of_rows_unsampled, big.mark = ",", scientific=F)
+  number_of_rows_sampled_formatted <- format(number_of_rows_sampled, big.mark = ",", scientific=F)
+  
   # write number of incidents
   writeData(
     wb,
     sheet,
-    paste(str_glue("Number of Incidents retrieved by search strategy{incident_or_pt_level}: {number_of_rows_unsampled}")),
+    paste(str_glue("Number of Incidents retrieved by search strategy{incident_or_pt_level}: {number_of_rows_unsampled_formatted}")),
     startCol = 1,
     startRow = content_start_row
   )
@@ -70,7 +75,7 @@ add_header_to_sheet <- function(wb, title,
   writeData(
     wb,
     sheet,
-    paste(str_glue("Number of Incidents in Sample{incident_or_pt_level}: {number_of_rows_sampled}")),
+    paste(str_glue("Number of Incidents in Sample{incident_or_pt_level}: {number_of_rows_sampled_formatted}")),
     startCol = 1,
     startRow = content_start_row + 1
   )
@@ -81,6 +86,63 @@ add_header_to_sheet <- function(wb, title,
   # Add text style
   addStyle(wb, sheet = sheet, textStyle, rows = 1:(table_start_row - 1), cols = 1)
 
+  return(table_start_row)
+}
+
+
+# this function adds a note prior to the term tally table in the summary sheets
+add_text_to_summary_sheets <- function(wb, sheet,
+                                       content_start_row,
+                                       text_to_add) {
+  
+  if(text_to_add=="term_tally_table_heading"){
+    # Explain what the group/term tally tables show
+    writeData(
+      wb, sheet,
+      paste("The tables below present the number of incidents identified by each group and text term in the search strategy."),
+      startCol = 1,
+      startRow = content_start_row
+    )
+    
+    # Add in caveat about not being able to sum the numbers of terms/groups
+    writeData(
+      wb, sheet,
+      paste("Note: A single incident can be identified by multiple groups and text terms, so the number of incidents identified by different terms/groups are not summable."),
+      startCol = 1,
+      startRow = content_start_row + 1
+    )
+    
+    # set start row for next content
+    table_start_row <- content_start_row + 3
+    
+    # Add text style
+    addStyle(wb, sheet = sheet, textStyle, rows = content_start_row:(content_start_row + 1), cols = 1)
+  }
+  
+  if(text_to_add=="sampled_table_headers"){
+    # Add header for unsampled tables
+    writeData(
+      wb, sheet,
+      paste("Search strategy:"),
+      startCol = 1,
+      startRow = content_start_row
+    )
+    
+    # Add header for sampled tables
+    writeData(
+      wb, sheet,
+      paste("Sample:"),
+      startCol = ncol(summary_table_unsampled) + 2,
+      startRow = content_start_row
+    )
+    
+    # set the start row for tables
+    table_start_row <- content_start_row + 2
+    
+    # Add text style
+    addStyle(wb, sheet = sheet, textStyle, rows = content_start_row, cols = 1:(ncol(summary_table_unsampled) + 2))
+  }
+  
   return(table_start_row)
 }
 
@@ -161,6 +223,36 @@ create_summary_table <- function(df_to_create_summary_table,
   return(summary_table)
 }
 
+# function to create term tally table
+create_term_tally_table <- function(df_to_create_term_tally,
+                                    cols_to_use = c("term_columns")) {
+  
+  # calculate the number of incidences identified by each search term
+  if(cols_to_use=="term_columns") {
+    # sum the number of True values in each term column
+    summary_table <- df_to_create_term_tally |>
+      select(matches("term")) |>
+      summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
+      pivot_longer(cols = everything(), names_to = "Search term", values_to = "n")
+    # style the format of the search term column in the table
+    summary_table$`Search term` <- sapply(summary_table$`Search term`, make_text_terms_pretty)
+  }
+
+  # calculate the number of incidences identified by each search group
+  if(cols_to_use=="group_columns") {
+    # sum the number of True values in each group column
+    summary_table <- df_to_create_term_tally |>
+      select(matches("group_\\D{1}\\b")) |>
+      summarise(across(everything(), ~sum(. == TRUE, na.rm = TRUE))) |>
+      pivot_longer(cols = everything(), names_to = "Group", values_to = "n")
+    # style the format of the group column in the table
+    summary_table$Group <- sapply(summary_table$Group, make_text_terms_pretty)
+  }
+
+  return(summary_table)
+}
+
+
 # function to convert month and level of harm columns to factors (depending on database)
 convert_columns_to_factors <- function(df_without_factors, database_name) {
   # convert month and harm level to ordered factors
@@ -234,14 +326,21 @@ add_summary_table_to_sheet <- function(wb,
                                        sheet,
                                        summary_table,
                                        table_start_row,
-                                       table_start_col) {
+                                       table_start_col,
+                                       Total_row = TRUE) {
   # add summary table to sheet
   writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
 
   setColWidths(wb,
     sheet = sheet,
-    cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
-    widths = 20
+    cols = table_start_col,
+    widths = 30
+  )
+  
+  setColWidths(wb,
+    sheet = sheet,
+    cols = (table_start_col + 1):(table_start_col + ncol(summary_table) - 1),
+    widths = 15
   )
 
   # style table - header
@@ -258,7 +357,7 @@ add_summary_table_to_sheet <- function(wb,
     wb,
     sheet = sheet,
     rowTitleStyle,
-    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
     cols = table_start_col
   )
 
@@ -267,21 +366,24 @@ add_summary_table_to_sheet <- function(wb,
     wb,
     sheet = sheet,
     bodyStyleNoBorder,
-    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row - 1),
+    rows = (table_start_row + 1):(nrow(summary_table) + table_start_row),
     cols = (table_start_col + 1):(table_start_col + ncol(summary_table) - 1),
     gridExpand = T
   )
 
-  # style table- header and footer
-  addStyle(
-    wb,
-    sheet = sheet,
-    summaryTableTopBottomStyle,
-    rows = nrow(summary_table) + table_start_row,
-    cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
-    gridExpand = T
-  )
+  # style table- footer with border when there is a total row
+  if(Total_row == T){
+    addStyle(
+        wb,
+        sheet = sheet,
+        summaryTableTopBottomStyle,
+        rows = nrow(summary_table) + table_start_row,
+        cols = table_start_col:(table_start_col + ncol(summary_table) - 1),
+        gridExpand = T
+      ) 
+  }
 }
+
 
 # this function adds a data table to a sheet and styles it
 add_data_table_to_sheet <- function(wb,
@@ -490,4 +592,17 @@ translate_categorical_string <- function(categorical_filter, database_name) {
   }
 
   return(translated_filters)
+}
+
+
+
+make_text_terms_pretty <- function(term){
+  term |>
+    str_replace_all(pattern = fixed("(?:\\W|)"), "~") |>
+    str_replace_all(pattern = "\\|", " OR ") |>
+    str_replace_all(pattern = fixed('\\b'), "%" ) |>
+    str_replace_all(pattern = fixed('(?i)'), "" ) |>
+    str_replace_all("term_", "term: ") |>
+    str_replace_all("group_", "Group ") |>
+    str_replace_all("_", " ")
 }

@@ -40,6 +40,10 @@ nrls_filtered_categorical <- nrls_parsed |>
   mutate(year_reported_or_occurred = year(!!date_filter),
          month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
          month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
+         financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
+                                                      (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
+                                                      paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
+         ),
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date))
 
@@ -77,8 +81,7 @@ if (sum(!is.na(text_terms)) > 0) {
   nrls_filtered_text <- nrls_filtered_text_precursor |>
     # apply text filter logic
     filter(!!text_filter) |>
-    # drop individual term columns
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(nrls_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -221,11 +224,11 @@ if (nrow(nrls_filtered_text) != 0) {
       message("- Skipping sampling...")
       nrls_sampled <- nrls_neopaed
     }
-  
+    
     #create incident level table from unsampled dataframe and rename columns - this is for summary tab
     nrls_for_release_unsampled_incident_level <- nrls_neopaed  |>
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
-  
+
     #create incident level table from sampled dataframe and rename columns - this is for summary tab
     nrls_for_release_sampled_incident_level <- nrls_sampled  |>
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))

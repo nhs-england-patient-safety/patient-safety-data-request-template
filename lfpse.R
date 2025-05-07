@@ -89,6 +89,11 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
+         # create financial year while month_reported_or_occurred is still a number
+         financial_year_reported_or_occurred = ifelse(month_reported_or_occurred>3,
+                                                      (paste0(year_reported_or_occurred, '/', year_reported_or_occurred+1)),
+                                                      paste0(year_reported_or_occurred-1,  '/', year_reported_or_occurred)
+         ),
          month_reported_or_occurred= month.abb[month_reported_or_occurred],
          reported_date = as.character(reported_date),
          occurred_date = as.character(occurred_date),
@@ -158,7 +163,7 @@ if (sum(!is.na(text_terms))>0) {
   
   lfpse_filtered_text <- lfpse_filtered_text_precursor %>%
     filter(!!text_filter) %>%
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -225,7 +230,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
       neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T) | is.na(L006), # we want this to be TRUE if L006 is NA
+      missing_specialty = is.na(L006),
+      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T), 
       paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
       paediatric_term_flag = str_detect(concat_col, paediatric_terms),
       neonate_category = case_when(
@@ -234,7 +240,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Neonate by specialty: age is 0 or NA and specialty indicates neonate
         neonate_specialty_flag ~ "neonate_by_specialty",
         # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
-        (neonate_terms_flag & no_adult_specialty_flag) ~ "neonate_by_text",
+        (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
         # Default: not neonate-related
         .default = "not neonate related"
       ),
@@ -244,7 +250,7 @@ if (nrow(lfpse_filtered_text) != 0) {
         # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
         paediatric_specialty_flag ~ "paediatric_by_specialty",
         # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-        (paediatric_term_flag & no_adult_specialty_flag) ~ "paediatric_by_text",
+        (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
         # Default: not paediatrics-related
         .default = "not paediatric related"
       )
@@ -357,13 +363,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
       #rename columns using lookup
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))

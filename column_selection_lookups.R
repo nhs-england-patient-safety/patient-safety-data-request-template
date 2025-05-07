@@ -13,6 +13,7 @@ rename_lookup_nrls<- c(
   `Month` = "month_reported_or_occurred",
   `Year` = "year_reported_or_occurred",
   `Month - Year` = "month_year_reported_or_occurred",
+  `Financial Year` = "financial_year_reported_or_occurred",
   `IN03 Location (lvl1)` = "IN03_LVL1",
   `IN03 Location (lvl2)` = "IN03_LVL2",
   `IN03 Location (lvl3)` = "IN03_LVL3",
@@ -59,6 +60,7 @@ rename_lookup_lfpse<-c(
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
   `Month - Year` = "month_year_reported_or_occurred",#required
+  `Financial Year` = "financial_year_reported_or_occurred",
   "Number of patients" = "npatient",
   "Patient no." = "EntityId",#required
   # TODO: check whether these are needed
@@ -112,6 +114,7 @@ rename_lookup_steis<-c(
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
   `Month - Year` = "month_year_reported_or_occurred",#required
+  `Financial Year` = "financial_year_reported_or_occurred",
   `Time of Incident:` = "time_of_incident",
   `Site of Incident:` = "site_of_incident",
   `Location of Incident:` = "location_of_incident",
