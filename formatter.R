@@ -113,12 +113,12 @@ metadata_answers <- c(
 addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
 addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
 addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
-
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 
 neopaed_logic<-c()
+or_vector<-c()
 
 if (is_neopaed != "none"){
   writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
@@ -131,18 +131,32 @@ if (is_neopaed %in% c("either","neonate")){
     c(neopaed_logic,
       "Neonate logic:",
       "NRLS:",
-      str_glue("Neonate by age (NRLS): Age is between 0 and 28 days"),
-      str_glue("Neonate by specialty (NRLS): Specialty is Neonatology"),
-      str_glue("Neonate by text (NRLS): Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      str_glue("Neonate by age: Age is between 0 and 28 days"),
+      str_glue("Neonate by specialty: Specialty is Neonatology"),
+      str_glue("Neonate by text: Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
       "",
       "LFPSE:",
-      str_glue("Neonate by age (LFPSE): Age (or age category) is between 0 and 28 days"),
-      str_glue("Neonate by specialty (LFPSE): Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
-      str_glue("Neonate by text (LFPSE):  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      str_glue("Neonate by age: Age (or age category) is between 0 and 28 days"),
+      str_glue("Neonate by specialty: Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
+      str_glue("Neonate by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
       "",
       ""
       )
   
+  or_vector<- 
+    c(or_vector,
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "")
   
 }
 
@@ -151,24 +165,39 @@ if (is_neopaed %in% c("either","paed")){
     c(neopaed_logic,   
       "Paediatric logic:",
       "NRLS:",
-      str_glue("Paediatric by age (NRLS): Age is between 28 days and 18 years"),
-      str_glue("Paediatric by specialty (NRLS): Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
-      str_glue("Paediatric by text (NRLS): PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
+      str_glue("Paediatric by age: Age is between 28 days and 18 years"),
+      str_glue("Paediatric by specialty: Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
+      str_glue("Paediatric by text: PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
       "",
       "LFPSE:",
-      str_glue("Paediatric by age (LFPSE): Age (or age category) is  between 28 days and 18 years"),
-      str_glue("Paediatric by specialty (LFPSE): Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
-      str_glue("Paediatric by text (LFPSE):  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
+      str_glue("Paediatric by age: Age (or age category) is  between 28 days and 18 years"),
+      str_glue("Paediatric by specialty: Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
+      str_glue("Paediatric by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
 )
 
+  
+  or_vector<- 
+    c(or_vector,
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "",
+      "",
+      "OR",
+      "OR")
   
 }
 
 
 writeData(wb, "Search strategy", neopaed_logic, startRow = 28, startCol = 5)
+writeData(wb, "Search strategy", or_vector, startRow = 28, startCol = 4)
+
 addStyle(wb, "Search strategy", textStyle, rows = 28, cols = 5)
 addStyle(wb, "Search strategy", textStyle, rows = 40, cols = 5)
-
+addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4)
 
 
 
