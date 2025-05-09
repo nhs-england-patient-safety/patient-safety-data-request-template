@@ -1,4 +1,14 @@
-# function to find the minimum number in a vector, and return NA if all values are NA
+
+#not a function- but this creates the object "date_filter" from date_type
+date_filter <- if (date_type == 'occurring') {
+  expr(occurred_date)
+} else if (date_type == 'reported') {
+  expr(reported_date)
+}
+
+
+#function to find the minimum number in a vector, and return NA if all values are NA
+
 # This is required to find the minimum physical or psychological harm level
 min_safe <- function(vec) {
   ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec, na.rm = TRUE))
@@ -588,11 +598,11 @@ translate_categorical_string <- function(categorical_filter, database_name) {
 
 make_text_terms_pretty <- function(term){
   term |>
-    str_replace_all(pattern = fixed("(?:\\W|"), "~") |>
+    str_replace_all(pattern = fixed("(?:\\W|)"), "~") |>
     str_replace_all(pattern = "\\|", " OR ") |>
     str_replace_all(pattern = fixed('\\b'), "%" ) |>
     str_replace_all(pattern = fixed('(?i)'), "" ) |>
-    str_replace("term_", "term: ") |>
+    str_replace_all("term_", "term: ") |>
     str_replace_all("group_", "Group ") |>
     str_replace_all("_", " ")
 }

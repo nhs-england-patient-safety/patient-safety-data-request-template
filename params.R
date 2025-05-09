@@ -11,17 +11,23 @@ search_nrls <- T
 search_lfpse <- T
 search_steis <- T
 
-# connect to (relevant) data bases and bring corresponding look ups 
-source("connections.R")
-source("functions.R")
-source("column_selection_lookups.R")
-source("styles.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-01-01"
-end_date <- "2024-03-30"
+start_date <- "2023-01-01"
+end_date <- "2024-12-31"
 
 date_type <- "occurring"
+
+
+# connect to (relevant) data bases and bring corresponding look ups 
+source("connections.R")
+
+#source helper files
+source("functions.R") 
+source("column_selection_lookups.R") # contains column names to be extracted
+source("styles.R") #contains styles used by openxlsx
+source("neopaeds.R") #contains search terms used to categorise incidents as neonate/paediatric
+
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -57,7 +63,11 @@ text_terms <- list(
 text_filter <- expr((group_A | group_B) & group_C)
 
 #text_terms<- list()
-#text_filter<- expr(0)
+#text_filter<- expr(1 == 1)
+
+
+# neopaed logic (neonate/paed/either/none)
+is_neopaed <- "none"
 
 # do you want to include term/group tally tables in the summary sheets? "yes" or "no"
 include_term_tally_table <- "yes"
@@ -95,4 +105,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 # TODO: custom
 sampling_strategy <- "default"
 
+
+#start flow
 source("flow.R")
+
