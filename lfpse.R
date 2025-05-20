@@ -88,6 +88,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   ### Generate additional columns (without grouping)
   mutate(year_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 1, 4)),
          month_reported_or_occurred = as.numeric(substr(as.character(!!date_filter), 6, 7)),
+         #zoo package is used to create a year-month object because this will sort in the correct order when tabulated
          month_year_reported_or_occurred = zoo::as.yearmon(str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")),
          # create financial year while month_reported_or_occurred is still a number
          financial_year_reported_or_occurred = ifelse(month_reported_or_occurred>3,

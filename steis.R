@@ -31,6 +31,7 @@ steis_parsed <- steis_deduped |>
     reported_date = as.character(floor_date(reported_date, "days")),
     year_reported_or_occurred = year(!!date_filter),
     month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
+    #zoo package is used to create a year-month object because this will sort in the correct order when tabulated
     month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
     financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
                                                  (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),

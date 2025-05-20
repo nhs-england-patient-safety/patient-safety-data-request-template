@@ -5,6 +5,7 @@ library(here)
 library(openxlsx)
 library(glue)
 library(Microsoft365R)
+library(zoo)
 
 # datasets to be searched (T/F)
 search_nrls <- T
