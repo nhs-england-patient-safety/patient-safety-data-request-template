@@ -537,6 +537,9 @@ translate_individual_filter <- function(individual_filter, database_name) {
       # if brackets not around column name- replace column name
       str_replace(str_glue("{column}"), column_new) |>
       str_replace(value, value_new)
+  }else{
+    message(str_glue("{individual_filter} could not be translated"))
+    translated_filter<- individual_filter
   }
 
   return(translated_filter)
