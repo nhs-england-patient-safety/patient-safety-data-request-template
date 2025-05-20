@@ -45,13 +45,6 @@ lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
 steis_filename <- 'SUI_2_87360.csv'
 
-expanded_categorical_filter_lfpse<-translate_categorical_string(lfpse_categorical, "lfpse")
-expanded_categorical_filter_nrls<-translate_categorical_string(nrls_categorical, "nrls")
-expanded_categorical_filter_steis<-translate_categorical_string(steis_categorical, "steis")
-message(str_glue("LFPSE filter is: \n{expanded_categorical_filter_lfpse}"))
-message(str_glue("NRLS filter is: \n{expanded_categorical_filter_nrls}"))
-message(str_glue("StEIS filter is: \n{expanded_categorical_filter_steis}"))
-
 # text terms
 #example below- not real example
 text_terms <- list(
@@ -106,6 +99,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 sampling_strategy <- "default"
 
 
+source("expand_categorical_filters.R")
 #start flow
 source("flow.R")
 
