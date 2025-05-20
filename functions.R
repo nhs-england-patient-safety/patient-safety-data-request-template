@@ -543,13 +543,21 @@ translate_individual_filter <- function(individual_filter, database_name) {
 }
 
 
-# function to translate a categorical filter (as an expression object) into a mure human readable string given a database name
+# function to translate a categorical filter (as an expression object) into a more human readable string given a database name
 translate_categorical_string <- function(categorical_filter, database_name) {
+  if (!get(str_glue("search_{database_name}"))){
+    message(str_glue("{database_name} is not being searched for this query."))
+    if (categorical_filter!= 0){
+      warning(str_glue("{database_name} is not being searched for this query but a filter has been provided. This will not be used."))
+    }
+    return("Database not searched")
+  }
+  
   if (categorical_filter == 0) {
-    message(str_glue("No {database_name} filter"))
+    message(str_glue("No {database_name} filter was provided."))
     return("No categorical filter")
   }
-
+  
   # turn the categorical filter into a string
   categorical_filter_string <- deparse(categorical_filter, width.cutoff = 500)
 
@@ -590,7 +598,7 @@ translate_categorical_string <- function(categorical_filter, database_name) {
     # add the translated filter and AND or OR to the translated_filters string
     translated_filters <- str_c(translated_filters, individual_filter_translated, break_between_filters)
   }
-
+  message(str_glue("{database_name} filter is: \n {translated_filters}"))
   return(translated_filters)
 }
 
