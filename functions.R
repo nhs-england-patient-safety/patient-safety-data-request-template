@@ -169,7 +169,7 @@ create_summary_table <- function(df_to_create_summary_table,
 
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
-      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
       convert_columns_to_factors(database_name) |>
       # use count to tabulate
       tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
@@ -202,8 +202,8 @@ create_summary_table <- function(df_to_create_summary_table,
 
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
-      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = " {~@~} ") |>
-      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name, sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name, sep = "; ") |>
       convert_columns_to_factors(database_name) |>
       # use count to get a table
       tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
