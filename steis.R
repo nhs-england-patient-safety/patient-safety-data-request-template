@@ -26,12 +26,17 @@ steis_deduped <- steis |>
 steis_parsed <- steis_deduped |>
   rename(occurred_date = date_of_incident,
          reported_date = created_on) |> 
-  mutate(
-    occurred_date = as.character(dmy(occurred_date)),
-    reported_date = as.character(dmy_hms(reported_date)),
+  mutate(occurred_date = as.character(dmy(occurred_date)),
+    reported_date = dmy_hms(reported_date),
+    reported_date = as.character(floor_date(reported_date, "days")),
     year_reported_or_occurred = year(!!date_filter),
     month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
+    #zoo package is used to create a year-month object because this will sort in the correct order when tabulated
     month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
+    financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
+                                                 (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
+                                                 paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
+    ),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
     patient_age_months = ifelse(patient_age_years < 2,
@@ -80,8 +85,7 @@ if (sum(!is.na(text_terms))>0) {
   steis_filtered_text <- steis_filtered_text_precursor %>%
     # apply text filter logic
     filter(!!text_filter) %>%
-    # drop individual term columns
-    select(!c(contains("_term_"), concat_col))
+    select(-concat_col)
   
   message(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
 } else {
@@ -109,12 +113,12 @@ if(nrow(steis_filtered_text) != 0){
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_unsampled_pt_level<- steis_for_release|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_sampled_pt_level <- steis_for_release|>
-      select(-`Month`, -`Year`, -`Month - Year`)
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
    
   }

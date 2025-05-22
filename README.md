@@ -32,6 +32,8 @@ Template for extracting data from the national patient safety systems in England
 
 -   `styles.R` - this file is where the styles used by openxlsx are created.
 
+-   `neopaeds.R` - stores text strings to use for neopaeds search.
+
 ## Process in each database file
 
 Each file follows a very similar process. They will all create these objects in the following order (where x is the name of the database.
@@ -44,15 +46,19 @@ Each file follows a very similar process. They will all create these objects in 
 
 4.  `x_labelled` - `x_filtered_text` object with the categorical variables labelled - e.g. in the form "medications", "devices" rather than 3 or 4.
 
-5.  `x_sampled` - `x_labelled` object with sampling strategy applied (or no sampling if no sampling strategy is required)
+5.  `x_age_classified` - `x_labelled` object with columns added indicating whether the incident is neonate or paediatric or neither. (note- lfpse has an extra step before this, where age validation is carried out)
 
-6.  `x_for_release_sampled_pt_level` - `x_sampled` object with columns renamed to more human readable column names. The patient level data is required for data tabs.
+6.  `x_neopaed` - `x_age_classified` object with a filter applied for the desired neopaed strategy- neonate , paediatric or none.
 
-7.  `x_for_release_unsampled_pt_level` - `x_labelled` object with columns renamed to more human readable column names. This patient level is required for data tabs.
+7.  `x_sampled` - `x_neopaed` object with sampling strategy applied (or no sampling if no sampling strategy is required)
 
-8.  `x_for_release_sampled_incident_level` - `x_sampled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
+8.  `x_for_release_sampled_pt_level` - `x_sampled` object with columns renamed to more human readable column names. The patient level data is required for data tabs.
 
-9.  `x_for_release_unsampled_incident_level` - `x_labelled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
+9.  `x_for_release_unsampled_pt_level` - `x_labelled` object with columns renamed to more human readable column names. This patient level is required for data tabs.
+
+10. `x_for_release_sampled_incident_level` - `x_sampled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
+
+11. `x_for_release_unsampled_incident_level` - `x_labelled` object with columns renamed to more human readable column names. For LFPSE, this is converted from patient level to incident level data, by removing patient level columns and calling `distinct()`. This incident level data is required for summary tabs.
 
 Note- for NRLS and StEIS, the patient level is identical to the incident level (apart from the month, month-year and year columns)
 

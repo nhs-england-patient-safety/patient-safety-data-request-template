@@ -13,6 +13,7 @@ rename_lookup_nrls<- c(
   `Month` = "month_reported_or_occurred",
   `Year` = "year_reported_or_occurred",
   `Month - Year` = "month_year_reported_or_occurred",
+  `Financial Year` = "financial_year_reported_or_occurred",
   `IN03 Location (lvl1)` = "IN03_LVL1",
   `IN03 Location (lvl2)` = "IN03_LVL2",
   `IN03 Location (lvl3)` = "IN03_LVL3",
@@ -43,7 +44,10 @@ rename_lookup_nrls<- c(
   `MD31 Proprietary Name (Drug 2)` = "MD31", #required for text search
   `DE01 Type of Device` = "DE01",
   `DE01 Type of device - free text` = "DE01_TEXT",
-  `DE03 Device name`="DE03")
+  `DE03 Device name`="DE03",
+  `Neonate Categorisation` = "neonate_category",
+  `Paediatric Categorisation` = "paediatric_category"
+  )
 
 rename_lookup_lfpse<-c(
   Reference = "Reference", #required
@@ -56,12 +60,13 @@ rename_lookup_lfpse<-c(
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
   `Month - Year` = "month_year_reported_or_occurred",#required
+  `Financial Year` = "financial_year_reported_or_occurred",
   "Number of patients" = "npatient",
   "Patient no." = "EntityId",#required
   # TODO: check whether these are needed
   # "T005 - Event year" = "year(T005)",
   # "T005 - Event moth" = "month(T005)",
-  "P004 - Age in days" = "P004_days", 
+  "P004 - Age in days" = "P004_days_validated", 
   "P007 - Age Range" = "P007",
   "L003 - Service Area" = "L003",
   "L004 - Location Within Service" = "L004",
@@ -92,7 +97,9 @@ rename_lookup_lfpse<-c(
   "A016_Other - BuildingsInfrastructure (other)" = "A016_Other",
   #"Largest physical or psychological harm (across all patients in incident)" = "max_harm_level",
   "Largest psychological harm (across all patients in incident)" = "max_psychological_harm_level",
-  "Largest physical harm (across all patients in incident)" =  "max_physical_harm_level"
+  "Largest physical harm (across all patients in incident)" =  "max_physical_harm_level",
+  `Neonate Categorisation` = "neonate_category",
+  `Paediatric Categorisation` = "paediatric_category"
 )
 
 rename_lookup_steis<-c(
@@ -107,6 +114,7 @@ rename_lookup_steis<-c(
   `Month` = "month_reported_or_occurred",#required
   `Year` = "year_reported_or_occurred",#required
   `Month - Year` = "month_year_reported_or_occurred",#required
+  `Financial Year` = "financial_year_reported_or_occurred",
   `Time of Incident:` = "time_of_incident",
   `Site of Incident:` = "site_of_incident",
   `Location of Incident:` = "location_of_incident",

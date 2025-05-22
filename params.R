@@ -5,6 +5,7 @@ library(here)
 library(openxlsx)
 library(glue)
 library(Microsoft365R)
+library(zoo)
 
 # write output (T/F)
 write_to_sp <- T
@@ -14,17 +15,24 @@ search_nrls <- T
 search_lfpse <- T
 search_steis <- T
 
-# connect to (relevant) data bases and bring corresponding look ups 
-source("connections.R")
-source("functions.R")
-source("column_selection_lookups.R")
-source("styles.R")
 
 # date filter (type is occurring/reported)
-start_date <- "2024-03-01"
-end_date <- "2024-03-30"
+
+start_date <- "2023-01-01"
+end_date <- "2024-12-31"
 
 date_type <- "occurring"
+
+
+# connect to (relevant) data bases and bring corresponding look ups 
+source("connections.R")
+
+#source helper files
+source("functions.R") 
+source("column_selection_lookups.R") # contains column names to be extracted
+source("styles.R") #contains styles used by openxlsx
+source("neopaeds.R") #contains search terms used to categorise incidents as neonate/paediatric
+
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -42,13 +50,6 @@ lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
 steis_filename <- 'SUI_2_87360.csv'
 
-expanded_categorical_filter_lfpse<-translate_categorical_string(lfpse_categorical, "lfpse")
-expanded_categorical_filter_nrls<-translate_categorical_string(nrls_categorical, "nrls")
-expanded_categorical_filter_steis<-translate_categorical_string(steis_categorical, "steis")
-message(str_glue("LFPSE filter is: \n{expanded_categorical_filter_lfpse}"))
-message(str_glue("NRLS filter is: \n{expanded_categorical_filter_nrls}"))
-message(str_glue("StEIS filter is: \n{expanded_categorical_filter_steis}"))
-
 # text terms
 #example below- not real example
 text_terms <- list(
@@ -60,7 +61,14 @@ text_terms <- list(
 text_filter <- expr((group_A | group_B) & group_C)
 
 #text_terms<- list()
-#text_filter<- expr(0)
+#text_filter<- expr(1 == 1)
+
+
+# neopaed logic (neonate/paed/either/none)
+is_neopaed <- "none"
+
+# do you want to include term/group tally tables in the summary sheets? "yes" or "no"
+include_term_tally_table <- "yes"
 
 # is incident level data required? "yes" or "no"
 incident_level_required<- "yes"
@@ -95,4 +103,8 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 # TODO: custom
 sampling_strategy <- "default"
 
+
+source("expand_categorical_filters.R")
+#start flow
 source("flow.R")
+

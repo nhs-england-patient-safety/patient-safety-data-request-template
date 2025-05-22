@@ -42,7 +42,8 @@ summaryTableTopBottomStyle<- createStyle(
   wrapText = TRUE,
   textDecoration = "bold",
   valign = "center",
-  halign = "left"
+  halign = "left",
+  numFmt = "#,##0"
 )
 
 
@@ -52,9 +53,9 @@ bodyStyleNoBorder <- createStyle(
   fontName = "Arial",
   wrapText = TRUE,
   valign = "center",
-  halign = "left"
+  halign = "left",
+  numFmt = "#,##0"
 )
-
 
 rowTitleStyle <- createStyle(
   fontSize = 11,

@@ -41,6 +41,13 @@ metadata <- c(
   "",
   "Free text filters:",
   "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "Neonate or paediatric filter:",
   ""
 )
 
@@ -64,19 +71,16 @@ date_type_text <-
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
 
-text_terms_pretty <- text_terms
-for (group in 1:length(text_terms)){
-  for (term in 1:length(text_terms[[group]])){
-      prettier_term<-text_terms[[group]][term] |>
-      str_replace_all(pattern = "\\|", " OR ") |>
-      str_replace_all(pattern = "\\|", " OR ") |>
-      str_replace_all(pattern = fixed('\\b'), "%") |>
-
-      str_replace_all(pattern = fixed('(?i)'), "" ) |>
-
-      str_replace_all(pattern =  "\\(\\?:\\|\\\\W\\)", "~")
-    text_terms_pretty[[group]][term]<-prettier_term
+if(sum(!is.na(text_terms)) > 0) {
+  text_terms_pretty <- text_terms
+  for (group in 1:length(text_terms)){
+    for (term in 1:length(text_terms[[group]])){
+      prettier_term <- make_text_terms_pretty(text_terms[[group]][term])
+      text_terms_pretty[[group]][term] <- prettier_term
+    }
   }
+} else  {
+  text_terms_pretty <- "No text filters"
 }
 
 metadata_answers <- c(
@@ -102,14 +106,102 @@ metadata_answers <- c(
   "",
   "Notes:",
   "'%' represents a boundary",
-  "'~' represents an optional space that can be filled by any character")
+  "'~' represents an optional space that can be filled by any character",
+  "",
+  is_neopaed)
 
-addStyle(wb, "Search strategy", textStyle, rows = 2:30, cols = 2)
+addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
 addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
 addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
-
 writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
 writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
+
+
+neopaed_logic<-c()
+or_vector<-c()
+
+if (is_neopaed != "none"){
+  writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
+  
+}
+
+if (is_neopaed %in% c("either","neonate")){
+
+  neopaed_logic<-
+    c(neopaed_logic,
+      "Neonate logic:",
+      "NRLS:",
+      str_glue("Neonate by age: Age is between 0 and 28 days"),
+      str_glue("Neonate by specialty: Specialty is Neonatology"),
+      str_glue("Neonate by text: Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      "",
+      "LFPSE:",
+      str_glue("Neonate by age: Age (or age category) is between 0 and 28 days"),
+      str_glue("Neonate by specialty: Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
+      str_glue("Neonate by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      "",
+      ""
+      )
+  
+  or_vector<- 
+    c(or_vector,
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "")
+  
+}
+
+if (is_neopaed %in% c("either","paed")){
+  neopaed_logic<-
+    c(neopaed_logic,   
+      "Paediatric logic:",
+      "NRLS:",
+      str_glue("Paediatric by age: Age is between 28 days and 18 years"),
+      str_glue("Paediatric by specialty: Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
+      str_glue("Paediatric by text: PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
+      "",
+      "LFPSE:",
+      str_glue("Paediatric by age: Age (or age category) is  between 28 days and 18 years"),
+      str_glue("Paediatric by specialty: Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
+      str_glue("Paediatric by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
+)
+
+  
+  or_vector<- 
+    c(or_vector,
+      "",
+      "",
+      "",
+      "OR",
+      "OR",
+      "",
+      "",
+      "",
+      "OR",
+      "OR")
+  
+}
+
+
+writeData(wb, "Search strategy", neopaed_logic, startRow = 28, startCol = 5)
+writeData(wb, "Search strategy", or_vector, startRow = 28, startCol = 4)
+
+addStyle(wb, "Search strategy", textStyle, rows = 28, cols = 5)
+addStyle(wb, "Search strategy", textStyle, rows = 40, cols = 5)
+addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4)
+
+
+
+
 
 # Add worksheets ----------------------------------------------------------
 
@@ -162,6 +254,14 @@ for (i in file_list) {
       summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,
                                                      variables_to_tabulate_by_list, 
                                                      database_name)
+      
+      #add headers for sampled/unsampled tables where sampling took place
+      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+        table_start_row <- add_text_to_summary_sheets(wb, 
+                                                      sheet = summary_sheet_name,
+                                                      content_start_row = table_start_row,
+                                                      text_to_add = "sampled_table_headers")
+      }
 
       #add this summary table to the sheet, and adds styling
       add_summary_table_to_sheet(wb,
@@ -194,6 +294,82 @@ for (i in file_list) {
       table_start_row <- table_start_row + nrow(summary_table_unsampled) + 3
       
     }
+  
+  # create group and text term tally tables if there are text terms in search strategy and this is set to do so in params
+  if(sum(!is.na(text_terms)) > 0 && include_term_tally_table == "yes"){
+    
+    # header for the group/term tally table
+    table_start_row <- add_text_to_summary_sheets(wb, 
+                                                  sheet = summary_sheet_name,
+                                                  content_start_row = table_start_row,
+                                                  text_to_add = "term_tally_table_heading"
+                                                  )
+    
+    # create unsampled group tally table
+    group_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                           cols_to_use = "group_columns")
+    
+    #add headers for sampled/unsampled tables if needed
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      table_start_row <- add_text_to_summary_sheets(wb, 
+                                                    sheet = summary_sheet_name,
+                                                    content_start_row = table_start_row,
+                                                    text_to_add = "sampled_table_headers")
+    }
+      
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               group_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat for sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      group_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                           cols_to_use = "group_columns")
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name,
+                                 group_tally_table_sampled, 
+                                 table_start_row,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(group_tally_table_unsampled)+3,
+                                 Total_row = FALSE)
+    }
+    
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(group_tally_table_unsampled) + 3
+    
+
+    # create unsampled term tally table
+    term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+                                                          cols_to_use = "term_columns")
+    
+    # add this table to the summary sheet
+    add_summary_table_to_sheet(wb,
+                               sheet = summary_sheet_name,
+                               term_tally_table_unsampled,
+                               table_start_row,
+                               table_start_col = 1,
+                               Total_row = FALSE)
+    
+    #if the sampled and unsampled data have different lengths, then repeat sampled data
+    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+                                                          cols_to_use = "term_columns")
+      add_summary_table_to_sheet(wb,
+                                 sheet = summary_sheet_name,
+                                 term_tally_table_sampled, 
+                                 table_start_row,
+                                 #this is printed to the right of the unsampled dataframe
+                                 table_start_col = ncol(term_tally_table_unsampled)+3,
+                                 Total_row = FALSE)
+    }
+    
+    # increment start row to allow next table/content to be further down on page
+    table_start_row <- table_start_row + nrow(term_tally_table_unsampled) + 3
+  }
   
     ## CREATE INCIDENT LEVEL DATA IF REQUIRED
   
@@ -232,6 +408,9 @@ for (i in file_list) {
   }
   
 }
+
+
+
 
 # set date formats
 
