@@ -169,7 +169,7 @@ create_summary_table <- function(df_to_create_summary_table,
 
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
-      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
       convert_columns_to_factors(database_name) |>
       # use count to tabulate
       tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
@@ -202,8 +202,8 @@ create_summary_table <- function(df_to_create_summary_table,
 
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
-      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = " {~@~} ") |>
-      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name, sep = " {~@~} ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
+      separate_rows(!!renamed_variable_to_tabulate_by_two_col_name, sep = "; ") |>
       convert_columns_to_factors(database_name) |>
       # use count to get a table
       tabyl(!!renamed_variable_to_tabulate_by_one_col_name,
@@ -537,19 +537,30 @@ translate_individual_filter <- function(individual_filter, database_name) {
       # if brackets not around column name- replace column name
       str_replace(str_glue("{column}"), column_new) |>
       str_replace(value, value_new)
+  }else{
+    message(str_glue("{individual_filter} could not be translated"))
+    translated_filter<- individual_filter
   }
 
   return(translated_filter)
 }
 
 
-# function to translate a categorical filter (as an expression object) into a mure human readable string given a database name
+# function to translate a categorical filter (as an expression object) into a more human readable string given a database name
 translate_categorical_string <- function(categorical_filter, database_name) {
+  if (!get(str_glue("search_{database_name}"))){
+    message(str_glue("{database_name} is not being searched for this query."))
+    if (categorical_filter!= 0){
+      warning(str_glue("{database_name} is not being searched for this query but a filter has been provided. This will not be used."))
+    }
+    return("Database not searched")
+  }
+  
   if (categorical_filter == 0) {
-    message(str_glue("No {database_name} filter"))
+    message(str_glue("No {database_name} filter was provided."))
     return("No categorical filter")
   }
-
+  
   # turn the categorical filter into a string
   categorical_filter_string <- deparse(categorical_filter, width.cutoff = 500)
 
@@ -590,7 +601,7 @@ translate_categorical_string <- function(categorical_filter, database_name) {
     # add the translated filter and AND or OR to the translated_filters string
     translated_filters <- str_c(translated_filters, individual_filter_translated, break_between_filters)
   }
-
+  message(str_glue("{database_name} filter is: \n {translated_filters}"))
   return(translated_filters)
 }
 
