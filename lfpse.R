@@ -330,47 +330,62 @@ if (nrow(lfpse_filtered_text) != 0) {
       lfpse_sampled <- lfpse_neopaed
     }
    
-  #create incident level table from unsampled dataframe and rename columns - this is for summary tab
-  lfpse_for_release_unsampled_incident_level <-  lfpse_neopaed  |>
+  lfpse_neopaed <-  lfpse_neopaed |>
     # rename columns
-    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-    # remove columns that contain patient specific info (for summary tables)
-    select(-any_of(c("Patient no.",
-                     "OT001 - Physical harm",
-                     "OT002 - Psychological harm",
-                     "P004 - Age in days", 
-                     "P007 - Age Range",
-                     "OT003 - What was the clinical outcome for the patient?"
-                     ))) |> 
-    # get distinct References, so only one row per incident
-    distinct(Reference, .keep_all = TRUE)
+    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     
-  #create incident level table from sampled dataframe and rename columns - this is for summary tab
-  lfpse_for_release_sampled_incident_level <-  lfpse_sampled |>
+  lfpse_sampled <-  lfpse_sampled |>
     # rename columns
-    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-    # remove columns that contain patient specific info (for summary tables)
-    select(-any_of(c("Patient no.",
-                     "OT001 - Physical harm",
-                     "OT002 - Psychological harm",
-                     "P004 - Age in days", 
-                     "P007 - Age Range",
-                     "OT003 - What was the clinical outcome for the patient?"
-    ))) |> 
-    # get distinct References, so only one row per incident
-    distinct(Reference, .keep_all = TRUE)
-  
-  #create patient level table from sampled dataframe and rename columns - this is for data tab
+    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
+    
+  #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
-      #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
-    #create patient level table from sampled dataframe and rename columns - this is for data tab
+    #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
-      #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+    
+    
+    lfpse_for_summary_table<- lfpse_neopaed  
+
+    lfpse_for_summary_table_sampled<- lfpse_sampled  
+    
+    if (summary_tables_incident_or_patient_level=="patient"){
+
+      lfpse_for_summary_table<- lfpse_for_summary_table |>
+      # remove columns that contain patient specific info (for summary tables)
+      select(-any_of(c("Patient no.",
+                       "OT001 - Physical harm",
+                       "OT002 - Psychological harm",
+                       "P004 - Age in days", 
+                       "P007 - Age Range",
+                       "OT003 - What was the clinical outcome for the patient?"
+      ))) |> 
+        # get distinct References, so only one row per incident
+        distinct(Reference, .keep_all = TRUE)
+      
+      
+      lfpse_for_summary_table_sampled<- lfpse_for_summary_table_sampled |>
+        # remove columns that contain patient specific info (for summary tables)
+        select(-any_of(c("Patient no.",
+                         "OT001 - Physical harm",
+                         "OT002 - Psychological harm",
+                         "P004 - Age in days", 
+                         "P007 - Age Range",
+                         "OT003 - What was the clinical outcome for the patient?"
+        ))) |> 
+        # get distinct References, so only one row per incident
+        distinct(Reference, .keep_all = TRUE)
+      
+      
+    }
+    
+    
+    
+    
+    
+    
     
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))

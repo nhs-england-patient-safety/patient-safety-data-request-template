@@ -93,6 +93,8 @@ list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
 list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
 list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
+# should summary tables be incident level or patient level? (incident/patient)
+summary_tables_incident_or_patient_level <- "incident"
 
 
 # sampling strategy (default/FOI/none)
