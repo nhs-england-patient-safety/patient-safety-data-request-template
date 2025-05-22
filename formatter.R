@@ -255,4 +255,5 @@ saveWorkbook(wb,
 if (write_to_sp) {
   source('microsoft365R.R')
 } else {
+  saveWorkbook(wb, file=str_glue("data/{workbook_title}"))
 }

@@ -7,7 +7,7 @@ library(glue)
 library(Microsoft365R)
 
 # write output (T/F)
-write_to_sp <- F
+write_to_sp <- T
 
 # datasets to be searched (T/F)
 search_nrls <- T
