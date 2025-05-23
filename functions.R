@@ -21,7 +21,8 @@ add_header_to_sheet <- function(wb, title,
                                 sheet,
                                 summary_sheet,
                                 number_of_rows_sampled,
-                                number_of_rows_unsampled) {
+                                number_of_rows_unsampled,
+                                summary_tables_incident_or_patient_level) {
   # Write title
   writeData(wb,
     sheet,
@@ -36,12 +37,17 @@ add_header_to_sheet <- function(wb, title,
   content_start_row <- 5
 
   # add caveats to lfpse summary tab
+  
   if (database_name == "LFPSE" & summary_sheet) {
-    note <- c(
-      "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients",
+  #multi-select caveat
+      note <- c(
       "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents."
     )
-
+  #caveat for incident level summary tables
+    if (summary_tables_incident_or_patient_level=="incident"){
+      note<- c( note, "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients")
+    }
+    
     # write note
     writeData(
       wb,
@@ -54,8 +60,9 @@ add_header_to_sheet <- function(wb, title,
     content_start_row <- content_start_row + 3
   }
 
-  incident_or_pt_level <- case_when(summary_sheet & database_name == "LFPSE" ~ " (incident level)",
-    !summary_sheet & database_name == "LFPSE" ~ " (patient level)",
+  
+  incident_or_pt_level <- case_when(summary_sheet & database_name == "LFPSE"  ~ str_glue("({summary_tables_incident_or_patient_level} level)"),
+    !summary_sheet & database_name == "LFPSE" ~ "(patient level)",
     .default = ""
   )
   

@@ -347,13 +347,13 @@ if (nrow(lfpse_filtered_text) != 0) {
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     
-    lfpse_for_summary_table<- lfpse_neopaed  
+    lfpse_for_summary_table_unsampled<- lfpse_neopaed  
 
     lfpse_for_summary_table_sampled<- lfpse_sampled  
     
     if (summary_tables_incident_or_patient_level=="patient"){
 
-      lfpse_for_summary_table<- lfpse_for_summary_table |>
+      lfpse_for_summary_table_unsampled<- lfpse_for_summary_table_unsampled |>
       # remove columns that contain patient specific info (for summary tables)
       select(-any_of(c("Patient no.",
                        "OT001 - Physical harm",
@@ -381,14 +381,8 @@ if (nrow(lfpse_filtered_text) != 0) {
       
     }
     
-    
-    
-    
-    
-    
-    
-    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
-    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))
+    message(glue("- Final {dataset} dataset for creating summary table contains {nrow(lfpse_for_summary_table_unsampled)} unsampled incidents ({summary_tables_incident_or_patient_level} level)"))
+    message(glue("- Final {dataset} dataset for creating summary table contains {nrow(lfpse_for_summary_table_sampled)} sampled incidents  ({summary_tables_incident_or_patient_level} level)"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_pt_level)} sampled incidents (pt level)"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
  
