@@ -170,10 +170,10 @@ create_summary_table <- function(df_to_create_summary_table,
       message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
       return(tibble(`Table could not be made` = str_glue("{variable_to_tabulate_by_one} doesn't exist.")))
     }
-
+    
     # allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name <- sym(renamed_variable_to_tabulate_by_one)
-
+    
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
@@ -183,10 +183,17 @@ create_summary_table <- function(df_to_create_summary_table,
         show_missing_levels = TRUE,
         show_na = TRUE
       ) |>
-      adorn_totals("row") |>
       adorn_pct_formatting() |>
-      select(-any_of("valid_percent")) # remove additional percent column
-  } else if (length(variables_to_tabulate_by_list) == 2) {
+      select(-any_of("valid_percent")) |># remove additional percent column 
+      untabyl()
+    
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_one)){
+      summary_table <- summary_table |>
+        adorn_totals("row")
+    }
+    
+
+    } else if (length(variables_to_tabulate_by_list) == 2) {
     # extract the variables from list of variables
     variable_to_tabulate_by_one <- unlist(variables_to_tabulate_by_list)[[1]]
     variable_to_tabulate_by_two <- unlist(variables_to_tabulate_by_list)[[2]]
@@ -219,8 +226,18 @@ create_summary_table <- function(df_to_create_summary_table,
         show_na = TRUE
       ) |>
       rename(any_of(c(`Not available` = "NA_"))) |>
-      # add row and column totals
-      adorn_totals("both")
+      untabyl()
+    
+    
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_one)){
+      summary_table <- summary_table |>
+        adorn_totals("row")
+    }
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_two)){
+      summary_table <- summary_table |>
+        adorn_totals("col")
+    }
+    
   } else {
     message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}"))
     message(paste(variables_to_tabulate_by_list, collapse = ", "))
@@ -333,8 +350,10 @@ add_summary_table_to_sheet <- function(wb,
                                        sheet,
                                        summary_table,
                                        table_start_row,
-                                       table_start_col,
-                                       Total_row = TRUE) {
+                                       table_start_col) {
+  
+  total_row = summary_table[nrow(summary_table),1]=="Total"
+  print(total_row)
   # add summary table to sheet
   writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
 
@@ -379,7 +398,7 @@ add_summary_table_to_sheet <- function(wb,
   )
 
   # style table- footer with border when there is a total row
-  if(Total_row == T){
+  if(total_row){
     addStyle(
         wb,
         sheet = sheet,
@@ -623,4 +642,16 @@ make_text_terms_pretty <- function(term){
     str_replace_all("term_", "term: ") |>
     str_replace_all("group_", "Group ") |>
     str_replace_all("_", " ")
+}
+
+
+
+
+is_multi_select<- function(df, variable_name){
+  n_multi<-df |> 
+    select(all_of(c("col" = variable_name))) |>
+    mutate(multi=str_detect(col,"; ")) |>
+    filter(multi) |>
+    nrow()
+  return(n_multi > 0)
 }

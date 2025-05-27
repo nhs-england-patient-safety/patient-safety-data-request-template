@@ -323,8 +323,7 @@ for (i in file_list) {
                                sheet = summary_sheet_name,
                                group_tally_table_unsampled,
                                table_start_row,
-                               table_start_col = 1,
-                               Total_row = FALSE)
+                               table_start_col = 1)
     
     #if the sampled and unsampled data have different lengths, then repeat for sampled data
     if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
@@ -352,8 +351,7 @@ for (i in file_list) {
                                sheet = summary_sheet_name,
                                term_tally_table_unsampled,
                                table_start_row,
-                               table_start_col = 1,
-                               Total_row = FALSE)
+                               table_start_col = 1)
     
     #if the sampled and unsampled data have different lengths, then repeat sampled data
     if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
