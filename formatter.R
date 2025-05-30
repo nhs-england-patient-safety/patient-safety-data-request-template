@@ -334,8 +334,7 @@ for (i in file_list) {
                                  group_tally_table_sampled, 
                                  table_start_row,
                                  #this is printed to the right of the unsampled dataframe
-                                 table_start_col = ncol(group_tally_table_unsampled)+3,
-                                 Total_row = FALSE)
+                                 table_start_col = ncol(group_tally_table_unsampled)+3)
     }
     
     # increment start row to allow next table/content to be further down on page
@@ -362,8 +361,7 @@ for (i in file_list) {
                                  term_tally_table_sampled, 
                                  table_start_row,
                                  #this is printed to the right of the unsampled dataframe
-                                 table_start_col = ncol(term_tally_table_unsampled)+3,
-                                 Total_row = FALSE)
+                                 table_start_col = ncol(term_tally_table_unsampled)+3)
     }
     
     # increment start row to allow next table/content to be further down on page
