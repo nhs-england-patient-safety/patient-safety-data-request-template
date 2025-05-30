@@ -27,7 +27,7 @@ metadata <- c(
   "",
   "Datasets used:",
   "",
-  "Extraction date:",
+  "Run time:",
   "",
   "Date range:",
   "",
@@ -88,7 +88,7 @@ metadata_answers <- c(
   "",
   datasets_used,
   "",
-  extraction_date,
+  time_diff,
   "",
   date_range,
   "",
@@ -431,4 +431,9 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-source('microsoft365R.R')
+if (write_to_sp) {
+  source('microsoft365R.R')
+} else {
+  saveWorkbook(wb, file=str_glue("data/{title_of_test_output}.xlsx"))
+}
+

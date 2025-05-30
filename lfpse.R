@@ -343,8 +343,7 @@ if (nrow(lfpse_filtered_text) != 0) {
                      "OT003 - What was the clinical outcome for the patient?"
                      ))) |> 
     # get distinct References, so only one row per incident
-    distinct(Reference, .keep_all = TRUE)
-    
+    distinct(Reference, .keep_all = TRUE) 
   #create incident level table from sampled dataframe and rename columns - this is for summary tab
   lfpse_for_release_sampled_incident_level <-  lfpse_sampled |>
     # rename columns
@@ -387,6 +386,14 @@ if (nrow(lfpse_filtered_text) != 0) {
 }
 
 dbDisconnect(con_lfpse)
+
+
+toc <- Sys.time()
+
+time_diff <- (toc-tic)
+
+message(glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))
+
 
 if (search_steis) {
   source("steis.R")
