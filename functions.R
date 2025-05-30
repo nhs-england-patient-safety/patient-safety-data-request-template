@@ -351,9 +351,8 @@ add_summary_table_to_sheet <- function(wb,
                                        summary_table,
                                        table_start_row,
                                        table_start_col) {
-  
+  #assess if a total row is present in summary table
   total_row = summary_table[nrow(summary_table),1]=="Total"
-  print(total_row)
   # add summary table to sheet
   writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
 
