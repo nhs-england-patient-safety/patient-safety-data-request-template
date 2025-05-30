@@ -340,11 +340,13 @@ if (nrow(lfpse_filtered_text) != 0) {
     
   #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) |>
+      remove_empty("cols")
     
     #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))|>
+      remove_empty("cols")
     
     
     lfpse_for_summary_table_unsampled<- lfpse_neopaed  

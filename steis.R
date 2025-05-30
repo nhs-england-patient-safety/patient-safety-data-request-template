@@ -113,12 +113,14 @@ if(nrow(steis_filtered_text) != 0){
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_unsampled_pt_level<- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))|>
+      remove_empty("cols")
     
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_sampled_pt_level <- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))|>
+      remove_empty("cols")
     
    
   }
