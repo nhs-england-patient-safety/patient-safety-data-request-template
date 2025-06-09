@@ -116,11 +116,15 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                             OT001_min==2 ~ "Severe physical harm",
                                             OT001_min==3 ~ "Moderate physical harm",
                                             OT001_min==4 ~ "Low physical harm",
-                                            OT001_min==5 ~ "No physical harm"),
+                                            OT001_min==5 ~ "No physical harm",
+                                            is.na(npatient) ~ "Not applicable",
+                                            .default = "Harm level missing"),
          max_psychological_harm_level= case_when(OT002_min==1 ~ "Severe psychological harm",
                                                  OT002_min==2 ~ "Moderate psychological harm",
                                                  OT002_min==3 ~ "Low psychological harm",
-                                                 OT002_min==4 ~ "No psychological harm")
+                                                 OT002_min==4 ~ "No psychological harm",  
+                                                 is.na(npatient) ~ "Not applicable",
+                                                 .default = "Harm level missing")
   ) |>
   ### Remove columns that are not required
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns

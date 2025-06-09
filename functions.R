@@ -288,7 +288,8 @@ convert_columns_to_factors <- function(df_without_factors, database_name) {
           `Largest physical harm (across all patients in incident)`,
           levels = c(
             "No physical harm", "Low physical harm",
-            "Moderate physical harm", "Severe physical harm", "Fatal"
+            "Moderate physical harm", "Severe physical harm", "Fatal",
+            "Harm level missing", "Not applicable"
           )
         ),
         `Largest psychological harm (across all patients in incident)` = factor(
@@ -297,7 +298,9 @@ convert_columns_to_factors <- function(df_without_factors, database_name) {
             "No psychological harm",
             "Low psychological harm",
             "Moderate psychological harm",
-            "Severe psychological harm"
+            "Severe psychological harm",
+            "Harm level missing", 
+            "Not applicable"
           )
         ),
         `Month` = factor(`Month`, levels = month.abb),
