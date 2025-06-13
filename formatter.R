@@ -429,4 +429,8 @@ saveWorkbook(wb,
              file = tf,
              overwrite = T)
 
-source('microsoft365R.R')
+if (write_to_sp) {
+  source('microsoft365R.R')
+} else {
+  saveWorkbook(wb, file=str_glue("output/{workbook_title}"))
+}
