@@ -1,7 +1,7 @@
-file_list <- apropos('_for_summary_table_unsampled')
+db_list <- apropos('_for_summary_table_unsampled')
 
 #there's no need to carry on if there are no objects for release
-if(is_empty(file_list)){
+if(is_empty(db_list)){
   stop("There's no data to write in Excel")
 }
 
@@ -53,7 +53,7 @@ metadata <- c(
 
 ref_no <- substr(title, 5, 8)
 
-datasets_used <- file_list |>
+datasets_used <- db_list |>
   str_extract("^([^_])+") |> 
   toupper() |> 
   str_replace("STEIS", "StEIS") |> 
@@ -205,12 +205,12 @@ addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4
 
 # Add worksheets ----------------------------------------------------------
 
-#Loop through each of the databases (using the "for_release_unsampled_incident_level" objects)
+#Loop through each of the databases (using the "_for_summary_table_unsampled" objects)
 # We will create a sheet with the summary tables for this database
 # If required, also add an incident data sheet
 # Each sheet will have a header section, created by calling add_header_section()
 # add_summary_table_to_sheet() or add_data_table_to_sheet() will add data or summary tables to the sheet as needed
-for (i in file_list) {
+for (i in db_list) {
 
   #get database name from i
   database_name <- toupper(str_split_i(i, "_", 1))
@@ -230,7 +230,6 @@ for (i in file_list) {
   df_for_summary_sampled <- get(str_glue("{tolower(database_name)}_for_summary_table_sampled"))
 
   #use the database name to get the list of tables to create (created in params file)
-  #We use incident level for the summary tables. We have aggregated or removed the patient level incidents to allow us to count by incident.
   list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
     
   #add a worksheet for the summary tables  
