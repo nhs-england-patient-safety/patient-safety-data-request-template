@@ -64,7 +64,7 @@ text_filter <- expr((group_A | group_B) & group_C)
 #text_filter<- expr(1 == 1)
 
 
-# neopaed logic (neonate/paed/either/none)
+# neopaed logic (neonate/paed/either/none/add_columns_no_filter)
 is_neopaed <- "none"
 
 # do you want to include term/group tally tables in the summary sheets? "yes" or "no"

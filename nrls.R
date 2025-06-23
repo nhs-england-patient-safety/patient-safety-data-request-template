@@ -109,6 +109,9 @@ if (nrow(nrls_filtered_text) != 0) {
     )|>
     left_join(organisations, by = c("RP07" = "ORGANISATIONCODE"))
 
+  
+  if (is_neopaed != "none"){
+
   # Neonatal logic
   # AGE_AT_INCIDENT appears to be derived from DV01 so DV01 shouldn't need checking separately
   # Searching PD01_B doesn't contain any more information than  AGE_AT_INCIDENTS (from SQL searches)- presume derived field, and removed it
@@ -149,7 +152,7 @@ if (nrow(nrls_filtered_text) != 0) {
         .default = "not paediatric related"
       )
     )
-  
+  }
   
   # Now filter based on `is_neopaed` parameter
   if (is_neopaed == "neonate") {
@@ -174,8 +177,14 @@ if (nrow(nrls_filtered_text) != 0) {
   } else if (is_neopaed == "none") {
     print("- Skipping neopaeds strategy...")
     
+    nrls_neopaed <- nrls_labelled
+  
+  } else if (is_neopaed == "add_columns_no_filter"){
+  
     nrls_neopaed <- nrls_age_categorised
+    
   }
+  
   
   print(str_glue("nrls_neopaed has {nrow(nrls_neopaed)} incidents"))
   

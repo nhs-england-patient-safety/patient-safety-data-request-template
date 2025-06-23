@@ -199,7 +199,7 @@ if (nrow(lfpse_filtered_text) != 0) {
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
     ) 
   
-  #create a new column for age following validation 
+    #create a new column for age following validation 
   lfpse_age_validated<- lfpse_labelled |>
     mutate(age_unit = case_when(
       is.na(P004_days) ~ 'age missing',
@@ -218,45 +218,47 @@ if (nrow(lfpse_filtered_text) != 0) {
       age_compliance == "yes", P004_days, NA
     ))
   
-  lfpse_age_classified <- lfpse_age_validated |>
-    mutate(
-      concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
-      age_category = case_when(
-        (P004_days_validated > 0 & P004_days_validated <= 28) | (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
-        (P004_days_validated > 28 & P004_days_validated < 6696) | (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
-        (!is.na(P007)|!is.na(P004_days_validated)) ~ 'adult estimated',
-        is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
-        .default = 'other' 
-      ),
-      #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
-      neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
-      neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      missing_specialty = is.na(L006),
-      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T), 
-      paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
-      paediatric_term_flag = str_detect(concat_col, paediatric_terms),
-      neonate_category = case_when(
-        # Neonate by age: age is between 0 and 28 days
-        age_category == 'neonate' ~ "neonate_by_age",
-        # Neonate by specialty: age is 0 or NA and specialty indicates neonate
-        neonate_specialty_flag ~ "neonate_by_specialty",
-        # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
-        (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
-        # Default: not neonate-related
-        .default = "not neonate related"
-      ),
-      paediatric_category = case_when(
-        # Paediatrics by age: age is older than 1 month and younger than 18 years
-        age_category == 'paediatric' ~ "paediatric_by_age",
-        # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
-        paediatric_specialty_flag ~ "paediatric_by_specialty",
-        # Paediatrics by text: age is 0 or NA and text indicates paediatrics
-        (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
-        # Default: not paediatrics-related
-        .default = "not paediatric related"
-      )
-    )
+  if (is_neopaed != "none"){
   
+    lfpse_age_classified <- lfpse_age_validated |>
+      mutate(
+        concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
+        age_category = case_when(
+          (P004_days_validated > 0 & P004_days_validated <= 28) | (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
+          (P004_days_validated > 28 & P004_days_validated < 6696) | (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+          (!is.na(P007)|!is.na(P004_days_validated)) ~ 'adult estimated',
+          is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
+          .default = 'other' 
+        ),
+        #these flags are to create the categorisations- they may be useful to keep like this, as they help with QA
+        neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
+        neonate_terms_flag = str_detect(concat_col, neonatal_terms),
+        missing_specialty = is.na(L006),
+        no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate=T), 
+        paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
+        paediatric_term_flag = str_detect(concat_col, paediatric_terms),
+        neonate_category = case_when(
+          # Neonate by age: age is between 0 and 28 days
+          age_category == 'neonate' ~ "neonate_by_age",
+          # Neonate by specialty: age is 0 or NA and specialty indicates neonate
+          neonate_specialty_flag ~ "neonate_by_specialty",
+          # Neonate by text: age is 0 or NA and text indicates neonate and specialty is not adult
+          (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
+          # Default: not neonate-related
+          .default = "not neonate related"
+        ),
+        paediatric_category = case_when(
+          # Paediatrics by age: age is older than 1 month and younger than 18 years
+          age_category == 'paediatric' ~ "paediatric_by_age",
+          # Paediatrics by specialty: age is 0 or NA and specialty indicates paediatrics
+          paediatric_specialty_flag ~ "paediatric_by_specialty",
+          # Paediatrics by text: age is 0 or NA and text indicates paediatrics
+          (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
+          # Default: not paediatrics-related
+          .default = "not paediatric related"
+        )
+      )
+  }
   # Now filter based on `is_neopaed` parameter
   if (is_neopaed == "neonate") {
     print("- Running neonate strategy...")
@@ -273,15 +275,21 @@ if (nrow(lfpse_filtered_text) != 0) {
   } else if (is_neopaed == "either") {
     print("- Running either strategy...")
     
-    nrls_neopaed <- nrls_age_categorised %>%
+    lfpse_neopaed <- lfpse_age_classified %>%
       filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text")|
                neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text") )
     
   } else if (is_neopaed == "none") {
     print("- Skipping neopaeds strategy...")
     
+    lfpse_neopaed <- lfpse_age_validated
+    
+  } else if (is_neopaed == "add_columns_no_filter"){
+  
     lfpse_neopaed <- lfpse_age_classified
-  }
+  
+}
+
   
   # check whether the text search generated results
   if (nrow(lfpse_neopaed) != 0) {
