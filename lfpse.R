@@ -273,7 +273,7 @@ if (nrow(lfpse_filtered_text) != 0) {
   } else if (is_neopaed == "either") {
     print("- Running either strategy...")
     
-    nrls_neopaed <- nrls_age_categorised %>%
+    lfpse_neopaed <- lfpse_age_classified |>
       filter(paediatric_category %in% c("paediatric_by_age", "paediatric_by_specialty", "paediatric_by_text")|
                neonate_category %in% c("neonate_by_age", "neonate_by_specialty", "neonate_by_text") )
     
