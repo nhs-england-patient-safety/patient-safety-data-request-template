@@ -105,9 +105,9 @@ if(nrow(steis_filtered_text) != 0){
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
  
     #create patient level table from unsampled dataframe and rename columns - this is for data tab
-    steis_for_release_sampled_incident_level <- steis_for_release 
-    #create patient level table from unsampled dataframe and rename columns - this is for data tab
-    steis_for_release_unsampled_incident_level <- steis_for_release 
+    steis_for_summary_table_unsampled <- steis_for_release 
+    #create patient level table from sampled dataframe and rename columns - this is for data tab
+    steis_for_summary_table_sampled <- steis_for_release 
      
 
     #note: below is very similar to incident level dataframe as steis is already one row per incident
@@ -123,8 +123,8 @@ if(nrow(steis_filtered_text) != 0){
    
   }
   
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_incident_level)} unsampled incidents"))
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_incident_level)} sampled incidents."))
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_unsampled)} unsampled incidents"))
+  message(glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_sampled)} sampled incidents."))
   message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
   message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
   
