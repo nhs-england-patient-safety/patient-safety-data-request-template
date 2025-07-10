@@ -45,7 +45,7 @@ add_header_to_sheet <- function(wb, title,
     )
   #caveat for incident level summary tables
     if (summary_tables_incident_or_patient_level=="incident"){
-      note<- c( note, "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients")
+      note<- c( note, "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level across patients")
     }
     
     # write note
