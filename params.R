@@ -12,8 +12,8 @@ write_to_sp <- T
 
 # datasets to be searched (T/F)
 search_nrls <- T
-search_lfpse <- F
-search_steis <- F
+search_lfpse <- T
+search_steis <- T
 
 
 # date filter (type is occurring/reported)
