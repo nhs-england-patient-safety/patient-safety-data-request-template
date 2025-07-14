@@ -12,8 +12,8 @@ write_to_sp <- T
 
 # datasets to be searched (T/F)
 search_nrls <- T
-search_lfpse <- T
-search_steis <- T
+search_lfpse <- F
+search_steis <- F
 
 
 # date filter (type is occurring/reported)
@@ -23,6 +23,8 @@ end_date <- "2024-12-31"
 
 date_type <- "occurring"
 
+# Adding in caveat into formatter and params
+nrls_decomissioned <- "2024-06-30"
 
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
@@ -48,7 +50,8 @@ nrls_categorical <- expr(IN05_LVL1 == 10 )
 lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 # steis categorical filters (wrap in expr() or set to 0)
 steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
-steis_filename <- 'SUI_2_87360.csv'
+steis_url <- '' # please add in the url for the steis extract
+steis_filename <- 'SUI_2_77725.csv'
 
 # text terms
 #example below- not real example
@@ -71,7 +74,7 @@ is_neopaed <- "none"
 include_term_tally_table <- "yes"
 
 # is incident level data required? "yes" or "no"
-incident_level_required<- "yes"
+incident_level_required <- "yes"
 
 # create a list with an element containing for each table you would like 
 # first element is what you want as rows, second is what you want as columns
@@ -101,7 +104,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "default"
+sampling_strategy <- "none"
 
 
 source("expand_categorical_filters.R")
