@@ -21,7 +21,8 @@ add_header_to_sheet <- function(wb, title,
                                 sheet,
                                 summary_sheet,
                                 number_of_rows_sampled,
-                                number_of_rows_unsampled) {
+                                number_of_rows_unsampled,
+                                summary_tables_incident_or_patient_level) {
   # Write title
   writeData(wb,
     sheet,
@@ -36,12 +37,17 @@ add_header_to_sheet <- function(wb, title,
   content_start_row <- 5
 
   # add caveats to lfpse summary tab
+  
   if (database_name == "LFPSE" & summary_sheet) {
-    note <- c(
-      "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level accross patients",
+  #multi-select caveat
+      note <- c(
       "Note: Where a question can have multiple answers, these have been separated out so will sum to a larger number than the number of incidents."
     )
-
+  #caveat for incident level summary tables
+    if (summary_tables_incident_or_patient_level=="incident"){
+      note<- c( note, "Note: The data here has been aggregated for the patients within an incident, selecting the largest physical harm level across patients")
+    }
+    
     # write note
     writeData(
       wb,
@@ -54,8 +60,9 @@ add_header_to_sheet <- function(wb, title,
     content_start_row <- content_start_row + 3
   }
 
-  incident_or_pt_level <- case_when(summary_sheet & database_name == "LFPSE" ~ " (incident level)",
-    !summary_sheet & database_name == "LFPSE" ~ " (patient level)",
+  
+  incident_or_pt_level <- case_when(summary_sheet & database_name == "LFPSE"  ~ str_glue("({summary_tables_incident_or_patient_level} level)"),
+    !summary_sheet & database_name == "LFPSE" ~ "(patient level)",
     .default = ""
   )
   
@@ -163,10 +170,10 @@ create_summary_table <- function(df_to_create_summary_table,
       message(str_glue("{variable_to_tabulate_by_one} does not exist. Table cannot be created. "))
       return(tibble(`Table could not be made` = str_glue("{variable_to_tabulate_by_one} doesn't exist.")))
     }
-
+    
     # allow the variable to be used as a column name
     renamed_variable_to_tabulate_by_one_col_name <- sym(renamed_variable_to_tabulate_by_one)
-
+    
     summary_table <- df_to_create_summary_table |>
       # separate multi select values
       separate_rows(!!renamed_variable_to_tabulate_by_one_col_name, sep = "; ") |>
@@ -176,10 +183,17 @@ create_summary_table <- function(df_to_create_summary_table,
         show_missing_levels = TRUE,
         show_na = TRUE
       ) |>
-      adorn_totals("row") |>
       adorn_pct_formatting() |>
-      select(-any_of("valid_percent")) # remove additional percent column
-  } else if (length(variables_to_tabulate_by_list) == 2) {
+      select(-any_of("valid_percent")) |># remove additional percent column 
+      untabyl()
+    
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_one)){
+      summary_table <- summary_table |>
+        adorn_totals("row")
+    }
+    
+
+    } else if (length(variables_to_tabulate_by_list) == 2) {
     # extract the variables from list of variables
     variable_to_tabulate_by_one <- unlist(variables_to_tabulate_by_list)[[1]]
     variable_to_tabulate_by_two <- unlist(variables_to_tabulate_by_list)[[2]]
@@ -212,8 +226,18 @@ create_summary_table <- function(df_to_create_summary_table,
         show_na = TRUE
       ) |>
       rename(any_of(c(`Not available` = "NA_"))) |>
-      # add row and column totals
-      adorn_totals("both")
+      untabyl()
+    
+    
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_one)){
+      summary_table <- summary_table |>
+        adorn_totals("row")
+    }
+    if(!is_multi_select(df_to_create_summary_table,renamed_variable_to_tabulate_by_two)){
+      summary_table <- summary_table |>
+        adorn_totals("col")
+    }
+    
   } else {
     message(str_glue("TOO MANY VARIABLES INCLUDED FOR {database_name}"))
     message(paste(variables_to_tabulate_by_list, collapse = ", "))
@@ -264,7 +288,8 @@ convert_columns_to_factors <- function(df_without_factors, database_name) {
           `Largest physical harm (across all patients in incident)`,
           levels = c(
             "No physical harm", "Low physical harm",
-            "Moderate physical harm", "Severe physical harm", "Fatal"
+            "Moderate physical harm", "Severe physical harm", "Fatal",
+            "Harm level missing", "Not applicable"
           )
         ),
         `Largest psychological harm (across all patients in incident)` = factor(
@@ -273,7 +298,9 @@ convert_columns_to_factors <- function(df_without_factors, database_name) {
             "No psychological harm",
             "Low psychological harm",
             "Moderate psychological harm",
-            "Severe psychological harm"
+            "Severe psychological harm",
+            "Harm level missing", 
+            "Not applicable"
           )
         ),
         `Month` = factor(`Month`, levels = month.abb),
@@ -326,8 +353,9 @@ add_summary_table_to_sheet <- function(wb,
                                        sheet,
                                        summary_table,
                                        table_start_row,
-                                       table_start_col,
-                                       Total_row = TRUE) {
+                                       table_start_col) {
+  #assess if a total row is present in summary table
+  total_row = summary_table[nrow(summary_table),1]=="Total"
   # add summary table to sheet
   writeData(wb, sheet, summary_table, startRow = table_start_row, startCol = table_start_col, keepNA = TRUE, na.string = "Not available")
 
@@ -372,7 +400,7 @@ add_summary_table_to_sheet <- function(wb,
   )
 
   # style table- footer with border when there is a total row
-  if(Total_row == T){
+  if(total_row){
     addStyle(
         wb,
         sheet = sheet,
@@ -616,4 +644,26 @@ make_text_terms_pretty <- function(term){
     str_replace_all("term_", "term: ") |>
     str_replace_all("group_", "Group ") |>
     str_replace_all("_", " ")
+}
+
+
+
+
+is_multi_select<- function(df, variable_name){
+  
+  if(variable_name %in% colnames(df)){
+    
+    n_multi<-df |> 
+    select(all_of(c("col" = variable_name))) |>
+    mutate(multi=str_detect(col,"; ")) |>
+    filter(multi) |>
+    nrow()
+  
+    return(n_multi > 0)
+  
+  } else {
+    print("The column does not exist")
+    return(NA)
+}
+  
 }
