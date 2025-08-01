@@ -23,9 +23,6 @@ end_date <- "2024-12-31"
 
 date_type <- "occurring"
 
-# Adding in caveat into formatter and params
-nrls_decomissioned <- "2024-06-30"
-
 # connect to (relevant) data bases and bring corresponding look ups 
 source("connections.R")
 
@@ -104,7 +101,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
 # sampling strategy (default/FOI/none)
 # TODO: custom
-sampling_strategy <- "none"
+sampling_strategy <- "default"
 
 
 source("expand_categorical_filters.R")

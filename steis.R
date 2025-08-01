@@ -103,7 +103,12 @@ if(nrow(steis_filtered_text) != 0){
     steis_sampled <- steis_filtered_text |>
       sample_n(min(n(), 30))
     
-  } else if (sampling_strategy == "none") {
+  } if (sampling_strategy == "none") {
+    
+    message("- Skipping sampling...")
+    steis_sampled <- steis_filtered_text
+    
+  } else if (sampling_strategy == "default") {
     
     message("- Skipping sampling...")
     steis_sampled <- steis_filtered_text
