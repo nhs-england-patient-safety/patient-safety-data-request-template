@@ -111,7 +111,11 @@ if(nrow(steis_filtered_text) != 0){
   
   # columns for release ####
   if(cols_to_extract == 'all'){
-    steis_for_release <- steis_sampled
+    steis_for_release_unsampled_pt_level <- steis_filtered_text
+    steis_for_release_sampled_pt_level <- steis_sampled
+    steis_for_release_unsampled_incident_level<- steis_filtered_text
+    steis_for_release_sampled_incident_level <- steis_sampled
+
   } else if (cols_to_extract == 'default'){
     
     #create patient level table from sampled dataframe and rename columns - this is for data tab
