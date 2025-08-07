@@ -48,7 +48,12 @@ metadata <- c(
   "",
   "",
   "Neonate or paediatric filter:",
-  ""
+  "",
+  "lfpse text search strategy",
+  "",
+  "lfpse time to collect",
+  "",
+  "lfpse time to run text search"
 )
 
 ref_no <- substr(title, 5, 8)
@@ -108,7 +113,14 @@ metadata_answers <- c(
   "'%' represents a boundary",
   "'~' represents an optional space that can be filled by any character",
   "",
-  is_neopaed)
+  is_neopaed,
+  "",
+  text_search,
+  "",
+  glue("{round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"),
+  "",
+  glue("{round(time_diff_lfpse_text[[1]], 2)} {attr(time_diff_lfpse_text, 'units')}")
+)
 
 addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
 addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
@@ -121,7 +133,7 @@ neopaed_logic<-c()
 or_vector<-c()
 
 if (is_neopaed != "none"){
-  writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
+  writeData(wb, "Search strategy", "Neopaed logic:", startRow = 34, startCol = 2)
   
 }
 
@@ -420,6 +432,8 @@ options(openxlsx.dateFormat = "dd-mmm-yyyy")
 # save workbook
 
 workbook_title <- paste(title,
+                        subtitle,
+                        text_search,
                         "output",
                         format(Sys.time(), "%Y-%m-%d_%H%M%S.xlsx"),
                         sep = "_"

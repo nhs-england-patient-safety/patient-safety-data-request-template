@@ -1,19 +1,10 @@
-library(tidyverse)
-library(dbplyr)
-library(janitor)
-library(here)
-library(openxlsx)
-library(glue)
-library(Microsoft365R)
-library(zoo)
-
 # write output (T/F)
 write_to_sp <- F
 
 # datasets to be searched (T/F)
-search_nrls <- T
+search_nrls <- F
 search_lfpse <- T
-search_steis <- T
+search_steis <- F
 
 
 # date filter (type is occurring/reported)
@@ -34,7 +25,6 @@ source("styles.R") #contains styles used by openxlsx
 source("neopaeds.R") #contains search terms used to categorise incidents as neonate/paediatric
 
 #what columns should be search- base, medication, device, or all ()
-text_search <- "base"
 
 
 
@@ -47,11 +37,11 @@ cols_to_extract <- "default"
 #lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %'| ((' ' + A001 + ' ') %LIKE% '% 3 %' & (' ' + A001 + ' ') %LIKE% '% 10 %'))
 
 # nrls categorical filters (wrap in expr() or set to 0)
-nrls_categorical <- expr(IN05_LVL1 == 10 )
+nrls_categorical <- 0
 # lfpse categorical filters (wrap in expr() or set to 0)
-lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
+lfpse_categorical <- 0
 # steis categorical filters (wrap in expr() or set to 0)
-steis_categorical <- expr(type_of_incident == 'Medication incident meeting SI criteria')
+steis_categorical <- 0
 steis_filename <- 'SUI_2_87360.csv'
 
 # text terms
@@ -75,7 +65,7 @@ is_neopaed <- "none"
 include_term_tally_table <- "yes"
 
 # is incident level data required? "yes" or "no"
-incident_level_required<- "yes"
+incident_level_required<- "no"
 
 # create a list with an element containing for each table you would like 
 # first element is what you want as rows, second is what you want as columns
@@ -107,8 +97,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 # TODO: custom
 sampling_strategy <- "default"
 
-
 source("expand_categorical_filters.R")
-#start flow
-source("flow.R")
 
+
+subtitle <- "med_text_search"

@@ -61,6 +61,22 @@ lfpse_parsed <- reduce(lfpse_analysis_tables,
 # record time to keep track of query speeds
 tic_lfpse <- Sys.time()
 
+
+
+library(readxl)
+columns <- read_xlsx("data/deep_dive_columns_edited.xlsx") 
+
+if(text_search =="base"){
+  columns_chosen <- columns %>% filter(include == "base") %>% pull(QuestionId)
+}else if (text_search=="medication"){
+  columns_chosen <- columns %>% filter(include %in% c("base", "medication")) %>% pull(QuestionId)
+}else if (text_search=="device"){
+  columns_chosen <- columns %>% filter(include %in% c("base", "device")) %>% pull(QuestionId)
+}else if (text_search=="all"){
+  columns_chosen <- columns %>% filter(include %in% c("base", "medication", "device", "all")) %>% pull(QuestionId)
+}
+
+
 lfpse_filtered_categorical <- lfpse_parsed |>
   
   ### Apply categorical and date filters
@@ -72,7 +88,7 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   
   ### Select only relevant columns- use the lookup but do not rename at this step
   #to use additional columns, add them to column_selection_lookups.R
-  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days)|> #P004_days needs to be included but is not a named column due to DQ issues
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days, any_of(columns_chosen))|> #P004_days needs to be included but is not a named column due to DQ issues
 
   ### Generate additional columns (grouping by Reference)
 
@@ -141,14 +157,16 @@ message(glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)}
 
 message(glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
 
+
+tic_lfpse_text <- Sys.time()
+
 # text filters 
 if (sum(!is.na(text_terms))>0) {
   message(glue("Running {dataset} text search..."))
 
   #A002, DMD002, DMD004 may need to be removed if adding noise to a non medication-related request
   lfpse_filtered_text_precursor<- lfpse_filtered_categorical |>
-    mutate(concat_col=paste(F001, AC001, OT003, A008_Other, A008, A002, DMD002, DMD004,
-                            sep=" "))
+    unite(concat_col,all_of(columns_chosen), sep=" ", remove= FALSE)
   
   groups <- names(text_terms)
   for (group in groups) {
@@ -171,6 +189,13 @@ if (sum(!is.na(text_terms))>0) {
   message("- No text terms supplied. Skipping text search...")
   lfpse_filtered_text <- lfpse_filtered_categorical
 }
+
+toc_lfpse_text <- Sys.time()
+
+time_diff_lfpse_text <- toc_lfpse_text - tic_lfpse_text
+
+message(glue("Text search {dataset} : {round(time_diff_lfpse_text[[1]], 2)} {attr(time_diff_lfpse_text, 'units')}"))
+message(glue("- {dataset} text filters retrieved {format(nrow(lfpse_filtered_text), big.mark = ',')} incidents."))
 
 # check whether the text search generated results
 if (nrow(lfpse_filtered_text) != 0) {
