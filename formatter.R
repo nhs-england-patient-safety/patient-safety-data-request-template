@@ -106,7 +106,7 @@ metadata_answers <- c(
   "",
   "Notes:",
   "'%' represents a boundary",
-  "'~' represents an optional space that can be filled by any character",
+  "'~' represents an optional space or punctuation mark",
   "",
   is_neopaed)
 
