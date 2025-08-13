@@ -96,31 +96,57 @@ if (sum(!is.na(text_terms))>0) {
 # check whether the text search generated results 
 if(nrow(steis_filtered_text) != 0){
   
+  if (sampling_strategy == "FOI") {
+    message("- Extracting a sample of 30 incidents for redaction...")
+    
+    set.seed(123)
+    steis_sampled <- steis_filtered_text |>
+      sample_n(min(n(), 30))
+    
+  } else if (sampling_strategy == "none") {
+    
+    message("- Skipping sampling...")
+    steis_sampled <- steis_filtered_text
+    
+  } else if (sampling_strategy == "default") {
+    
+    message("- Skipping sampling...")
+    steis_sampled <- steis_filtered_text
+  }
+  
   # columns for release ####
   if(cols_to_extract == 'all'){
-    steis_for_release <- steis_filtered_text
+    steis_for_release_unsampled_pt_level <- steis_filtered_text
+    steis_for_release_sampled_pt_level <- steis_sampled
+    steis_for_release_unsampled_incident_level<- steis_filtered_text
+    steis_for_release_sampled_incident_level <- steis_sampled
+
   } else if (cols_to_extract == 'default'){
-    steis_for_release <- steis_filtered_text |>
+    
+    #create patient level table from sampled dataframe and rename columns - this is for data tab
+    steis_for_release_sampled_incident_level <- steis_sampled |>
       # select columns to be released and rename using lookup
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
- 
+    
     #create patient level table from unsampled dataframe and rename columns - this is for data tab
-    steis_for_release_sampled_incident_level <- steis_for_release 
-    #create patient level table from unsampled dataframe and rename columns - this is for data tab
-    steis_for_release_unsampled_incident_level <- steis_for_release 
-     
-
-    #note: below is very similar to incident level dataframe as steis is already one row per incident
-    #create incident level table from dataframe and rename columns - this is for summary tab
-    steis_for_release_unsampled_pt_level<- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+    steis_for_release_unsampled_incident_level <- steis_filtered_text |>
+      # select columns to be released and rename using lookup
+      select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
+    
     
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
-    steis_for_release_sampled_pt_level <- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+    steis_for_release_unsampled_pt_level<- steis_filtered_text |>
+      # select columns to be released and rename using lookup
+      select(any_of(rename_lookup[["STEIS"]]), starts_with("group_")) |>
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
-   
+    #note: below is very similar to incident level dataframe as steis is already one row per incident
+    #create incident level table from dataframe and rename columns - this is for summary tab
+    steis_for_release_sampled_pt_level <- steis_sampled |>
+      # select columns to be released and rename using lookup
+      select(any_of(rename_lookup[["STEIS"]]), starts_with("group_")) |>
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
   }
   
   message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_incident_level)} unsampled incidents"))
@@ -133,4 +159,4 @@ if(nrow(steis_filtered_text) != 0){
   message(glue('Moving on...'))
 }
 
-source('formatter.R')
+ source('formatter.R')
