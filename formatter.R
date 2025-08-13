@@ -72,7 +72,7 @@ date_type_text <-
 nrls_caveat <-
   if(search_nrls == T & ("2024-06-30" <= end_date)){
     ' (The NRLS was decommissioned on 30 June 2024)'
-  } if(search_nrls == T & ("2024-06-30" >= end_date)) {
+  } else if(search_nrls == T & ("2024-06-30" >= end_date)) {
     " "
   } else if (search_nrls == F){
     " "

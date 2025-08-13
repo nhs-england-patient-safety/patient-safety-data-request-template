@@ -103,7 +103,7 @@ if(nrow(steis_filtered_text) != 0){
     steis_sampled <- steis_filtered_text |>
       sample_n(min(n(), 30))
     
-  } if (sampling_strategy == "none") {
+  } else if (sampling_strategy == "none") {
     
     message("- Skipping sampling...")
     steis_sampled <- steis_filtered_text
@@ -159,4 +159,4 @@ if(nrow(steis_filtered_text) != 0){
   message(glue('Moving on...'))
 }
 
-source('formatter.R')
+ source('formatter.R')

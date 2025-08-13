@@ -12,14 +12,14 @@ write_to_sp <- T
 
 # datasets to be searched (T/F)
 search_nrls <- T
-search_lfpse <- T
-search_steis <- T
+search_lfpse <- F
+search_steis <- F
 
 
 # date filter (type is occurring/reported)
 
 start_date <- "2023-01-01"
-end_date <- "2024-12-31"
+end_date <- "2025-12-31"
 
 date_type <- "occurring"
 
