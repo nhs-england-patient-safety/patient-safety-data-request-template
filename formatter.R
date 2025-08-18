@@ -68,6 +68,16 @@ date_type_text <-
     'reported as occurring'
   }
 
+# Adding in NRLS caveat
+nrls_caveat <-
+  if(search_nrls == T & ("2024-06-30" <= end_date)){
+    ' (The NRLS was decommissioned on 30 June 2024)'
+  } else if(search_nrls == T & ("2024-06-30" >= end_date)) {
+    " "
+  } else if (search_nrls == F){
+    " "
+  }
+
 date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
 
 
@@ -90,7 +100,7 @@ metadata_answers <- c(
   "",
   extraction_date,
   "",
-  date_range,
+  paste(date_range, nrls_caveat),
   "",
   expanded_categorical_filter_nrls,
   "",
