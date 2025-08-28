@@ -116,11 +116,15 @@ lfpse_filtered_categorical <- lfpse_parsed |>
                                             OT001_min==2 ~ "Severe physical harm",
                                             OT001_min==3 ~ "Moderate physical harm",
                                             OT001_min==4 ~ "Low physical harm",
-                                            OT001_min==5 ~ "No physical harm"),
+                                            OT001_min==5 ~ "No physical harm",
+                                            is.na(npatient) ~ "Not applicable",
+                                            .default = "Harm level missing"),
          max_psychological_harm_level= case_when(OT002_min==1 ~ "Severe psychological harm",
                                                  OT002_min==2 ~ "Moderate psychological harm",
                                                  OT002_min==3 ~ "Low psychological harm",
-                                                 OT002_min==4 ~ "No psychological harm")
+                                                 OT002_min==4 ~ "No psychological harm",  
+                                                 is.na(npatient) ~ "Not applicable",
+                                                 .default = "Harm level missing")
   ) |>
   ### Remove columns that are not required
   select(-OT001_min,- OT002_min, -OT002_min_plus_one,#remove helper columns
@@ -330,50 +334,59 @@ if (nrow(lfpse_filtered_text) != 0) {
       lfpse_sampled <- lfpse_neopaed
     }
    
-  #create incident level table from unsampled dataframe and rename columns - this is for summary tab
-  lfpse_for_release_unsampled_incident_level <-  lfpse_neopaed  |>
+  lfpse_neopaed <-  lfpse_neopaed |>
     # rename columns
-    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-    # remove columns that contain patient specific info (for summary tables)
-    select(-any_of(c("Patient no.",
-                     "OT001 - Physical harm",
-                     "OT002 - Psychological harm",
-                     "P004 - Age in days", 
-                     "P007 - Age Range",
-                     "OT003 - What was the clinical outcome for the patient?"
-                     ))) |> 
-    # get distinct References, so only one row per incident
-    distinct(Reference, .keep_all = TRUE)
+    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     
-  #create incident level table from sampled dataframe and rename columns - this is for summary tab
-  lfpse_for_release_sampled_incident_level <-  lfpse_sampled |>
+  lfpse_sampled <-  lfpse_sampled |>
     # rename columns
-    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-    # remove columns that contain patient specific info (for summary tables)
-    select(-any_of(c("Patient no.",
-                     "OT001 - Physical harm",
-                     "OT002 - Psychological harm",
-                     "P004 - Age in days", 
-                     "P007 - Age Range",
-                     "OT003 - What was the clinical outcome for the patient?"
-    ))) |> 
-    # get distinct References, so only one row per incident
-    distinct(Reference, .keep_all = TRUE)
-  
-  #create patient level table from sampled dataframe and rename columns - this is for data tab
+    select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
+    
+  #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_sampled_pt_level <-  lfpse_sampled  |> 
-      #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) |>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
-    #create patient level table from sampled dataframe and rename columns - this is for data tab
+    #create patient level table from sampled dataframe and remove unnecessary columns - this is for data tab
     lfpse_for_release_unsampled_pt_level <-  lfpse_neopaed  |> 
-      #rename columns using lookup
-      select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_"))|>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
-    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_incident_level)} unsampled incidents"))
-    message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_incident_level)} sampled incidents."))
+    
+    lfpse_for_summary_table_unsampled<- lfpse_neopaed  
+
+    lfpse_for_summary_table_sampled<- lfpse_sampled  
+    
+    if (summary_tables_incident_or_patient_level=="incident"){
+
+      lfpse_for_summary_table_unsampled<- lfpse_for_summary_table_unsampled |>
+      # remove columns that contain patient specific info (for summary tables)
+      select(-any_of(c("Patient no.",
+                       "OT001 - Physical harm",
+                       "OT002 - Psychological harm",
+                       "P004 - Age in days", 
+                       "P007 - Age Range",
+                       "OT003 - What was the clinical outcome for the patient?"
+      ))) |> 
+        # get distinct References, so only one row per incident
+        distinct(Reference, .keep_all = TRUE)
+      
+      
+      lfpse_for_summary_table_sampled<- lfpse_for_summary_table_sampled |>
+        # remove columns that contain patient specific info (for summary tables)
+        select(-any_of(c("Patient no.",
+                         "OT001 - Physical harm",
+                         "OT002 - Psychological harm",
+                         "P004 - Age in days", 
+                         "P007 - Age Range",
+                         "OT003 - What was the clinical outcome for the patient?"
+        ))) |> 
+        # get distinct References, so only one row per incident
+        distinct(Reference, .keep_all = TRUE)
+      
+      
+    }
+    
+    message(glue("- Final {dataset} dataset for creating summary table contains {nrow(lfpse_for_summary_table_unsampled)} unsampled incidents ({summary_tables_incident_or_patient_level} level)"))
+    message(glue("- Final {dataset} dataset for creating summary table contains {nrow(lfpse_for_summary_table_sampled)} sampled incidents  ({summary_tables_incident_or_patient_level} level)"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_sampled_pt_level)} sampled incidents (pt level)"))
     message(glue("- Final {dataset} dataset contains {nrow(lfpse_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
  

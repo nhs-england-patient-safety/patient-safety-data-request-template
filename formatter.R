@@ -1,7 +1,7 @@
-file_list <- apropos('for_release_unsampled_incident_level')
+db_list <- apropos('_for_summary_table_unsampled')
 
 #there's no need to carry on if there are no objects for release
-if(is_empty(file_list)){
+if(is_empty(db_list)){
   stop("There's no data to write in Excel")
 }
 
@@ -53,7 +53,7 @@ metadata <- c(
 
 ref_no <- substr(title, 5, 8)
 
-datasets_used <- file_list |>
+datasets_used <- db_list |>
   str_extract("^([^_])+") |> 
   toupper() |> 
   str_replace("STEIS", "StEIS") |> 
@@ -205,12 +205,12 @@ addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4
 
 # Add worksheets ----------------------------------------------------------
 
-#Loop through each of the databases (using the "for_release_unsampled_incident_level" objects)
+#Loop through each of the databases (using the "_for_summary_table_unsampled" objects)
 # We will create a sheet with the summary tables for this database
 # If required, also add an incident data sheet
 # Each sheet will have a header section, created by calling add_header_section()
 # add_summary_table_to_sheet() or add_data_table_to_sheet() will add data or summary tables to the sheet as needed
-for (i in file_list) {
+for (i in db_list) {
 
   #get database name from i
   database_name <- toupper(str_split_i(i, "_", 1))
@@ -226,11 +226,10 @@ for (i in file_list) {
   summary_sheet_name <-  str_glue("{sheet_base_name} - Summary")
 
   #use the database name to get the data required to make summary tables (both sampled and unsampled)
-  df_unsampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_incident_level"))
-  df_sampled_incident_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_incident_level"))
+  df_for_summary_unsampled <- get(str_glue("{tolower(database_name)}_for_summary_table_unsampled"))
+  df_for_summary_sampled <- get(str_glue("{tolower(database_name)}_for_summary_table_sampled"))
 
   #use the database name to get the list of tables to create (created in params file)
-  #We use incident level for the summary tables. We have aggregated or removed the patient level incidents to allow us to count by incident.
   list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
     
   #add a worksheet for the summary tables  
@@ -244,19 +243,20 @@ for (i in file_list) {
                                         database_name, 
                                         sheet = summary_sheet_name,
                                         summary_sheet= TRUE,
-                                        number_of_rows_sampled = nrow(df_sampled_incident_level),
-                                        number_of_rows_unsampled = nrow(df_unsampled_incident_level))
+                                        number_of_rows_sampled = nrow(df_for_summary_sampled),
+                                        number_of_rows_unsampled = nrow(df_for_summary_unsampled),
+                                        summary_tables_incident_or_patient_level =summary_tables_incident_or_patient_level)
     
     # loop through list, to create required tables, and add them to the sheet
     for (variables_to_tabulate_by_list in list_of_tables_to_create) {
       
       #create summary table for given variables (unsampled data)
-      summary_table_unsampled<- create_summary_table(df_unsampled_incident_level,
+      summary_table_unsampled<- create_summary_table(df_for_summary_unsampled,
                                                      variables_to_tabulate_by_list, 
                                                      database_name)
       
       #add headers for sampled/unsampled tables where sampling took place
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
         table_start_row <- add_text_to_summary_sheets(wb, 
                                                       sheet = summary_sheet_name,
                                                       content_start_row = table_start_row,
@@ -272,12 +272,12 @@ for (i in file_list) {
       
       
       #if the sampled and unsampled data have different lengths, then create and add a summary table for the sampled data
-      if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+      if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
       
         message("Data has been sampled. Printing summary tables for both sampled and unsampled data")
         
         #create summary table for given variables (sampled data)
-        summary_table_sampled<- create_summary_table(df_sampled_incident_level,
+        summary_table_sampled<- create_summary_table(df_for_summary_sampled,
                                                      variables_to_tabulate_by_list, 
                                                      database_name)
         
@@ -306,11 +306,11 @@ for (i in file_list) {
                                                   )
     
     # create unsampled group tally table
-    group_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+    group_tally_table_unsampled <- create_term_tally_table(df_for_summary_unsampled, 
                                                            cols_to_use = "group_columns")
     
     #add headers for sampled/unsampled tables if needed
-    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
+    if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
       table_start_row <- add_text_to_summary_sheets(wb, 
                                                     sheet = summary_sheet_name,
                                                     content_start_row = table_start_row,
@@ -322,20 +322,18 @@ for (i in file_list) {
                                sheet = summary_sheet_name,
                                group_tally_table_unsampled,
                                table_start_row,
-                               table_start_col = 1,
-                               Total_row = FALSE)
+                               table_start_col = 1)
     
     #if the sampled and unsampled data have different lengths, then repeat for sampled data
-    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-      group_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+    if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
+      group_tally_table_sampled <- create_term_tally_table(df_for_summary_sampled, 
                                                            cols_to_use = "group_columns")
       add_summary_table_to_sheet(wb,
                                  sheet = summary_sheet_name,
                                  group_tally_table_sampled, 
                                  table_start_row,
                                  #this is printed to the right of the unsampled dataframe
-                                 table_start_col = ncol(group_tally_table_unsampled)+3,
-                                 Total_row = FALSE)
+                                 table_start_col = ncol(group_tally_table_unsampled)+3)
     }
     
     # increment start row to allow next table/content to be further down on page
@@ -343,7 +341,7 @@ for (i in file_list) {
     
 
     # create unsampled term tally table
-    term_tally_table_unsampled <- create_term_tally_table(df_unsampled_incident_level, 
+    term_tally_table_unsampled <- create_term_tally_table(df_for_summary_unsampled, 
                                                           cols_to_use = "term_columns")
     
     # add this table to the summary sheet
@@ -351,20 +349,18 @@ for (i in file_list) {
                                sheet = summary_sheet_name,
                                term_tally_table_unsampled,
                                table_start_row,
-                               table_start_col = 1,
-                               Total_row = FALSE)
+                               table_start_col = 1)
     
     #if the sampled and unsampled data have different lengths, then repeat sampled data
-    if (nrow(df_unsampled_incident_level)!=nrow(df_sampled_incident_level)){
-      term_tally_table_sampled <- create_term_tally_table(df_sampled_incident_level, 
+    if (nrow(df_for_summary_unsampled)!=nrow(df_for_summary_sampled)){
+      term_tally_table_sampled <- create_term_tally_table(df_for_summary_sampled, 
                                                           cols_to_use = "term_columns")
       add_summary_table_to_sheet(wb,
                                  sheet = summary_sheet_name,
                                  term_tally_table_sampled, 
                                  table_start_row,
                                  #this is printed to the right of the unsampled dataframe
-                                 table_start_col = ncol(term_tally_table_unsampled)+3,
-                                 Total_row = FALSE)
+                                 table_start_col = ncol(term_tally_table_unsampled)+3)
     }
     
     # increment start row to allow next table/content to be further down on page
@@ -395,7 +391,8 @@ for (i in file_list) {
                                             sheet= data_sheet_name,
                                             summary_sheet = FALSE,
                                             number_of_rows_sampled = nrow(df_sampled_pt_level),
-                                            number_of_rows_unsampled = nrow(df_unsampled_pt_level))
+                                            number_of_rows_unsampled = nrow(df_unsampled_pt_level),
+                                            summary_tables_incident_or_patient_level =summary_tables_incident_or_patient_level)
       
       #add this incident data to the sheet, and add styling
       add_data_table_to_sheet(wb, 
