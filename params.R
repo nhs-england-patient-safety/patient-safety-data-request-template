@@ -1,11 +1,3 @@
-library(tidyverse)
-library(dbplyr)
-library(janitor)
-library(here)
-library(openxlsx)
-library(glue)
-library(Microsoft365R)
-library(zoo)
 
 # write output (T/F)
 write_to_sp <- T
@@ -17,22 +9,11 @@ search_steis <- T
 
 
 # date filter (type is occurring/reported)
-
 start_date <- "2023-01-01"
 end_date <- "2024-12-31"
-
 date_type <- "occurring"
 
-
-# connect to (relevant) data bases and bring corresponding look ups 
-source("connections.R")
-
-#source helper files
-source("functions.R") 
-source("column_selection_lookups.R") # contains column names to be extracted
-source("styles.R") #contains styles used by openxlsx
-source("neopaeds.R") #contains search terms used to categorise incidents as neonate/paediatric
-
+source("R/setup.R")
 
 # TODO: cols to extract (all/default)
 cols_to_extract <- "default"
@@ -107,7 +88,7 @@ summary_tables_incident_or_patient_level <- "patient"
 sampling_strategy <- "default"
 
 
-source("expand_categorical_filters.R")
+source("R/utils/expand_categorical_filters.R")
 #start flow
-source("flow.R")
+source("R/flow.R")
 

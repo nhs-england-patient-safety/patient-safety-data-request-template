@@ -133,4 +133,4 @@ if(nrow(steis_filtered_text) != 0){
   message(glue('Moving on...'))
 }
 
-source('formatter.R')
+source('R/output/formatter.R')
