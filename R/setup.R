@@ -23,3 +23,12 @@ source("R/config/styles.R")
 source("R/config/neopaeds.R")
 
 message("Source code loaded successfully.")
+
+message("Loading orchestrator...")
+
+source("R/orchestrator.R")
+
+message("\n=== All modules loaded successfully ===\n")
+
+
+
