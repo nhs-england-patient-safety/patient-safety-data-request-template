@@ -97,19 +97,19 @@ run_data_request <- function(
   message("========================================\n")
   
   # return summary of what was created
-  file_list <- apropos('for_release_unsampled_incident_level')
-  
+  file_list <- apropos('for_release_sampled')
+
   if (length(file_list) == 0) {
     message("Warning: No output datasets created")
     return(invisible(NULL))
   }
-  
+
   summary <- tibble(
     database = str_to_upper(str_extract(file_list, "^[^_]+")),
     n_incidents = sapply(file_list, function(x) nrow(get(x)))
   )
-  
+
   print(summary)
-  
+
   return(invisible(summary))
 }
