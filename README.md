@@ -4,6 +4,8 @@ Template for extracting data from the national patient safety systems in England
 
 ## Instructions:
 
+-   Setup renv using `install.packages("renv")` (if not installed) and then  `renv::restore()` (for guidance about using renv, please check the Patient Safety Analysis Wiki).
+
 -   Set the search parameters in the params file.
 
 -   Source the params file.This will source each relevant script automatically.
