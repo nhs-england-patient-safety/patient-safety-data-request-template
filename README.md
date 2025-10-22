@@ -6,13 +6,13 @@ Template for extracting data from the national patient safety systems in England
 
 -   Setup renv using `install.packages("renv")` (if not installed) and then run `renv::init()` and select "Restore the project from the lockfile". This will setup renv and install all packages from the lockfile. For guidance about using renv, please check the Patient Safety Analysis Wiki.
 
--   Set the search parameters in the params file.
+-   Set the search parameters in the parameters (`params.qmd`) notebook.
 
--   Source the params file.This will source each relevant script automatically.
+-   Source the pipeline from the parameters notebook using either `Ctrl + Shift + S` or select `Code` --> `Source`. This will execute the data request pipeline.
 
 ## Scripts:
 
--   `params.R` - In this file, you set up the parameters for the search, including specifying which databases should be searched and any categorical and text filters.
+-   `params.qmd` - In this file, you set up the parameters for the search, including specifying which databases should be searched and any categorical and text filters.
 
 -   `connections.R` - This file is sourced by the params file. It connects to the the LFPSE and NRLS databases if required.
 
