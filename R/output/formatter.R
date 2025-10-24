@@ -1,7 +1,7 @@
-db_list <- apropos('_for_summary_table_unsampled')
+db_list <- utils::apropos('_for_summary_table_unsampled')
 
 #there's no need to carry on if there are no objects for release
-if(is_empty(db_list)){
+if(purrr::is_empty(db_list)){
   stop("There's no data to write in Excel")
 }
 
@@ -10,9 +10,9 @@ message('Formatting Excel workbook...')
 
 
 # Create a new workbook
-wb <- createWorkbook()
+wb <- openxlsx::createWorkbook()
 
-title <- basename(here())
+title <- basename(here::here())
 
 
 # Create cover sheet ------------------------------------------------------
@@ -20,7 +20,7 @@ title <- basename(here())
 cover_sheet_name <- "Search strategy"
 
 # To do - cover sheet
-addWorksheet(wb, cover_sheet_name , gridLines = FALSE)
+openxlsx::addWorksheet(wb, cover_sheet_name , gridLines = FALSE)
 
 metadata <- c(
   "Reference:",
@@ -54,9 +54,9 @@ metadata <- c(
 ref_no <- substr(title, 5, 8)
 
 datasets_used <- db_list |>
-  str_extract("^([^_])+") |> 
+  stringr::str_extract("^([^_])+") |> 
   toupper() |> 
-  str_replace("STEIS", "StEIS") |> 
+  stringr::str_replace("STEIS", "StEIS") |> 
   paste(collapse = "; ")
 
 extraction_date <- format(Sys.Date(), "%d-%b-%y")
@@ -68,7 +68,7 @@ date_type_text <-
     'reported as occurring'
   }
 
-date_range <- glue('Incidents {date_type_text} between {format(as.Date(start_date), "%d-%b-%y")} and {format(as.Date(end_date), "%d-%b-%y")}')
+date_range <- glue::glue('Incidents {date_type_text} between {format(zoo::as.Date(start_date), "%d-%b-%y")} and {format(zoo::as.Date(end_date), "%d-%b-%y")}')
 
 
 if(sum(!is.na(text_terms)) > 0) {
@@ -110,18 +110,18 @@ metadata_answers <- c(
   "",
   is_neopaed)
 
-addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
-addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
-addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
-writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
-writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
+openxlsx::addStyle(wb, "Search strategy", textStyle, rows = 2:50, cols = 2)
+openxlsx::addStyle(wb, "Search strategy", textStyle, rows = 18, cols = 5)
+openxlsx::addStyle(wb, "Search strategy", textStyle, rows = 22, cols = 5)
+openxlsx::writeData(wb, "Search strategy", metadata, startRow = 2, startCol = 2)
+openxlsx::writeData(wb, "Search strategy", metadata_answers, startRow = 2, startCol = 5)
 
 
 neopaed_logic<-c()
 or_vector<-c()
 
 if (is_neopaed != "none"){
-  writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
+  openxlsx::writeData(wb, "Search strategy", "Neopaed logic:", startRow = 28, startCol = 2)
   
 }
 
@@ -131,14 +131,14 @@ if (is_neopaed %in% c("either","neonate")){
     c(neopaed_logic,
       "Neonate logic:",
       "NRLS:",
-      str_glue("Neonate by age: Age is between 0 and 28 days"),
-      str_glue("Neonate by specialty: Specialty is Neonatology"),
-      str_glue("Neonate by text: Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      stringr::str_glue("Neonate by age: Age is between 0 and 28 days"),
+      stringr::str_glue("Neonate by specialty: Specialty is Neonatology"),
+      stringr::str_glue("Neonate by text: Specialty is 'Obstetrics and gynaecology' or PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(neonatal_terms)}"),
       "",
       "LFPSE:",
-      str_glue("Neonate by age: Age (or age category) is between 0 and 28 days"),
-      str_glue("Neonate by specialty: Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
-      str_glue("Neonate by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
+      stringr::str_glue("Neonate by age: Age (or age category) is between 0 and 28 days"),
+      stringr::str_glue("Neonate by specialty: Specialty contains {make_text_terms_pretty(neonatal_specialty_terms)}"),
+      stringr::str_glue("Neonate by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(neonatal_terms)}"),
       "",
       ""
       )
@@ -165,14 +165,14 @@ if (is_neopaed %in% c("either","paed")){
     c(neopaed_logic,   
       "Paediatric logic:",
       "NRLS:",
-      str_glue("Paediatric by age: Age is between 28 days and 18 years"),
-      str_glue("Paediatric by specialty: Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
-      str_glue("Paediatric by text: PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
+      stringr::str_glue("Paediatric by age: Age is between 28 days and 18 years"),
+      stringr::str_glue("Paediatric by specialty: Specialty is 'Child and adolescent mental health' (with unknown age), 'Community paediatrics' or 'Paedodontics'"),
+      stringr::str_glue("Paediatric by text: PD04 is 'A paediatrics specialty' or PD20 is 'Yes' and text contains {make_text_terms_pretty(paediatric_terms)}"),
       "",
       "LFPSE:",
-      str_glue("Paediatric by age: Age (or age category) is  between 28 days and 18 years"),
-      str_glue("Paediatric by specialty: Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
-      str_glue("Paediatric by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
+      stringr::str_glue("Paediatric by age: Age (or age category) is  between 28 days and 18 years"),
+      stringr::str_glue("Paediatric by specialty: Specialty contains {make_text_terms_pretty(paediatric_specialty_terms)}"),
+      stringr::str_glue("Paediatric by text:  Specialty does not contain {make_text_terms_pretty(adult_specialty_terms)} and text contains {make_text_terms_pretty(paediatric_terms)}")
 )
 
   
@@ -192,12 +192,12 @@ if (is_neopaed %in% c("either","paed")){
 }
 
 
-writeData(wb, "Search strategy", neopaed_logic, startRow = 28, startCol = 5)
-writeData(wb, "Search strategy", or_vector, startRow = 28, startCol = 4)
+openxlsx::writeData(wb, "Search strategy", neopaed_logic, startRow = 28, startCol = 5)
+openxlsx::writeData(wb, "Search strategy", or_vector, startRow = 28, startCol = 4)
 
-addStyle(wb, "Search strategy", textStyle, rows = 28, cols = 5)
-addStyle(wb, "Search strategy", textStyle, rows = 40, cols = 5)
-addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4)
+openxlsx::addStyle(wb, "Search strategy", textStyle, rows = 28, cols = 5)
+openxlsx::addStyle(wb, "Search strategy", textStyle, rows = 40, cols = 5)
+openxlsx::addStyle(wb, "Search strategy", openxlsx::createStyle(halign = 'right'), rows=1:50, cols=4)
 
 
 
@@ -213,27 +213,27 @@ addStyle(wb, "Search strategy", createStyle(halign = 'right'), rows=1:50, cols=4
 for (i in db_list) {
 
   #get database name from i
-  database_name <- toupper(str_split_i(i, "_", 1))
+  database_name <- toupper(stringr::str_split_i(i, "_", 1))
 
   # same as database name apart from capitals in StEIS
   sheet_base_name <- database_name |> 
-    str_replace("STEIS", "StEIS") 
+    stringr::str_replace("STEIS", "StEIS") 
 
   
   ## CREATE SUMMARY SHEET
     
   #create sheet name using sheet base name 
-  summary_sheet_name <-  str_glue("{sheet_base_name} - Summary")
+  summary_sheet_name <-  stringr::str_glue("{sheet_base_name} - Summary")
 
   #use the database name to get the data required to make summary tables (both sampled and unsampled)
-  df_for_summary_unsampled <- get(str_glue("{tolower(database_name)}_for_summary_table_unsampled"))
-  df_for_summary_sampled <- get(str_glue("{tolower(database_name)}_for_summary_table_sampled"))
+  df_for_summary_unsampled <- get(stringr::str_glue("{tolower(database_name)}_for_summary_table_unsampled"))
+  df_for_summary_sampled <- get(stringr::str_glue("{tolower(database_name)}_for_summary_table_sampled"))
 
   #use the database name to get the list of tables to create (created in params file)
-  list_of_tables_to_create <- get(str_glue("list_of_tables_to_create_{tolower(database_name)}"))
+  list_of_tables_to_create <- get(stringr::str_glue("list_of_tables_to_create_{tolower(database_name)}"))
     
   #add a worksheet for the summary tables  
-  addWorksheet(wb, 
+  openxlsx::addWorksheet(wb, 
                sheet = summary_sheet_name, 
                gridLines = FALSE) 
     
@@ -374,13 +374,13 @@ for (i in db_list) {
       
       #We use patient level for the incidents. LFPSE contains patient level columns which we want to print.
       #use the database name to get the data required to make the data table (both sampled and unsampled)
-      df_sampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_sampled_pt_level"))
-      df_unsampled_pt_level <- get(str_glue("{tolower(database_name)}_for_release_unsampled_pt_level"))
+      df_sampled_pt_level <- get(stringr::str_glue("{tolower(database_name)}_for_release_sampled_pt_level"))
+      df_unsampled_pt_level <- get(stringr::str_glue("{tolower(database_name)}_for_release_unsampled_pt_level"))
       
-      data_sheet_name<- str_glue("{sheet_base_name} - Data")
+      data_sheet_name<- stringr::str_glue("{sheet_base_name} - Data")
       
       #add a worksheet for the data     
-      addWorksheet(wb, 
+      openxlsx::addWorksheet(wb, 
                    sheet = data_sheet_name, 
                    gridLines = FALSE)
       
@@ -424,12 +424,12 @@ workbook_title <- paste(title,
 
 tf <- tempfile(fileext = ".xlsx")
 
-saveWorkbook(wb, 
+openxlsx::saveWorkbook(wb, 
              file = tf,
              overwrite = T)
 
 if (write_to_sp) {
   source('R/output/microsoft365R.R')
 } else {
-  saveWorkbook(wb, file=str_glue("output/{workbook_title}"))
+  openxlsx::saveWorkbook(wb, file=stringr::str_glue("output/{workbook_title}"))
 }

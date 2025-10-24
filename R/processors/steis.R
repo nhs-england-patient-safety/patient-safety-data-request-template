@@ -1,44 +1,44 @@
 # steis
 dataset <- "StEIS"
-message(glue("Running {dataset} search..."))
+message(glue::glue("Running {dataset} search..."))
 
 if(steis_categorical == 0){
-  steis_categorical <- expr(1==1)
+  steis_categorical <- dplyr::expr(1==1)
 }
 
 # read data ####
 
-steis <- read_csv(here("data", steis_filename), show_col_types = F) |>
-  clean_names() |>
-  mutate_if(
+steis <- readr::read_csv(here::here("data", steis_filename), show_col_types = F) |>
+  janitor::clean_names() |>
+  dplyr::mutate_if(
     is.character,
     function(row) iconv(row, to = "UTF-8", sub = "")
   ) |>
-  mutate_if(is.character, ~ gsub("[^ -~]", "", .))
+  dplyr::mutate_if(is.character, ~ gsub("[^ -~]", "", .))
 
 # remove duplicates ####
 steis_deduped <- steis |>
-  separate_rows(modified_date, sep = ";") |>
-  arrange(log_no, desc(modified_date)) |>
-  distinct(log_no, .keep_all = T)
+  tidyr::separate_rows(modified_date, sep = ";") |>
+  dplyr::arrange(log_no, dplyr::desc(modified_date)) |>
+  dplyr::distinct(log_no, .keep_all = T)
 
 # parse columns ####
 steis_parsed <- steis_deduped |>
-  rename(occurred_date = date_of_incident,
+  dplyr::rename(occurred_date = date_of_incident,
          reported_date = created_on) |> 
-  mutate(occurred_date = as.character(dmy(occurred_date)),
-    reported_date = dmy_hms(reported_date),
-    reported_date = as.character(floor_date(reported_date, "days")),
-    year_reported_or_occurred = year(!!date_filter),
-    month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
+  dplyr::mutate(occurred_date = as.character(lubridate::dmy(occurred_date)),
+    reported_date = lubridate::dmy_hms(reported_date),
+    reported_date = as.character(lubridate::floor_date(reported_date, "days")),
+    year_reported_or_occurred = lubridate::year(!!date_filter),
+    month_reported_or_occurred = as.character(lubridate::month(!!date_filter, label = TRUE, abbr = TRUE)),
     #zoo package is used to create a year-month object because this will sort in the correct order when tabulated
     month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
-    financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
-                                                 (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
-                                                 paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
+    financial_year_reported_or_occurred = ifelse(lubridate::month(!!date_filter)>3, 
+                                                 (paste0(lubridate::year(!!date_filter), '/', lubridate::year(!!date_filter)+1)),
+                                                 paste0(lubridate::year(!!date_filter)-1,  '/', lubridate::year(!!date_filter))
     ),
-    patient_date_of_birth = dmy(patient_date_of_birth),
-    patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
+    patient_date_of_birth = lubridate::dmy(patient_date_of_birth),
+    patient_age_years = floor((patient_date_of_birth %--% occurred_date) / lubridate::years(1)),
     patient_age_months = ifelse(patient_age_years < 2,
                                 floor((patient_date_of_birth %--% occurred_date) / months(1)),
                                 NA
@@ -48,19 +48,19 @@ steis_parsed <- steis_deduped |>
 # categorical filters ####
 
 steis_filtered_categorical <- steis_parsed |>
-  filter(between(!! date_filter, start_date, end_date)) |>
-  filter(!!steis_categorical)
+  dplyr::filter(dplyr::between(!! date_filter, start_date, end_date)) |>
+  dplyr::filter(!!steis_categorical)
 
-message(glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
+message(glue::glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
 
-message(glue("- No sampling for StEIS since no harm grading."))
+message(glue::glue("- No sampling for StEIS since no harm grading."))
 
 # text filters ####
 if (sum(!is.na(text_terms))>0) {
-  message(glue("Running {dataset} text search..."))
+  message(glue::glue("Running {dataset} text search..."))
   
   steis_filtered_text_precursor<- steis_filtered_categorical |>
-    mutate(concat_col=paste(description_of_what_happened,
+    dplyr::mutate(concat_col=paste(description_of_what_happened,
                             immediate_action_taken,
                             key_findings,
                             how_will_lessons_be_disseminated_to_interested_parties,
@@ -74,20 +74,20 @@ if (sum(!is.na(text_terms))>0) {
     for (term in terms) {
       steis_filtered_text_precursor <- steis_filtered_text_precursor |>
         # create column for term match
-        mutate("{group}_term_{term}" := str_detect(concat_col, term))
+        dplyr::mutate("{group}_term_{term}" := stringr::str_detect(concat_col, term))
     }
     
     steis_filtered_text_precursor <- steis_filtered_text_precursor |>
       # create column for group match
-      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
+      dplyr::mutate("{group}" := rowSums(dplyr::across(dplyr::starts_with(group))) > 0)
   }
   
-  steis_filtered_text <- steis_filtered_text_precursor %>%
+  steis_filtered_text <- steis_filtered_text_precursor |>
     # apply text filter logic
-    filter(!!text_filter) %>%
-    select(-concat_col)
+    dplyr::filter(!!text_filter) |>
+    dplyr::select(-concat_col)
   
-  message(glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
+  message(glue::glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
 } else {
   message("- No text terms supplied. Skipping text search...")
   steis_filtered_text <- steis_filtered_categorical
@@ -102,7 +102,7 @@ if(nrow(steis_filtered_text) != 0){
   } else if (cols_to_extract == 'default'){
     steis_for_release <- steis_filtered_text |>
       # select columns to be released and rename using lookup
-      select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
+      dplyr::select(dplyr::any_of(rename_lookup[["STEIS"]]), dplyr::starts_with("group_"))
  
     #create patient level table from unsampled dataframe and rename columns - this is for data tab
     steis_for_summary_table_unsampled <- steis_for_release 
@@ -113,24 +113,24 @@ if(nrow(steis_filtered_text) != 0){
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_unsampled_pt_level<- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      dplyr::select(!c(dplyr::contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     #note: below is very similar to incident level dataframe as steis is already one row per incident
     #create incident level table from dataframe and rename columns - this is for summary tab
     steis_for_release_sampled_pt_level <- steis_for_release|>
-      select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+      dplyr::select(!c(dplyr::contains("_term_"), `Month`, `Year`, `Month - Year`))
     
    
   }
   
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_unsampled)} unsampled incidents"))
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_sampled)} sampled incidents."))
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
-  message(glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_unsampled)} unsampled incidents"))
+  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_sampled)} sampled incidents."))
+  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
+  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
   
 } else {
-  message(glue('**The search criteria has produced no results in {dataset}**'))
-  message(glue('Moving on...'))
+  message(glue::glue('**The search criteria has produced no results in {dataset}**'))
+  message(glue::glue('Moving on...'))
 }
 
 source('R/output/formatter.R')
