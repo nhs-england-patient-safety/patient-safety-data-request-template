@@ -1,3 +1,19 @@
+if (!requireNamespace("renv", quietly = TRUE)) {
+  stop("renv not installed. Install with: install.packages('renv')")
+}
+
+if (!dir.exists("renv/library") || length(list.files("renv/library")) == 0){
+  stop("renv library empty. Run renv::restore() first.")
+}
+
+library(tidyverse)
+library(dbplyr)
+library(janitor)
+library(here)
+library(openxlsx)
+library(glue)
+library(Microsoft365R)
+library(zoo)
 
 # write output (T/F)
 write_to_sp <- T
