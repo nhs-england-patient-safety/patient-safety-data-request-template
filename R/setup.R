@@ -1,18 +1,26 @@
 # R/setup.R
 # Load all dependencies and source code
 
-message("Loading packages...")
+if (!requireNamespace("renv", quietly = TRUE)) {
+  stop("renv not installed. Install with: install.packages('renv')")
+}
 
-library(tidyverse)
-library(dbplyr)
-library(janitor)
-library(here)
-library(openxlsx)
-library(glue)
-library(Microsoft365R)
-library(zoo)
+if (!dir.exists("renv/library") || length(list.files("renv/library")) == 0){
+  stop("renv library empty. Run renv::init() first.")
+}
 
-message("Packages loaded successfully.")
+# message("Loading packages...")
+
+# library(tidyverse)
+# library(dbplyr)
+# library(janitor)
+# library(here)
+# library(openxlsx)
+# library(glue)
+# library(Microsoft365R)
+# library(zoo)
+
+# message("Packages loaded successfully.")
 
 message("Loading source code...")
 
