@@ -13,24 +13,24 @@ if (search_nrls) {
                         )
   
   # reading categorical reference tables
-  sascodes <- dplyr::tbl(con_nrls, dbplyr::in_schema("art", "sascodes")) |>
-    dplyr::collect()
+  sascodes <- tbl(con_nrls, in_schema("art", "sascodes")) |>
+    collect()
   
   codes_ex_rm04 <- sascodes |>
     # fixing in03 lvl1 which is incorrect in the table
-    dplyr::mutate(OPTIONTEXT = stringr::str_replace_all(OPTIONTEXT, "Treatment  ", "Treatment ")) |>
-    dplyr::group_by(REFERENCECODE) |>
-    dplyr::mutate(
+    mutate(OPTIONTEXT = str_replace_all(OPTIONTEXT, "Treatment  ", "Treatment ")) |>
+    group_by(REFERENCECODE) |>
+    mutate(
       n_levels = max(DEPTH) + 1,
       col_name = ifelse(n_levels > 1,
                         paste0(REFERENCECODE, "_LVL", DEPTH + 1),
                         REFERENCECODE
       )
     ) |>
-    dplyr::ungroup() |>
-    dplyr::distinct(col_name, SASCODE, OPTIONTEXT) |>
+    ungroup() |>
+    distinct(col_name, SASCODE, OPTIONTEXT) |>
     # removing these vals which aren't required
-    dplyr::filter(!col_name %in% c(
+    filter(!col_name %in% c(
       "PD01-B",
       "DV08",
       "IN01-A-0",
@@ -51,7 +51,7 @@ if (search_nrls) {
     OPTIONTEXT = c("LRMS", "Comm - Pharmacy", "nww - eForm", "www - eForm", "OA - eForm", "GPOOH", "GP - eForm", "ASB")
   )
   
-  codes <- dplyr::bind_rows(codes_ex_rm04, codes_rm04)
+  codes <- bind_rows(codes_ex_rm04, codes_rm04)
   
   
   # download nrls colnames file, and save to data folder
@@ -60,8 +60,8 @@ if (search_nrls) {
   reslib <- site$get_drive("Restricted Library")
   reslib$download_file("NRLS/nrls lookup.xlsx",dest="Data/nrls_lookup_file.xlsx", overwrite = TRUE)
   
-  nrls_lookup<- openxlsx::read.xlsx("Data/nrls_lookup_file.xlsx") |>
-    dplyr::select(Code, Label)
+  nrls_lookup<- read.xlsx("Data/nrls_lookup_file.xlsx") |>
+    select(Code, Label)
   
   
   
@@ -79,8 +79,8 @@ if (search_lfpse) {
     )
     
     # reading categorical reference tables
-    QuestionReference <- dplyr::tbl(con_lfpse, "QuestionReference") |> dplyr::collect()
-    ResponseReference <- dplyr::tbl(con_lfpse, "ResponseReference") |> dplyr::collect()
+    QuestionReference <- tbl(con_lfpse, "QuestionReference") |> collect()
+    ResponseReference <- tbl(con_lfpse, "ResponseReference") |> collect()
     }
 
 

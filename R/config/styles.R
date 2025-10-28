@@ -1,7 +1,7 @@
 #This script stores the styles that we use to create the excel output file in formatter.R
 
 # Create text style
-textStyle <- openxlsx::createStyle(
+textStyle <- createStyle(
   fontSize = 11,
   fontName = "Arial",
   textDecoration = "bold",
@@ -10,7 +10,7 @@ textStyle <- openxlsx::createStyle(
 )
 
 # Create header style
-headerStyle <- openxlsx::createStyle(
+headerStyle <- createStyle(
   fontSize = 11,
   fontName = "Arial",
   border = "TopBottomLeftRight",
@@ -22,7 +22,7 @@ headerStyle <- openxlsx::createStyle(
 )
 
 # Create body style
-bodyStyle <- openxlsx::createStyle(
+bodyStyle <- createStyle(
   fontSize = 11,
   fontName = "Arial",
   border = "TopBottomLeftRight",
@@ -34,7 +34,7 @@ bodyStyle <- openxlsx::createStyle(
 
 
 # Create header style
-summaryTableTopBottomStyle<- openxlsx::createStyle(
+summaryTableTopBottomStyle<- createStyle(
   fontSize = 11,
   fontName = "Arial",
   border = "TopBottom",
@@ -48,7 +48,7 @@ summaryTableTopBottomStyle<- openxlsx::createStyle(
 
 
 # Create body style
-bodyStyleNoBorder <- openxlsx::createStyle(
+bodyStyleNoBorder <- createStyle(
   fontSize = 11,
   fontName = "Arial",
   wrapText = TRUE,
@@ -57,7 +57,7 @@ bodyStyleNoBorder <- openxlsx::createStyle(
   numFmt = "#,##0"
 )
 
-rowTitleStyle <- openxlsx::createStyle(
+rowTitleStyle <- createStyle(
   fontSize = 11,
   fontName = "Arial",
   wrapText = TRUE,

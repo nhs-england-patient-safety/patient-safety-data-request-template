@@ -67,9 +67,9 @@ run_data_request <- function(
   
   # create date filter
   date_filter <- if (date_type == 'occurring') {
-    dplyr::expr(occurred_date)
+    expr(occurred_date)
   } else if (date_type == 'reported') {
-    dplyr::expr(reported_date)
+    expr(reported_date)
   }
   assign("date_filter", date_filter, envir = .GlobalEnv)
   
@@ -97,19 +97,20 @@ run_data_request <- function(
   message("========================================\n")
   
   # return summary of what was created
-  file_list <- utils::apropos('for_release_sampled')
+  file_list <- apropos('for_release_sampled')
 
   if (length(file_list) == 0) {
     message("Warning: No output datasets created")
     return(invisible(NULL))
   }
 
-  summary <- dplyr::tibble(
-    database = stringr::str_to_upper(stringr::str_extract(file_list, "^[^_]+")),
+  summary <- tibble(
+    database = str_to_upper(str_extract(file_list, "^[^_]+")),
     n_incidents = sapply(file_list, function(x) nrow(get(x)))
   )
 
   print(summary)
 
   return(invisible(summary))
+  
 }

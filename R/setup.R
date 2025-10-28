@@ -9,18 +9,27 @@ if (!dir.exists("renv/library") || length(list.files("renv/library")) == 0){
   stop("renv library empty. Run renv::init() first.")
 }
 
-# message("Loading packages...")
+# load packages
+load_packages <- function(packages) {
+  message("Loading packages...")
 
-# library(tidyverse)
-# library(dbplyr)
-# library(janitor)
-# library(here)
-# library(openxlsx)
-# library(glue)
-# library(Microsoft365R)
-# library(zoo)
+  for (pkg in packages) {
+    suppressPackageStartupMessages(
+      library(pkg, character.only = TRUE, warn.conflicts = FALSE)
+    )
+  }
 
-# message("Packages loaded successfully.")
+  message(sprintf("Loaded %d packages", length(packages)))
+}
+
+# define required packages
+required_packages <- c(
+  "dplyr", "stringr", "dbplyr", "tidyr",
+  "lubridate", "here", "openxlsx"
+)
+
+# load packages quietly
+load_packages(required_packages)
 
 message("Loading source code...")
 
