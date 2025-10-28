@@ -9,8 +9,8 @@ eval: false
 Write output to SharePoint.
 
 ```{r}
-#this should be set to true during development
-write_to_sp <- FALSE
+#this should be set to false during development of the template, but true when working on requests
+write_to_sp <- TRUE
 ```
 
 Specify datasets to be searched.
