@@ -1,51 +1,127 @@
 # R/setup.R
-# Load all dependencies and source code
+# Project setup: check environment, load dependencies, source project files
 
-if (!requireNamespace("renv", quietly = TRUE)) {
-  stop("renv not installed. Install with: install.packages('renv')")
+# ==============================================================================
+# CHECK RENV ENVIRONMENT ----
+# ==============================================================================
+
+#' Check that renv is properly initialised 
+#' Ensures that all team members use the same package versions
+check_renv <- function() {
+  
+  # check if renv is installed
+  if (!requireNamespace("renv", quietly = TRUE)) {
+    stop(
+      "\n\n renv is not installed.\n",
+      " Install with: install.packages('renv')\n",
+      " Then run: renv::init()\n"
+    )
+  }
+  
+  # check if renv library exists and is populated
+  if (!dir.exists("renv/library")) {
+    stop(
+      "\n\n renv library directory not found. \n",
+      " Initialise renv with: renv::init()\n"
+    )
+  }
+  
+  if (length(list.files("renv/library")) == 0) {
+    stop(
+      "\n\n renv library is empty. \n",
+      " Restore packages with renv::init()\n"
+    )
+  }
+  
+  invisible(TRUE)
 }
 
-if (!dir.exists("renv/library") || length(list.files("renv/library")) == 0){
-  stop("renv library empty. Run renv::init() first.")
-}
+# run renv check first (before loading any packages)
+message("Checking renv environment...", appendLF = FALSE)
+check_renv()
+message("✓")
 
-# load packages
+# ==============================================================================
+# LOAD PACKAGES ----
+# ==============================================================================
+
+
+#' Load packages silently with error checking
+#' @param packages Character vector of package names
 load_packages <- function(packages) {
-  message("Loading packages...")
+  message("Loading packages...", appendLF = FALSE)
 
   for (pkg in packages) {
     suppressPackageStartupMessages(
       library(pkg, character.only = TRUE, warn.conflicts = FALSE)
     )
   }
-
+  message("✓")
   message(sprintf("Loaded %d packages", length(packages)))
 }
 
 # define required packages
 required_packages <- c(
-  "dplyr", "stringr", "dbplyr", "tidyr",
-  "lubridate", "here", "openxlsx"
+  # data wrangling
+  "dplyr", "stringr", "tidyr",
+  # database
+  "dbplyr", 
+  # dates
+  "lubridate", 
+  # file paths
+  "here", 
+  # excel output
+  "openxlsx"
 )
 
 # load packages quietly
 load_packages(required_packages)
 
-message("Loading source code...")
+# ==============================================================================
+# SOURCE PROJECT FILES ----
+# ==============================================================================
 
-source("R/config/connections.R")
-source("R/config/column_selection_lookups.R")
-source("R/utils/functions.R") 
-source("R/config/styles.R")
-source("R/config/neopaeds.R")
+#' Source R files 
+#' @param files Character vector of file paths
+#' @param label Character. Label for group of files
+source_files <- function(files, label) {
+  message("Loading ", label, "...", appendLF = FALSE)
+  
+  for (file in files) {
+    if (!file.exists(file)) {
+      stop(sprintf("\n\n Required file not found: %s\n", file))
+    }
+    source(file, local = FALSE)
+  }
+  message("✓")
+}
 
-message("Source code loaded successfully.")
+# configuration files
+source_files(
+  files = c(
+    "R/config/connections.R",
+    "R/config/column_selection_lookups.R",
+    "R/config/neopaeds.R",
+    "R/config/styles.R"
+  ),
+  label = "configuration"
+)
 
-message("Loading orchestrator...")
+# utility functions
+source_files(
+  files = c(
+    "R/utils/functions.R"
+  ),
+  label = "utilities"
+)
 
-source("R/orchestrator.R")
+# orchestrator
+source_files(
+  files = c(
+    "R/orchestrator.R"
+  ),
+  label = "orchestrator"
+)
 
-message("\n=== All modules loaded successfully ===\n")
 
-
-
+message("\n=== Setup complete ===\n")
