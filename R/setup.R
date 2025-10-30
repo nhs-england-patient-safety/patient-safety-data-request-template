@@ -6,7 +6,9 @@
 # ==============================================================================
 
 #' Check that renv is properly initialised 
+#' 
 #' Ensures that all team members use the same package versions
+
 check_renv <- function() {
   
   # check if renv is installed
@@ -47,6 +49,7 @@ message("✓")
 
 
 #' Load packages silently with error checking
+#' 
 #' @param packages Character vector of package names
 load_packages <- function(packages) {
   message("Loading packages...", appendLF = FALSE)
