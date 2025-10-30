@@ -1,6 +1,40 @@
 # R/orchestrator.R
 # Main execution function that orchestrates the data request process
 
+
+# ==============================================================================
+# MAIN ORCHESTRATOR FUNCTION ----
+# ==============================================================================
+
+#' Run a patient safety data request
+#' 
+#' This function coordinates the entire data extraction and reporting pipeline.
+#' It processes selected databases, applies filters, and generates Excel output.
+#' 
+#' @param search_nrls Logical. Search NRLS database?
+#' @param search_lfpse Logical. Search LFPSE database?
+#' @param search_steis Logical. Search StEIS database?
+#' @param start_date Character. Start date in "YYYY-MM-DD" format
+#' @param end_date Character. End date in "YYYY-MM-DD" format
+#' @param date_type Character. Either "occurring" or "reported"
+#' @param nrls_categorical Expression. NRLS categorical filter (use expr() or 0)
+#' @param lfpse_categorical Expression. LFPSE categorical filter (use expr() or 0)
+#' @param steis_categorical Expression. StEIS categorical filter (use expr() or 0)
+#' @param steis_filename Character. Name of StEIS CSV file in data/ folder
+#' @param text_terms Named list. Text search terms grouped by category
+#' @param text_filter Expression. Logic combining text term groups
+#' @param is_neopaed Character. One of "neonate", "paed", "either", or "none"
+#' @param sampling_strategy Character. One of "default", "FOI", or "none"
+#' @param include_term_tally_table Character. "yes" or "no"
+#' @param incident_level_required Character. "yes" or "no"
+#' @param write_to_sp Logical. Write to SharePoint?
+#' @param list_of_tables_to_create_nrls List. Table specifications for NRLS
+#' @param list_of_tables_to_create_lfpse List. Table specifications for LFPSE
+#' @param list_of_tables_to_create_steis List. Table specifications for StEIS
+#' @param summary_tables_incident_or_patient_level Character. One of "incident" or "patient"
+#' 
+#' @return Invisible list containing summary and results
+
 run_data_request <- function(
   # database selection
   search_nrls,
@@ -36,7 +70,8 @@ run_data_request <- function(
   # table specifications
   list_of_tables_to_create_nrls,
   list_of_tables_to_create_lfpse,
-  list_of_tables_to_create_steis
+  list_of_tables_to_create_steis,
+  summary_tables_incident_or_patient_level
 ) {
   
   message("========================================")
@@ -64,6 +99,7 @@ run_data_request <- function(
   assign("list_of_tables_to_create_nrls", list_of_tables_to_create_nrls, envir = .GlobalEnv)
   assign("list_of_tables_to_create_lfpse", list_of_tables_to_create_lfpse, envir = .GlobalEnv)
   assign("list_of_tables_to_create_steis", list_of_tables_to_create_steis, envir = .GlobalEnv)
+  assign("summary_tables_incident_or_patient_level", summary_tables_incident_or_patient_level, envir = .GlobalEnv)
   
   # create date filter
   date_filter <- if (date_type == 'occurring') {
@@ -74,9 +110,9 @@ run_data_request <- function(
   assign("date_filter", date_filter, envir = .GlobalEnv)
   
   # expand categorical filters for documentation
-  message("Translating categorical filters...")
+  message("Translating categorical filters...", appendLF = FALSE)
   source("R/utils/expand_categorical_filters.R")
-  message("Filters translated\n")
+  message("✓")
   
   # identify database search order
   if (search_nrls) {
@@ -89,7 +125,10 @@ run_data_request <- function(
     message("Starting with StEIS...\n")
     source("R/processors/steis.R")
   } else {
-    stop("No databases selected for searching")
+    stop(
+      "No databases selected for searching. Set at least one of search_nrls, ",
+      "search_lfpse, or search_steis to TRUE."
+      )
   }
   
   message("\n========================================")
@@ -97,8 +136,8 @@ run_data_request <- function(
   message("========================================\n")
   
   # return summary of what was created
-  file_list <- apropos('for_release_sampled')
-
+  file_list <- ls(envir = .GlobalEnv, pattern = "for_release")
+  
   if (length(file_list) == 0) {
     message("Warning: No output datasets created")
     return(invisible(NULL))
@@ -106,7 +145,7 @@ run_data_request <- function(
 
   summary <- tibble(
     database = str_to_upper(str_extract(file_list, "^[^_]+")),
-    n_incidents = sapply(file_list, function(x) nrow(get(x)))
+    n_incidents = sapply(file_list, function(x) nrow(get(x, envir = .GlobalEnv)))
   )
 
   print(summary)
