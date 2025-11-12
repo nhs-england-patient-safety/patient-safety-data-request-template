@@ -1,4 +1,5 @@
-# steis
+# R/processors/steis.R
+
 dataset <- "StEIS"
 message(glue::glue("Running {dataset} search..."))
 
@@ -6,8 +7,7 @@ if(steis_categorical == 0){
   steis_categorical <- expr(1==1)
 }
 
-# read data ####
-
+# read data
 steis <- readr::read_csv(here::here("data", steis_filename), show_col_types = F) |>
   janitor::clean_names() |>
   mutate_if(
@@ -16,121 +16,85 @@ steis <- readr::read_csv(here::here("data", steis_filename), show_col_types = F)
   ) |>
   mutate_if(is.character, ~ gsub("[^ -~]", "", .))
 
-# remove duplicates ####
+# remove duplicates
 steis_deduped <- steis |>
   separate_rows(modified_date, sep = ";") |>
   arrange(log_no, desc(modified_date)) |>
   distinct(log_no, .keep_all = T)
 
-# parse columns ####
+# parse columns
 steis_parsed <- steis_deduped |>
-  rename(occurred_date = date_of_incident,
-         reported_date = created_on) |> 
-  mutate(occurred_date = as.character(dmy(occurred_date)),
+  rename(
+    occurred_date = date_of_incident,
+    reported_date = created_on
+  ) |> 
+  mutate(
+    occurred_date = as.character(dmy(occurred_date)),
     reported_date = dmy_hms(reported_date),
     reported_date = as.character(floor_date(reported_date, "days")),
-    year_reported_or_occurred = year(!!date_filter),
-    month_reported_or_occurred = as.character(month(!!date_filter, label = TRUE, abbr = TRUE)),
-    #zoo package is used to create a year-month object because this will sort in the correct order when tabulated
-    month_year_reported_or_occurred = zoo::as.yearmon(!!date_filter),
-    financial_year_reported_or_occurred = ifelse(month(!!date_filter)>3, 
-                                                 (paste0(year(!!date_filter), '/', year(!!date_filter)+1)),
-                                                 paste0(year(!!date_filter)-1,  '/', year(!!date_filter))
-    ),
     patient_date_of_birth = dmy(patient_date_of_birth),
     patient_age_years = floor((patient_date_of_birth %--% occurred_date) / years(1)),
-    patient_age_months = ifelse(patient_age_years < 2,
-                                floor((patient_date_of_birth %--% occurred_date) / months(1)),
-                                NA
+    patient_age_months = ifelse(
+      patient_age_years < 2,
+      floor((patient_date_of_birth %--% occurred_date) / months(1)),
+      NA
     )
-  )
+  ) |>
+  # Generate date columns
+  add_date_columns(date_filter)
 
-# categorical filters ####
-
+# categorical filters
 steis_filtered_categorical <- steis_parsed |>
   filter(between(!! date_filter, start_date, end_date)) |>
   filter(!!steis_categorical)
 
 message(glue::glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
-
 message(glue::glue("- No sampling for StEIS since no harm grading."))
 
-# text filters ####
-if (sum(!is.na(text_terms))>0) {
-  message(glue::glue("Running {dataset} text search..."))
-  
-  steis_filtered_text_precursor<- steis_filtered_categorical |>
-    mutate(concat_col=paste(description_of_what_happened,
-                            immediate_action_taken,
-                            key_findings,
-                            how_will_lessons_be_disseminated_to_interested_parties,
-                            type_of_incident_other, sep=" "))
-  
-  # iterate through each group
-  groups <- names(text_terms)
-  for (group in groups) {
-    # iterate through each term
-    terms <- text_terms[[group]]
-    for (term in terms) {
-      steis_filtered_text_precursor <- steis_filtered_text_precursor |>
-        # create column for term match
-        mutate("{group}_term_{term}" := str_detect(concat_col, term))
-    }
-    
-    steis_filtered_text_precursor <- steis_filtered_text_precursor |>
-      # create column for group match
-      mutate("{group}" := rowSums(across(starts_with(group))) > 0)
-  }
-  
-  steis_filtered_text <- steis_filtered_text_precursor |>
-    # apply text filter logic
-    filter(!!text_filter) |>
-    select(-concat_col)
-  
-  message(glue::glue("{dataset} text search retrieved {format(nrow(steis_filtered_text), big.mark = ',')} incidents."))
-} else {
-  message("- No text terms supplied. Skipping text search...")
-  steis_filtered_text <- steis_filtered_categorical
-}
+# Text filters
+steis_text_columns <- c(
+  "description_of_what_happened",
+  "immediate_action_taken",
+  "key_findings",
+  "how_will_lessons_be_disseminated_to_interested_parties",
+  "type_of_incident_other"
+)
+steis_filtered_text <- apply_text_search(
+  steis_filtered_categorical,
+  text_terms,
+  text_filter,
+  steis_text_columns,
+  dataset
+)
 
-# check whether the text search generated results 
-if(nrow(steis_filtered_text) != 0){
+# Check for empty results
+if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
+  source('R/output/formatter.R')
+} else {
   
-  # columns for release ####
+  # columns for release
   if(cols_to_extract == 'all'){
     steis_for_release <- steis_filtered_text
   } else if (cols_to_extract == 'default'){
     steis_for_release <- steis_filtered_text |>
-      # select columns to be released and rename using lookup
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
- 
-    #create patient level table from unsampled dataframe and rename columns - this is for data tab
+    
+    # Create output tables (StEIS doesn't have sampling or patient level distinction)
     steis_for_summary_table_unsampled <- steis_for_release 
-    #create patient level table from sampled dataframe and rename columns - this is for data tab
     steis_for_summary_table_sampled <- steis_for_release 
-     
-
-    #note: below is very similar to incident level dataframe as steis is already one row per incident
-    #create incident level table from dataframe and rename columns - this is for summary tab
-    steis_for_release_unsampled_pt_level<- steis_for_release|>
+    
+    steis_for_release_unsampled_pt_level <- steis_for_release |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
-    #note: below is very similar to incident level dataframe as steis is already one row per incident
-    #create incident level table from dataframe and rename columns - this is for summary tab
-    steis_for_release_sampled_pt_level <- steis_for_release|>
+    steis_for_release_sampled_pt_level <- steis_for_release |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
-    
-   
   }
   
+  # Log final counts
   message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_unsampled)} unsampled incidents"))
   message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_sampled)} sampled incidents."))
   message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
   message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
-  
-} else {
-  message(glue::glue('**The search criteria has produced no results in {dataset}**'))
-  message(glue::glue('Moving on...'))
 }
 
 source('R/output/formatter.R')
