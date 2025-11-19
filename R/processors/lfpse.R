@@ -243,20 +243,14 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
   } else {
     
     # Sampling
-    if (sampling_strategy == "default") {
-      lfpse_sampled <- apply_default_sampling(
-        lfpse_neopaed,
-        harm_column = "OT001",
-        death_severe_values = c("Fatal", "Severe physical harm"),
-        moderate_values = c("Moderate physical harm")
-      )
-    } else {
-      lfpse_sampled <- apply_sampling_strategy(
-        lfpse_neopaed,
-        sampling_strategy,
-        reference_column = "Reference"
-      )
-    }
+    lfpse_sampled <- apply_sampling_strategy(
+      lfpse_neopaed,
+      sampling_strategy,
+      harm_column = "OT001",
+      death_severe_values = c("Fatal", "Severe physical harm"),
+      moderate_values = c("Moderate physical harm"),
+      reference_column = "Reference"
+    )
     
     # Rename columns
     lfpse_neopaed <- lfpse_neopaed |>
