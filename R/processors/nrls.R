@@ -129,20 +129,14 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
   } else {
     
     # sampling
-    if (sampling_strategy == "default") {
-      nrls_sampled <- apply_default_sampling(
-        nrls_neopaed,
-        harm_column = "PD09",
-        death_severe_values = c("Death", "Severe"),
-        moderate_values = c("Moderate")
-      )
-    } else {
-      nrls_sampled <- apply_sampling_strategy(
-        nrls_neopaed,
-        sampling_strategy,
-        reference_column = "IN02"
-      )
-    }
+    nrls_sampled <- apply_sampling_strategy(
+      nrls_neopaed,
+      sampling_strategy,
+      harm_column = "PD09",
+      death_severe_values = c("Death", "Severe"),
+      moderate_values = c("Moderate"),
+      reference_column = "INCIDENTID"
+    )
     
     # create summary tables with renamed columns
     nrls_for_summary_table_unsampled <- nrls_neopaed |>
