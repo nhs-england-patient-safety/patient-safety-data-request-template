@@ -1,12 +1,21 @@
 source("renv/activate.R")
 
-run_data_request <- function(path = "params.qmd", echo = FALSE) {
+# source data request pipeline
+run_data_pipeline <- function(path = "params.qmd") {
+  
+  # confirm file exists
   stopifnot(file.exists(path))
+  
+  # create a temporary params script
   rfile <- tempfile(fileext = ".R")
   
+  # check if temporary file exists and is older than quarto notebook
   if (!file.exists(rfile) || file.mtime(rfile) < file.mtime(path)) {
+    
+    # extract code chunks from notebook and create temporary script
     knitr::purl(input = path, output = rfile, documentation = 0)
   }
   
-  source(rfile, echo = echo)
+  # source temporary params script
+  source(rfile)
 }

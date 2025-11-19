@@ -14,7 +14,7 @@ Configure all parameters for the data request. Modify the values below to set th
 ```{r}
 
 search_nrls <- TRUE
-search_lfpse <- TRUE
+search_lfpse <- FALSE
 search_steis <- FALSE
 ```
 
