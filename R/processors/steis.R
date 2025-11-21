@@ -1,7 +1,7 @@
 # R/processors/steis.R
 
 dataset <- "StEIS"
-message(glue::glue("Running {dataset} search..."))
+log_dataset_start(dataset)
 
 if(steis_categorical == 0){
   steis_categorical <- expr(1==1)
@@ -48,8 +48,8 @@ steis_filtered_categorical <- steis_parsed |>
   filter(between(!! date_filter, start_date, end_date)) |>
   filter(!!steis_categorical)
 
-message(glue::glue("- {dataset} categorical filters retrieved {format(nrow(steis_filtered_categorical), big.mark = ',')} incidents."))
-message(glue::glue("- No sampling for StEIS since no harm grading."))
+log_categorical_filter_count(dataset, nrow(steis_filtered_categorical))
+log_no_sampling(dataset)
 
 # Text filters
 steis_text_columns <- c(
@@ -91,10 +91,13 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
   }
   
   # Log final counts
-  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_unsampled)} unsampled incidents"))
-  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_summary_table_sampled)} sampled incidents."))
-  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_sampled_pt_level)} sampled incidents (pt level)"))
-  message(glue::glue("- Final {dataset} dataset contains {nrow(steis_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+  log_final_counts(
+    dataset,
+    steis_for_summary_table_unsampled,
+    steis_for_summary_table_sampled,
+    steis_for_release_unsampled_pt_level,
+    steis_for_release_sampled_pt_level
+  )
 }
 
 source('R/output/formatter.R')

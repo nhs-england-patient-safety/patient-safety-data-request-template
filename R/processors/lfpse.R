@@ -1,7 +1,7 @@
 # R/processors/lfpse.R
 
 dataset <- "LFPSE"
-message(glue::glue("Running {dataset} search..."))
+log_dataset_start(dataset)
 
 if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
@@ -123,9 +123,8 @@ lfpse_filtered_categorical <- lfpse_parsed |>
 
 toc_lfpse <- Sys.time()
 time_diff_lfpse <- toc_lfpse - tic_lfpse
-
-message(glue::glue("Extraction from {dataset} server: {round(time_diff_lfpse[[1]], 2)} {attr(time_diff_lfpse, 'units')}"))
-message(glue::glue("- {dataset} categorical filters retrieved {format(nrow(lfpse_filtered_categorical), big.mark = ',')} incidents."))
+log_extraction_time(dataset, time_diff_lfpse)
+log_categorical_filter_count(dataset, nrow(lfpse_filtered_categorical))
 
 # text filters
 lfpse_text_columns <- c("F001", "AC001", "OT003", "A008_Other", "A008", "A002", "DMD002", "DMD004")
@@ -299,8 +298,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
       lfpse_for_summary_table_unsampled,
       lfpse_for_summary_table_sampled,
       lfpse_for_release_unsampled_pt_level,
-      lfpse_for_release_sampled_pt_level,
-      summary_tables_incident_or_patient_level
+      lfpse_for_release_sampled_pt_level
     )
   }
 }

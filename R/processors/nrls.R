@@ -1,7 +1,7 @@
 # R/processors/nrls.R
 
 dataset <- "NRLS"
-message(glue::glue("Running {dataset} search..."))
+log_dataset_start(dataset)
 
 if (nrls_categorical == 0) {
   nrls_categorical <- expr(1 == 1)
@@ -39,9 +39,8 @@ nrls_filtered_categorical <- nrls_parsed |>
 
 toc_nrls <- Sys.time()
 time_diff_nrls <- toc_nrls - tic_nrls
-
-message(glue::glue("Extraction from {dataset} server: {round(time_diff_nrls[[1]], 2)} {attr(time_diff_nrls, 'units')}"))
-message(glue::glue("- {dataset} categorical filters retrieved {format(nrow(nrls_filtered_categorical), big.mark = ',')} incidents."))
+log_extraction_time(dataset, time_diff_nrls)
+log_categorical_filter_count(dataset, nrow(nrls_filtered_categorical))
 
 # text filters
 nrls_text_columns <- c("IN07", "IN03_TEXT", "IN05_TEXT", "IN11", "IN10", 
@@ -155,10 +154,13 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
     # log final counts
-    message(glue::glue("- Final {dataset} dataset contains {nrow(nrls_for_summary_table_unsampled)} unsampled incidents"))
-    message(glue::glue("- Final {dataset} dataset contains {nrow(nrls_for_summary_table_sampled)} sampled incidents."))
-    message(glue::glue("- Final {dataset} dataset contains {nrow(nrls_for_release_sampled_pt_level)} sampled incidents (pt level)"))
-    message(glue::glue("- Final {dataset} dataset contains {nrow(nrls_for_release_unsampled_pt_level)} unsampled incidents (pt level)"))
+    log_final_counts(
+      dataset,
+      nrls_for_summary_table_unsampled,
+      nrls_for_summary_table_sampled,
+      nrls_for_release_unsampled_pt_level,
+      nrls_for_release_sampled_pt_level
+    )
   }
 }
 
