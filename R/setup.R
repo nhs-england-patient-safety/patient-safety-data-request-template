@@ -118,7 +118,7 @@ source_files(
     "R/utils/date_utils.R",
     "R/utils/neopaed_utils.R",
     "R/utils/sampling_utils.R",
-    "R/utils/output_utils.R"
+    "R/utils/logging_utils.R"
   ),
   label = "utilities"
 )
