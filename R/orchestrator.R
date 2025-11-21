@@ -74,9 +74,7 @@ run_data_request <- function(
   summary_tables_incident_or_patient_level
 ) {
   
-  message("========================================")
-  message("PATIENT SAFETY DATA REQUEST")
-  message("========================================\n")
+  log_section_header("PATIENT SAFETY DATA REQUEST")
   
   # global environment variables for backward compatability (to be removed after refactoring)
   assign("start_date", start_date, envir = .GlobalEnv)
@@ -116,13 +114,13 @@ run_data_request <- function(
   
   # identify database search order
   if (search_nrls) {
-    message("Starting with NRLS...\n")
+    log_processor_start("NRLS")
     source("R/processors/nrls.R")
   } else if (search_lfpse) {
-    message("Starting with LFPSE...\n")
+    log_processor_start("LFPSE")
     source("R/processors/lfpse.R")
   } else if (search_steis) {
-    message("Starting with StEIS...\n")
+    log_processor_start("StEIS")
     source("R/processors/steis.R")
   } else {
     stop(
@@ -131,9 +129,7 @@ run_data_request <- function(
       )
   }
   
-  message("\n========================================")
-  message("PROCESS COMPLETE")
-  message("========================================\n")
+  log_section_header("PROCESS COMPLETE")
   
   # return summary of what was created
   file_list <- ls(envir = .GlobalEnv, pattern = "for_release")
