@@ -68,7 +68,7 @@ date_type_text <-
     'reported as occurring'
   }
 
-date_range <- glue::glue('Incidents {date_type_text} between {format(zoo::as.Date(start_date), "%d-%b-%y")} and {format(zoo::as.Date(end_date), "%d-%b-%y")}')
+date_range <- str_glue('Incidents {date_type_text} between {format(zoo::as.Date(start_date), "%d-%b-%y")} and {format(zoo::as.Date(end_date), "%d-%b-%y")}')
 
 
 if(sum(!is.na(text_terms)) > 0) {

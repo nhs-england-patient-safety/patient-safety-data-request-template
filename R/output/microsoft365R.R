@@ -17,14 +17,14 @@ if (write_to_sp) {
   
   dr$upload(
     src = tf,
-    dest = glue::glue('{title}/{workbook_title}')
+    dest = str_glue('{title}/{workbook_title}')
   )
   
-  message(glue::glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
+  message(str_glue('Workbook saved at https://nhs.sharepoint.com/sites/MED/ps2/it/mit/ResLib/Data%20Requests/{title}'))
   
   toc <- Sys.time()
   
   time_diff <- (toc-tic)
   
-  message(glue::glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))
+  message(str_glue("Request completion time: {round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"))
 }
