@@ -79,7 +79,7 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
     steis_for_release <- steis_filtered_text |>
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
     
-    # Create output tables (StEIS doesn't have sampling or patient level distinction)
+    # get data for summary tables (StEIS doesn't have sampling or patient level distinction)
     steis_for_summary_table_unsampled <- steis_for_release 
     steis_for_summary_table_sampled <- steis_for_release 
     

@@ -26,9 +26,13 @@ nrls_parsed <- nrls |>
 tic_nrls <- Sys.time()
 
 nrls_filtered_categorical <- nrls_parsed |>
+  # apply categorical filters
   filter(between(date_filter, start_date, end_date)) |>
   filter(!!nrls_categorical) |>
+  # select relevant columns - use the lookup but do not rename at this step to use
+  # additional columns, add them to R/config/column_selection_lookups.R
   select(any_of(unname(rename_lookup[["NRLS"]]))) |>
+  # collect here to apply text filters later
   collect() |>
   # generate date columns
   add_date_columns(date_filter) |>
@@ -137,7 +141,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
       reference_column = "INCIDENTID"
     )
     
-    # create summary tables with renamed columns
+    # get data for summary tables (with renamed columns)
     nrls_for_summary_table_unsampled <- nrls_neopaed |>
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
     

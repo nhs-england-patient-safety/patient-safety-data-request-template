@@ -65,14 +65,15 @@ lfpse_filtered_categorical <- lfpse_parsed |>
     between(date_filter, start_date, end_date),
     lfpse_categorical
   ) |>
-  ### Select only relevant columns
+  # select relevant columns - use the lookup but do not rename at this step to use
+  # additional columns, add them to R/config/column_selection_lookups.R
   select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days) |>
   ### Generate additional columns (grouping by Reference)
   group_by(Reference)  |>
   mutate(
-    OT001_min = min(as.numeric(OT001)),
-    OT002_min = min(as.numeric(OT002)),
-    npatient = max(EntityId)
+    OT001_min = min(as.numeric(OT001)), # calculate the worst physical harm per incident
+    OT002_min = min(as.numeric(OT002)), # calculate the worst psychological harm per incident
+    npatient = max(EntityId) # calculate the number of incidents
   ) |>
   ungroup() |>
   ### Collect
@@ -82,7 +83,9 @@ lfpse_filtered_categorical <- lfpse_parsed |>
   mutate(
     reported_date = as.character(reported_date),
     occurred_date = as.character(occurred_date),
-    OT002_min_plus_one = OT002_min + 1
+    # to make psychological and physical harm comparable, add 1 to psychological 
+    # (as there is no fatal psychological harm)
+    OT002_min_plus_one = OT002_min + 1 
   ) |>
   ### Combine physical and psychological harm
   rowwise() |>
@@ -170,7 +173,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
       values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
     ) 
   
-  #create a new column for age following validation 
+  # create a new column for age following validation 
   lfpse_age_validated<- lfpse_labelled |>
     mutate(age_unit = case_when(
       is.na(P004_days) ~ 'age missing',
@@ -193,9 +196,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
   lfpse_age_classified <- lfpse_age_validated |>
     mutate(
       concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = " "),
-      
       P004_days_validated = ifelse(between(P004_days, 0, 365.25 * 120), P004_days, NA),
-      
       age_category = case_when(
         (P004_days_validated > 0 & P004_days_validated <= 28) | 
           (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
@@ -265,13 +266,14 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     lfpse_for_release_unsampled_pt_level <- lfpse_neopaed |> 
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
-    # Create summary tables
+    # Get data for summary tables
     lfpse_for_summary_table_unsampled <- lfpse_neopaed  
     lfpse_for_summary_table_sampled <- lfpse_sampled  
     
     # Handle incident vs patient level for summary tables
     if (summary_tables_incident_or_patient_level == "incident") {
       lfpse_for_summary_table_unsampled <- lfpse_for_summary_table_unsampled |>
+        # remove columns that contain patient specific info (for summary tables)
         select(-any_of(c("Patient no.",
                          "OT001 - Physical harm",
                          "OT002 - Psychological harm",

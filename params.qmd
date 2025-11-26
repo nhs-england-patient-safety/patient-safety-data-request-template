@@ -91,6 +91,7 @@ text_filter <- expr((group_A | group_B) & group_C)
 
 ```{r}
 
+# neopaed logic (neonate/paed/either/none)
 is_neopaed <- "none"
 ```
 
@@ -98,6 +99,7 @@ is_neopaed <- "none"
 
 ```{r}
 
+# sampling strategy (default/FOI/none)
 sampling_strategy <- "default"
 ```
 
