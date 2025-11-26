@@ -48,7 +48,7 @@ apply_default_sampling <- function(data, harm_column, death_severe_values,
 #' 
 #' @return Sampled dataframe
 
-apply_foi_sampling <- function(data, reference_column = "Reference") {
+apply_foi_sampling <- function(data, reference_column = NULL) {
   message("Extracting a sample of 30 incidents for redaction...")
   
   set.seed(123)
@@ -72,7 +72,7 @@ apply_sampling_strategy <- function(data, strategy,
                                     harm_column = NULL,
                                     death_severe_values = NULL,
                                     moderate_values = NULL,
-                                    reference_column = "Reference") {
+                                    reference_column = NULL) {
   
   if (strategy == "default") {
     
