@@ -52,5 +52,5 @@ filter_by_neopaed_strategy <- function(data, strategy) {
     
   }
   
-  stop(glue::glue("Unknown neopaed strategy: {strategy}"))
+  stop(str_glue("Unknown neopaed strategy: {strategy}"))
 }

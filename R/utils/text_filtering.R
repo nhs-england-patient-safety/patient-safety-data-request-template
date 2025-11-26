@@ -19,7 +19,7 @@ apply_text_search <- function(data, text_terms, text_filter, columns_to_search, 
     return(data)
   }
   
-  message(glue::glue("Running {dataset_name} text search..."))
+  message(str_glue("Running {dataset_name} text search..."))
   
   # create concatenated column from specified columns
   data_with_concat <- data |> 
@@ -46,7 +46,7 @@ apply_text_search <- function(data, text_terms, text_filter, columns_to_search, 
     filter(!!text_filter) |> 
     select(-concat_col)
   
-  message(glue::glue("{dataset_name} text search retrieved {format(nrow(filtered_data), big.mark = ',')} indicents."))
+  message(str_glue("{dataset_name} text search retrieved {format(nrow(filtered_data), big.mark = ',')} indicents."))
   
   return(filtered_data)
 }

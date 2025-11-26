@@ -89,5 +89,5 @@ apply_sampling_strategy <- function(data, strategy,
   
   }
   
-  stop(glue::glue("Unknown sampling strategy: {strategy}"))
+  stop(str_glue("Unknown sampling strategy: {strategy}"))
 }

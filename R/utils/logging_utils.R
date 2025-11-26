@@ -13,11 +13,11 @@ check_and_log_empty_result <- function(data, dataset_name, search_type="general"
   
   if (nrow(data) == 0) {
     if (search_type == "text") {
-      message(glue::glue("**The text search has produced no results in {dataset_name}**"))
+      message(str_glue("**The text search has produced no results in {dataset_name}**"))
     } else if (search_type == "neopaed") {
-      message(glue::glue("**The neopaed search has produced no results in {dataset_name}**"))
+      message(str_glue("**The neopaed search has produced no results in {dataset_name}**"))
     } else {
-      message(glue::glue("**The search criteria has produced no results in {dataset_name}**"))
+      message(str_glue("**The search criteria has produced no results in {dataset_name}**"))
     }
     message("Moving on...")
     return(TRUE)
@@ -31,7 +31,7 @@ check_and_log_empty_result <- function(data, dataset_name, search_type="general"
 #' @param dataset_name Name of the dataset (e.g., 'NRLS', 'LFPSE', 'StEIS)
 
 log_dataset_start <- function(dataset_name) {
-  message(glue::glue("Running {dataset_name} search..."))
+  message(str_glue("Running {dataset_name} search..."))
 }
 
 #' Log database extraction timing
@@ -40,7 +40,7 @@ log_dataset_start <- function(dataset_name) {
 #' @param time_diff Time difference object from difftime
 
 log_extraction_time <- function(dataset_name, time_diff) {
-  message(glue::glue(
+  message(str_glue(
     "Extraction from {dataset_name} server:",
     "{round(time_diff[[1]], 2)} {attr(time_diff, 'units')}"
   ))
@@ -53,7 +53,7 @@ log_extraction_time <- function(dataset_name, time_diff) {
 
 log_categorical_filter_count <- function(dataset_name, n_incidents) {
   formatted_count <- format(n_incidents, big.mark = ',')
-  message(glue::glue(
+  message(str_glue(
     "{dataset_name} categorical filters retrieved {formatted_count} incidents."
   ))
 }
@@ -63,7 +63,7 @@ log_categorical_filter_count <- function(dataset_name, n_incidents) {
 #' @param dataset_name Name of the dataset (should be 'StEIS)
 
 log_no_sampling <- function(dataset_name = "StEIS") {
-  message(glue::glue("No sampling for {dataset_name} since no harm grading."))
+  message(str_glue("No sampling for {dataset_name} since no harm grading."))
 }
 
 #' Log final dataset counts
@@ -77,22 +77,22 @@ log_no_sampling <- function(dataset_name = "StEIS") {
 log_final_counts <- function(dataset_name, unsampled_summary, sampled_summary,
                              unsampled_pt, sampled_pt) {
   
-  message(glue::glue(
+  message(str_glue(
     "Final {dataset_name} dataset contains ",
     "{nrow(unsampled_summary)} unsampled incidents."
     ))
   
-  message(glue::glue(
+  message(str_glue(
     "Final {dataset_name} dataset contains ",
     "{nrow(sampled_summary)} sampled incidents."
     ))
   
-  message(glue::glue(
+  message(str_glue(
     "Final {dataset_name} dataset contains ",
     "{nrow(unsampled_pt)} unsampled incidents (pt level)"
     ))
   
-  message(glue::glue("Final {dataset_name} dataset contains ",
+  message(str_glue("Final {dataset_name} dataset contains ",
   "{nrow(sampled_pt)} sampled incidents (pt level)"
   ))
 }
@@ -114,5 +114,5 @@ log_section_header <- function(title) {
 #' @param dataset_name Name of the dataset (e.g., 'NRLS', 'LFPSE', 'StEIS)
 
 log_processor_start <- function(dataset_name) {
-  message(glue::glue("Starting with {dataset_name}... \n"))
+  message(str_glue("Starting with {dataset_name}... \n"))
 }
