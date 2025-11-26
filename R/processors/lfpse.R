@@ -195,8 +195,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
   # age classification for neopaeds
   lfpse_age_classified <- lfpse_age_validated |>
     mutate(
-      concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = " "),
-      P004_days_validated = ifelse(between(P004_days, 0, 365.25 * 120), P004_days, NA),
+      concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
       age_category = case_when(
         (P004_days_validated > 0 & P004_days_validated <= 28) | 
           (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
