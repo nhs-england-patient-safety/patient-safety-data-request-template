@@ -65,6 +65,7 @@ apply_foi_sampling <- function(data, reference_column = NULL) {
 #' @param death_severe_values Values indicating death/severe (for default strategy)
 #' @param moderate_values Values indicating moderate (for default strategy)
 #' @param reference_column Name of reference_column (for FOI strategy)
+#' @param dataset_name Name of dataset (e.g., 'NRLS', 'LFPSE', 'StEIS')
 #' 
 #' @return Sampled dataframe
 
@@ -72,7 +73,13 @@ apply_sampling_strategy <- function(data, strategy,
                                     harm_column = NULL,
                                     death_severe_values = NULL,
                                     moderate_values = NULL,
-                                    reference_column = NULL) {
+                                    reference_column = NULL,
+                                    dataset_name = NULL) {
+  
+  if (!is.null(dataset_name) && dataset_name == "StEIS" && strategy == "default") {
+    message("StEIS does not use default sampling. Skipping sampling...")
+    return(data)
+  }
   
   if (strategy == "default") {
     
