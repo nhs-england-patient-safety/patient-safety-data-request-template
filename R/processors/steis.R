@@ -49,7 +49,6 @@ steis_filtered_categorical <- steis_parsed |>
   filter(!!steis_categorical)
 
 log_categorical_filter_count(dataset, nrow(steis_filtered_categorical))
-log_no_sampling(dataset)
 
 # Text filters
 steis_text_columns <- c(
@@ -79,14 +78,23 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
     steis_for_release <- steis_filtered_text |>
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
     
-    # get data for summary tables (StEIS doesn't have sampling or patient level distinction)
+    
+    # apply sampling (default strategy = no sampling)
+    steis_sampled <- apply_sampling_strategy(
+      steis_for_release,
+      sampling_strategy,
+      reference_column = "log_no", # CHECK THIS
+      dataset = "StEIS"
+    )
+    
+    # get data for summary tables
     steis_for_summary_table_unsampled <- steis_for_release 
-    steis_for_summary_table_sampled <- steis_for_release 
+    steis_for_summary_table_sampled <- steis_sampled
     
     steis_for_release_unsampled_pt_level <- steis_for_release |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
-    steis_for_release_sampled_pt_level <- steis_for_release |>
+    steis_for_release_sampled_pt_level <- steis_sampled |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
   }
   
