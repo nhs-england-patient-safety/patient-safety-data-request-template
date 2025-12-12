@@ -83,8 +83,8 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
     steis_sampled <- apply_sampling_strategy(
       steis_for_release,
       sampling_strategy,
-      reference_column = "log_no", # CHECK THIS
-      dataset = "StEIS"
+      reference_column = "Log No",
+      dataset_name = "StEIS"
     )
     
     # get data for summary tables
