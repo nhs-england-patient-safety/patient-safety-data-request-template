@@ -113,12 +113,17 @@ source_files(
 # utility functions
 source_files(
   files = c(
-    "R/utils/functions.R",
     "R/utils/text_filtering.R",
     "R/utils/date_utils.R",
     "R/utils/neopaed_utils.R",
     "R/utils/sampling_utils.R",
-    "R/utils/logging_utils.R"
+    "R/utils/logging_utils.R",
+    "R/utils/lookup_utils.R",
+    "R/utils/excel_tables.R",
+    "R/utils/excel_formatting.R",
+    "R/utils/data_transformation.R",
+    "R/utils/text_formatting.R",
+    "R/utils/validation_helpers.R"
   ),
   label = "utilities"
 )
