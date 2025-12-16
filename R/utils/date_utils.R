@@ -54,10 +54,3 @@ add_date_columns_lfpse <- function(data, date_col) {
       month_reported_or_occurred = month.abb[month_reported_or_occurred]
     )
 }
-
-#not a function- but this creates the object "date_filter" from date_type
-date_filter <- if (date_type == 'occurring') {
-  expr(occurred_date)
-} else if (date_type == 'reported') {
-  expr(reported_date)
-}

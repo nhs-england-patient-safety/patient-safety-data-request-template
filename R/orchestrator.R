@@ -92,7 +92,7 @@ run_data_request <- function(
   assign("is_neopaed", is_neopaed, envir = .GlobalEnv)
   assign("sampling_strategy", sampling_strategy, envir = .GlobalEnv)
   assign("include_term_tally_table", include_term_tally_table, envir = .GlobalEnv)
-  assign("incide_level_required", incident_level_required, envir = .GlobalEnv)
+  assign("incident_level_required", incident_level_required, envir = .GlobalEnv)
   assign("write_to_sp", write_to_sp, envir = .GlobalEnv)
   assign("list_of_tables_to_create_nrls", list_of_tables_to_create_nrls, envir = .GlobalEnv)
   assign("list_of_tables_to_create_lfpse", list_of_tables_to_create_lfpse, envir = .GlobalEnv)
