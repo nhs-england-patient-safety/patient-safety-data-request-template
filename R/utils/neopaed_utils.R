@@ -1,6 +1,7 @@
 # Neopaed Utilities
 # Shared logic for neopaed (neonate/paediatric) filtering
 
+
 #' Apply neopaed filtering strategy
 #' 
 #' @param data Dataframe with neonate_category and paediatric_category columns
@@ -12,7 +13,7 @@ filter_by_neopaed_strategy <- function(data, strategy) {
   
   if (strategy == "neonate") {
     
-    print("Running neonate strategy...")
+    message("Running neonate strategy...")
     
     return(
       data |> 
@@ -23,7 +24,7 @@ filter_by_neopaed_strategy <- function(data, strategy) {
     
   } else if (strategy == "paed") {
     
-    print(" Running paediatric strategy...")
+    message(" Running paediatric strategy...")
     
     return(
       data |> 
@@ -34,7 +35,7 @@ filter_by_neopaed_strategy <- function(data, strategy) {
   
   } else if (strategy == "either") {
     
-    print("Running either strategy...")
+    message("Running either strategy...")
     
     return(
       data |> 
@@ -46,7 +47,7 @@ filter_by_neopaed_strategy <- function(data, strategy) {
     
   } else if (strategy == "none") {
     
-    print("Skipping neopaeds strategy...")
+    message("Skipping neopaeds strategy...")
     
     return(data)
     

@@ -1,6 +1,7 @@
 # Sampling Utilites
 # Shared logic for sampling strategies
 
+
 #' Apply default sampling strategy
 #' 
 #' @param data Dataframe to sample
@@ -41,6 +42,7 @@ apply_default_sampling <- function(data, harm_column, death_severe_values,
   } 
 }
 
+
 #' Apply FOI sampling strategy
 #' 
 #' @param data Dataframe to sample
@@ -56,6 +58,7 @@ apply_foi_sampling <- function(data, reference_column = NULL) {
     distinct(!!sym(reference_column), .keep_all=TRUE) |> 
     sample_n(min(n(), 30))
 }
+
 
 #' Apply sampling strategy based on strategy name
 #' 

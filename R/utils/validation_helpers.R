@@ -1,3 +1,14 @@
+# Validation Helper Utilities
+
+
+#' Check if column contains multi-select values
+#' 
+#' @param df Dataframe to check
+#' @param variable_name Name of column to check
+#' 
+#' @return Logical. TRUE if column has multi-select values ("; " present), 
+#' FALSE if no multi-select values, NA if column doesn't exist
+
 is_multi_select<- function(df, variable_name){
   
   if(variable_name %in% colnames(df)){
@@ -11,7 +22,7 @@ is_multi_select<- function(df, variable_name){
     return(n_multi > 0)
     
   } else {
-    print("The column does not exist")
+    message("The column does not exist")
     return(NA)
   }
   

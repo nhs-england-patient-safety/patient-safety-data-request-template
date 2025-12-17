@@ -1,14 +1,24 @@
-#function to find the minimum number in a vector, and return NA if all values are NA
+# Data Transformation Utilities
 
-# This is required to find the minimum physical or psychological harm level
+
+#' Find minimum of a vector, returning NA if all NA
+#' 
+#' @param vec Numeric vector
+#' 
+#' @return Minimum (numeric) value, or NA_real_ if all values are NA
+
 min_safe <- function(vec) {
   ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec, na.rm = TRUE))
 }
 
 
+#' Convert columns to ordered factors
+#' 
+#' @param df_without_factors Dataframe to convert
+#' @param database_name Name of dataset (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Dataframe with specified columns converted to ordered factors
 
-
-# function to convert month and level of harm columns to factors (depending on database)
 convert_columns_to_factors <- function(df_without_factors, database_name) {
   # convert month and harm level to ordered factors
   if (database_name == "LFPSE") {
@@ -69,7 +79,7 @@ convert_columns_to_factors <- function(df_without_factors, database_name) {
         )
       )
   } else {
-    print("database name not found")
+    message("database name not found")
   }
   
   return(df_with_factors)

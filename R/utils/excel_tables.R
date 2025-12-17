@@ -1,4 +1,15 @@
-# this function creates a summary table from a dataframe and a list containing the variables to tabulate by
+# Excel Table Creation Utilities
+
+
+#' Create summary table from data
+#' 
+#' @param df_to_create_summary_table Dataframe to summarise
+#' @param variables_to_tabulate_by_list List of 1 or 2 expressions specifying columns to tabulate.
+#' Use list(expr(col1)) for 1D or list(expr(col1), expr(col2)) for 2D tables.
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Tibble containing summary table with counts and percentages
+
 create_summary_table <- function(df_to_create_summary_table,
                                  variables_to_tabulate_by_list,
                                  database_name) {
@@ -91,7 +102,16 @@ create_summary_table <- function(df_to_create_summary_table,
   return(summary_table)
 }
 
-# function to create term tally table
+
+#' Create term tally table
+#' 
+#' @param df_to_create_term_tally Dataframe with term/group flag columns.
+#' @param cols_to_use Either "term_columns" to count individual terms or "group_columns" 
+#' to count by groups
+#' 
+#' @return Tibble with two columns: "Search term" or "Group" (formatted term/group name) 
+#' and "n" (count of incidents matching that term/group) 
+
 create_term_tally_table <- function(df_to_create_term_tally,
                                     cols_to_use = c("term_columns")) {
   

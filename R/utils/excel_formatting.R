@@ -1,4 +1,19 @@
-# this function adds the header section to the sheet- the contents depend on the database and what sheet is being made
+# Excel Formatting Utilities
+
+
+#' Add header section to Excel sheet
+#'
+#' @param wb Workbook object
+#' @param title Report title
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' @param sheet Sheet name
+#' @param summary_sheet Logical. Is there a summary sheet (TRUE) or data sheet (FALSE)?
+#' @param number_of_rows_sampled Number of incidents in sample
+#' @param number_of_rows_unsampled Number of incidents retrieved by search
+#' @param summary_tables_incident_or_patient_level "incident" or "patient"
+#' 
+#' @return The row number where tables should start (after header)
+
 add_header_to_sheet <- function(wb, title,
                                 database_name,
                                 sheet,
@@ -79,7 +94,16 @@ add_header_to_sheet <- function(wb, title,
   return(table_start_row)
 }
 
-# this function adds a note prior to the term tally table in the summary sheets
+
+#' Add explanatory text to summary sheets
+#' 
+#' @param wb Workbook object
+#' @param sheet Sheet name
+#' @param content_start_row Row to start adding text
+#' @param text_to_add Type of text to add
+#' 
+#' @return The row number where tables should start (after text)
+
 add_text_to_summary_sheets <- function(wb, sheet,
                                        content_start_row,
                                        text_to_add) {
@@ -136,14 +160,14 @@ add_text_to_summary_sheets <- function(wb, sheet,
 }
 
 
+#' Add styled summary table to sheet
+#' 
+#' @param wb Workbook object
+#' @param sheet Sheet name
+#' @param summary_table Summary table to write
+#' @param table_start_row Row to start table
+#' @param table_start_col Column to start table
 
-
-
-
-
-
-
-# this function adds a summary table to a sheet
 add_summary_table_to_sheet <- function(wb,
                                        sheet,
                                        summary_table,
@@ -208,7 +232,13 @@ add_summary_table_to_sheet <- function(wb,
 }
 
 
-# this function adds a data table to a sheet and styles it
+#' Add styled data table to sheet
+#' 
+#' @param wb Workbook object
+#' @param sheet Sheet name
+#' @param data_table Data table to write
+#' @param table_start_row Row to start table
+
 add_data_table_to_sheet <- function(wb,
                                     sheet,
                                     data_table,
@@ -224,7 +254,6 @@ add_data_table_to_sheet <- function(wb,
   )
   
   # set row heights - header row
-  
   setRowHeights(wb,
                 sheet = sheet,
                 rows = table_start_row:table_start_row,

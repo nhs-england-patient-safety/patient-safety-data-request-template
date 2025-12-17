@@ -1,6 +1,7 @@
 # Text Filtering Utilities
 # Shared logic for text-based filtering across all datasets
 
+
 #' Apply text filters to a dataset
 #' 
 #' @param data Dataframe to filter

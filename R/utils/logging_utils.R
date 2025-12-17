@@ -1,6 +1,7 @@
 # Logging Utilities
 # Centralised logging functions for consistent messaging across processors
 
+
 #' Check if result is empty and log appropriate message
 #' 
 #' @param data Dataframe to check
@@ -26,6 +27,7 @@ check_and_log_empty_result <- function(data, dataset_name, search_type="general"
   return(FALSE)
 }
 
+
 #' Log dataset initialisation
 #' 
 #' @param dataset_name Name of the dataset (e.g., 'NRLS', 'LFPSE', 'StEIS)
@@ -33,6 +35,7 @@ check_and_log_empty_result <- function(data, dataset_name, search_type="general"
 log_dataset_start <- function(dataset_name) {
   message(str_glue("Running {dataset_name} search..."))
 }
+
 
 #' Log database extraction timing
 #' 
@@ -46,6 +49,7 @@ log_extraction_time <- function(dataset_name, time_diff) {
   ))
 }
 
+
 #' Log categorical filter results
 #' 
 #' @param dataset_name Name of the dataset (e.g., 'NRLS', 'LFPSE', 'StEIS)
@@ -58,6 +62,7 @@ log_categorical_filter_count <- function(dataset_name, n_incidents) {
   ))
 }
 
+
 #' Log sampling information for StEIS
 #' 
 #' @param dataset_name Name of the dataset (should be 'StEIS)
@@ -65,6 +70,7 @@ log_categorical_filter_count <- function(dataset_name, n_incidents) {
 log_no_sampling <- function(dataset_name = "StEIS") {
   message(str_glue("No sampling for {dataset_name} since no harm grading."))
 }
+
 
 #' Log final dataset counts
 #' 
@@ -97,6 +103,7 @@ log_final_counts <- function(dataset_name, unsampled_summary, sampled_summary,
   ))
 }
 
+
 #' Log orchestrator section headers
 #' 
 #' @param title Title for the section
@@ -108,6 +115,7 @@ log_section_header <- function(title) {
   message(line)
   if (title != "") message("") #add blank line unless just a separator
 }
+
 
 #' Log processor start message
 #' 

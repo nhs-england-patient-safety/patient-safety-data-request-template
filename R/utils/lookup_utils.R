@@ -1,4 +1,14 @@
-# function to get find the label for a column value from the column name, code and database name
+# Lookup & Translation Utilities
+
+
+#' Get label for a code value
+#' 
+#' @param column Column name where code appears
+#' @param code Code value to look up
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Text label for the code, or the original code if not found
+
 get_code_text <- function(column, code, database_name) {
   if (database_name == "steis") {
     code <- str_replace_all(code, "#", "")
@@ -24,7 +34,14 @@ get_code_text <- function(column, code, database_name) {
   return(code_text)
 }
 
-# function to get find the column label for a column from the column name and database name
+
+#' Get label for a column name
+#' 
+#' @param column Column name to look up
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Column label, or original column name if not found
+
 get_column_text <- function(column, database_name) {
   if (database_name == "steis") {
     return(column)
@@ -48,7 +65,14 @@ get_column_text <- function(column, database_name) {
   return(column_new)
 }
 
-# function to translate an individual filter into a more human readable value, given the filter string and database name
+
+#' Translate individual filter expression
+#' 
+#' @param individual_filter Single filter expression string
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Translated filter expression
+
 translate_individual_filter <- function(individual_filter, database_name) {
   # different logic depending on what the filter is
   if (str_detect(individual_filter, "(IS NOT NA)|(IS NA)")) {
@@ -109,7 +133,13 @@ translate_individual_filter <- function(individual_filter, database_name) {
 }
 
 
-# function to translate a categorical filter (as an expression object) into a more human readable string given a database name
+#' Translate categorical filter expression
+#' 
+#' @param categorical_filter Expression object or 0. Filter to translate.
+#' @param database_name Name of database (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' 
+#' @return Translated filter string (or status message)
+
 translate_categorical_string <- function(categorical_filter, database_name) {
   if (!get(str_glue("search_{database_name}"))){
     message(str_glue("{database_name} is not being searched for this query."))

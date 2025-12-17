@@ -1,3 +1,12 @@
+# Text Formatting Utilities
+
+
+#' Format regex term for display
+#' 
+#' @param term Regex pattern string (e.g., "(?i)\\bparacetamol")
+#' 
+#' @return Formatted string with regex special characters replaced by readable symbols
+
 make_text_terms_pretty <- function(term){
   term |>
     str_replace_all(pattern = fixed("(?:\\W|)"), "~") |>
