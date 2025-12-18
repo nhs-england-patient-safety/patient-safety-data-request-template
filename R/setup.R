@@ -136,5 +136,6 @@ source_files(
   label = "orchestrator"
 )
 
+tic <- Sys.time()
 
 message("\n=== Setup complete ===\n")
