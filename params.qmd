@@ -50,14 +50,14 @@ Define categorical filters for each database.
 
 Examples:
 
-```
+``` r
 nrls_categorical <- 
   expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & 
          (IN04 == 1 | IN04 %in% c(97, 99) & 
             !is.na(RP07) | is.na(IN04) & !is.na(RP07))) 
 ```
 
-```
+``` r
 lfpse_categorical <- 
   expr((' ' + A001 + ' ') %LIKE% '% 4 %'| 
          ((' ' + A001 + ' ') %LIKE% '% 3 %' & 
@@ -138,7 +138,7 @@ write_to_sp <- TRUE
 
 Examples:
 
-```         
+``` r
 list_of_tables_to_create_lfpse <- list(
   c(expr(max_physical_harm_level)),
   c(expr(year_reported_or_occurred), expr(month_reported_or_occurred)),
@@ -146,14 +146,14 @@ list_of_tables_to_create_lfpse <- list(
 )
 ```
 
-```         
+``` r
 list_of_tables_to_create_steis <- list(
   c(expr(type_of_incident)),
   c(expr(year_reported_or_occurred))
 )
 ```
 
-```         
+``` r
 list_of_tables_to_create_nrls <- list(
   c(expr(PD09)),
   c(expr(month_year_reported_or_occurred), expr(PD09))
