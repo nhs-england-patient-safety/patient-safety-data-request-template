@@ -34,7 +34,6 @@ date_type <- "occurring" # "occurring" or "reported"
 Load all required functions and establish database connections.
 
 ```{r}
-#| label: setup
 
 source("R/setup.R")
 ```
