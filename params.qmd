@@ -46,6 +46,24 @@ Define categorical filters for each database.
 -   Wrap filter expressions in `expr()`.
 -   Set to `0` for no filter.
 
+`translate_categorical_string()` translates filters from the codes used to access the database to more human-readable code. It splits up filters by `&` (AND) or `|` (OR) and translates each filter one by one.
+
+Examples:
+
+```
+nrls_categorical <- 
+  expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & 
+         (IN04 == 1 | IN04 %in% c(97, 99) & 
+            !is.na(RP07) | is.na(IN04) & !is.na(RP07))) 
+```
+
+```
+lfpse_categorical <- 
+  expr((' ' + A001 + ' ') %LIKE% '% 4 %'| 
+         ((' ' + A001 + ' ') %LIKE% '% 3 %' & 
+            (' ' + A001 + ' ') %LIKE% '% 10 %'))
+```
+
 ### NRLS
 
 ```{r}
