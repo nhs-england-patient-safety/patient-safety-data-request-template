@@ -136,8 +136,6 @@ include_term_tally_table <- "yes"
 
 incident_level_required <- "yes"
 
-incident_level_required <- "yes"
-
 write_to_sp <- TRUE
 ```
 
