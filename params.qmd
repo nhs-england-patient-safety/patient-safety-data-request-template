@@ -38,6 +38,14 @@ Load all required functions and establish database connections.
 source("R/setup.R")
 ```
 
+## Column Extraction
+
+```{r}
+
+# cols to extract (all/default)
+cols_to_extract <- "default"
+```
+
 ## Categorical Filters
 
 Define categorical filters for each database.
