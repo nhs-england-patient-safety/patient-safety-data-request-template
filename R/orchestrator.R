@@ -131,21 +131,4 @@ run_data_request <- function(
   
   log_section_header("PROCESS COMPLETE")
   
-  # return summary of what was created
-  file_list <- ls(envir = .GlobalEnv, pattern = "for_release")
-  
-  if (length(file_list) == 0) {
-    message("Warning: No output datasets created")
-    return(invisible(NULL))
-  }
-
-  summary <- tibble(
-    database = str_to_upper(str_extract(file_list, "^[^_]+")),
-    n_incidents = sapply(file_list, function(x) nrow(get(x, envir = .GlobalEnv)))
-  )
-
-  print(summary)
-
-  return(invisible(summary))
-  
 }
