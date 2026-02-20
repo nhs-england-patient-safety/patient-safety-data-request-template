@@ -90,13 +90,16 @@ load_packages(required_packages)
 source_files <- function(files, label) {
   message("Loading ", label, "...", appendLF = FALSE)
   
+  captured <- c()
   for (file in files) {
     if (!file.exists(file)) {
       stop(sprintf("\n\n Required file not found: %s\n", file))
     }
-    source(file, local = FALSE)
+    captured <- c(captured, capture.output(source(file, local = FALSE), type = "message"))
   }
+  
   message("✓")
+  if (length(captured) > 0) cat(captured, sep = "\n")
 }
 
 # configuration files
