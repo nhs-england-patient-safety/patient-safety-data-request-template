@@ -7,7 +7,7 @@ if (write_to_sp) {
   
   site_url <- "https://nhs.sharepoint.com/sites/MED/ps2/it/mit"
   
-  site <- get_sharepoint_site(site_url = site_url, tenant="nhs")
+  site <- suppressMessages(get_sharepoint_site(site_url = site_url, tenant="nhs"))
   
   # Write to a folder within Restricted Library / Data Requests
   
