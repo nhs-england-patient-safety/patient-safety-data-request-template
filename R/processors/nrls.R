@@ -117,7 +117,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
   # apply neopaed filte
   nrls_neopaed <- filter_by_neopaed_strategy(nrls_age_categorised, is_neopaed)
   
-  print(str_glue("nrls_neopaed has {nrow(nrls_neopaed)} incidents"))
+  # print(str_glue("nrls_neopaed has {nrow(nrls_neopaed)} incidents"))
   
   # check for empty results
   if (check_and_log_empty_result(nrls_neopaed, dataset, "neopaed")) {
