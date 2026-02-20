@@ -109,8 +109,9 @@ run_data_request <- function(
   
   # expand categorical filters for documentation
   message("Translating categorical filters...", appendLF = FALSE)
-  source("R/utils/expand_categorical_filters.R")
+  captured <- capture.output(source("R/utils/expand_categorical_filters.R"), type = "message")
   message("✓")
+  if (length(captured) > 0) message(paste(captured, collapse = "\n"))
   
   # identify database search order
   if (search_nrls) {
