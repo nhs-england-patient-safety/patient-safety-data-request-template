@@ -1,0 +1,222 @@
+---
+format: html
+editor: visual
+eval: false
+echo: false
+---
+
+# Configuration
+
+Configure all parameters for the data request. Modify the values below to set the requirements for the request.
+
+## Database Selection
+
+```{r}
+
+search_nrls <- TRUE
+search_lfpse <- TRUE
+search_steis <- TRUE
+```
+
+## Date Range
+
+Specify the date range and whether the dates are occurring or reported.
+
+```{r}
+
+start_date <- "2023-01-01"
+end_date <- "2024-12-31"
+date_type <- "occurring" # "occurring" or "reported"
+```
+
+# Setup
+
+Load all required functions and establish database connections.
+
+```{r}
+
+source("R/setup.R")
+```
+
+## Column Extraction
+
+```{r}
+
+# cols to extract (all/default)
+cols_to_extract <- "default"
+```
+
+## Categorical Filters
+
+Define categorical filters for each database.
+
+-   Wrap filter expressions in `expr()`.
+-   Set to `0` for no filter.
+
+`translate_categorical_string()` translates filters from the codes used to access the database to more human-readable code. It splits up filters by `&` (AND) or `|` (OR) and translates each filter one by one.
+
+Examples:
+
+``` r
+nrls_categorical <- 
+  expr((IN05_LVL1 == 10 | IN05_LVL2 == 3) & 
+         (IN04 == 1 | IN04 %in% c(97, 99) & 
+            !is.na(RP07) | is.na(IN04) & !is.na(RP07))) 
+```
+
+``` r
+lfpse_categorical <- 
+  expr((' ' + A001 + ' ') %LIKE% '% 4 %'| 
+         ((' ' + A001 + ' ') %LIKE% '% 3 %' & 
+            (' ' + A001 + ' ') %LIKE% '% 10 %'))
+```
+
+### NRLS
+
+```{r}
+
+nrls_categorical <- expr(IN05_LVL1 == 10)
+```
+
+### LFPSE
+
+```{r}
+
+lfpse_categorical <- expr((" " + A001 + " ") %LIKE% "% 4 %")
+```
+
+### StEIS
+
+```{r}
+
+steis_categorical <- expr(type_of_incident == "Medication incident meeting SI criteria")
+steis_filename <- "SUI_2_87360.csv"
+```
+
+## Text Search
+
+```{r}
+
+# define search term groups
+text_terms <- list(
+  group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
+  group_B = c("(?i)\\bibuprofen"),
+  group_C = c("(?i)\\bunwell")
+)
+
+# define how groups combine (using boolean logic)
+text_filter <- expr((group_A | group_B) & group_C)
+
+# to skip text search, use:
+# text_terms <- list()
+# text_filter <- expr(1 == 1)
+```
+
+## NeoPaed Classification
+
+```{r}
+
+# neopaed logic (neonate/paed/either/none)
+is_neopaed <- "none"
+```
+
+## Sampling Strategy
+
+```{r}
+
+# sampling strategy (default/FOI/none)
+sampling_strategy <- "default"
+```
+
+## Output Options
+
+```{r}
+
+include_term_tally_table <- "yes"
+
+incident_level_required <- "yes"
+
+write_to_sp <- TRUE
+```
+
+## Summary Tables
+
+Examples:
+
+``` r
+list_of_tables_to_create_lfpse <- list(
+  c(expr(max_physical_harm_level)),
+  c(expr(year_reported_or_occurred), expr(month_reported_or_occurred)),
+  c(expr(month_year_reported_or_occurred), expr(max_physical_harm_level))
+)
+```
+
+``` r
+list_of_tables_to_create_steis <- list(
+  c(expr(type_of_incident)),
+  c(expr(year_reported_or_occurred))
+)
+```
+
+``` r
+list_of_tables_to_create_nrls <- list(
+  c(expr(PD09)),
+  c(expr(month_year_reported_or_occurred), expr(PD09))
+)
+```
+
+```{r}
+
+list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
+list_of_tables_to_create_steis <- list(c(expr(year_reported_or_occurred)))
+list_of_tables_to_create_nrls <- list(c(expr(PD09)))
+
+# should LFPSE summary tables be incident level or patient level? (incident/patient)
+# note - if LFPSE is not searched, this will not have any effect
+summary_tables_incident_or_patient_level <- "patient"
+```
+
+# Execute Request
+
+```{r}
+
+results <- run_data_request(
+  # database selection
+  search_nrls = search_nrls,
+  search_lfpse = search_lfpse,
+  search_steis = search_steis,
+  
+  # date parameters
+  start_date = start_date,
+  end_date = end_date,
+  date_type = date_type,
+  
+  # categorical filters
+  nrls_categorical = nrls_categorical,
+  lfpse_categorical = lfpse_categorical,
+  steis_categorical = steis_categorical,
+  steis_filename = steis_filename,
+  
+  # text filters
+  text_terms = text_terms,
+  text_filter = text_filter,
+  
+  # classification
+  is_neopaed = is_neopaed,
+  
+  
+  # sampling
+  sampling_strategy = sampling_strategy,
+  
+  # output configuration
+  include_term_tally_table = include_term_tally_table,
+  incident_level_required = incident_level_required,
+  write_to_sp = write_to_sp,
+  
+  # table specifications
+  list_of_tables_to_create_lfpse = list_of_tables_to_create_lfpse,
+  list_of_tables_to_create_steis = list_of_tables_to_create_steis,
+  list_of_tables_to_create_nrls = list_of_tables_to_create_nrls,
+  summary_tables_incident_or_patient_level = summary_tables_incident_or_patient_level
+)
+```

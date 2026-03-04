@@ -4,7 +4,7 @@ library(DBI)
 
 # nrls ####
 if (search_nrls) {
-  con_nrls <- dbConnect(odbc::odbc(),
+  con_nrls <- DBI::dbConnect(odbc::odbc(),
                         Driver = "ODBC Driver 17 for SQL Server",
                         Server = Sys.getenv("psims_server"),
                         database = Sys.getenv("nrls_database"),
@@ -56,21 +56,20 @@ if (search_nrls) {
   
   # download nrls colnames file, and save to data folder
   site_url <- "https://nhs.sharepoint.com/sites/MED/ps2/it/mit"
-  site <- get_sharepoint_site(site_url = site_url, tenant = "nhs")
+  site <- suppressMessages(Microsoft365R::get_sharepoint_site(site_url = site_url, tenant = "nhs"))
   reslib <- site$get_drive("Restricted Library")
   reslib$download_file("NRLS/nrls lookup.xlsx",dest="Data/nrls_lookup_file.xlsx", overwrite = TRUE)
   
-  nrls_lookup<- read.xlsx("Data/nrls_lookup_file.xlsx") %>%
+  nrls_lookup<- read.xlsx("Data/nrls_lookup_file.xlsx") |>
     select(Code, Label)
-  
-  
+
   
   } 
 
 # lfpse ####
 if (search_lfpse) {
     
-    con_lfpse <- dbConnect(odbc::odbc(),
+    con_lfpse <- DBI::dbConnect(odbc::odbc(),
                            Driver = "ODBC Driver 17 for SQL Server",
                            Server = Sys.getenv("psims_server"),
                            database = Sys.getenv("lfpse_database"),
