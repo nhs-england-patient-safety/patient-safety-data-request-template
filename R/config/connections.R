@@ -13,7 +13,7 @@ if (search_nrls) {
                         )
   
   # reading categorical reference tables
-  sascodes <- tbl(con_nrls, in_schema("art", "sascodes")) |>
+  sascodes <- tbl(con_nrls, dbplyr::in_schema("art", "sascodes")) |>
     collect()
   
   codes_ex_rm04 <- sascodes |>
