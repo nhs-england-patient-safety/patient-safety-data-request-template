@@ -1,0 +1,396 @@
+---
+title: "LFPSE Tables Comparison"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup
+
+There are several packages, helper functions, and parameters that need to be set to run the LFPSE processor. 
+
+```{r}
+
+library(tidyr)
+library(dplyr)
+library(dbplyr)
+library(stringr)
+library(Microsoft365R)
+library(zoo)
+```
+
+```{r}
+
+# returns NA if all values are missing, otherwise returns the minimum non-NA value
+min_safe <- function(vec) {
+  ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec, na.rm = TRUE))
+}
+
+# flags controlling which incident reporting systems to query
+search_nrls <- F
+search_lfpse <- T
+search_steis <- F
+
+# date range and whether to filter by date of occurrence or date of report
+start_date <- "2024-01-01"
+end_date <- "2024-12-31"
+date_type <- "occurring"
+
+# load database connection settings and column name mappings
+source("R/config/connections.R")
+source("R/config/column_selection_lookups.R")
+
+# set the date column to filter on, based on date_type above
+date_filter <- if (date_type == 'occurring') {
+  expr(occurred_date)
+} else if (date_type == 'reported') {
+  expr(reported_date)
+}
+```
+
+## Old LFPSE Process
+
+This is the same process currently being used in the data request pipeline.
+
+```{r}
+
+# filter for incidents where A001 contains the value 4
+lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
+
+# get the latest revision and earliest submission date for each incident
+latest_revision_table <-
+  tbl(con_lfpse, in_schema("analysis", "Events")) |>
+  group_by(Reference) |>
+  summarise(
+    Revision = max(Revision),
+    reported_date = min(SubmissionDate)
+  ) |>
+  ungroup()
+
+analysis_table_names <- c(
+  "Metadata_Responses",
+  "Incident_Responses",
+  "Risk_Responses",
+  "Outcome_Responses",
+  "GoodCare_Responses",
+  "EventDetails_Responses",
+  "EventTime_Responses",
+  "Location_Responses",
+  "Events",
+  "Patient_Responses",
+  "Medication_Responses",
+  "Devices_Responses",
+  "Reporter_Responses",
+  "Governance_Responses",
+  # "Findings_Responses",
+  "DmdMedication_Responses"
+)
+
+# load each table as a remote database reference
+# rename EntityId to DmdEntityId in DmdMedication_Responses to avoid clash
+analysis_tables <- lapply(analysis_table_names, function(x) {
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+  if (x == "DmdMedication_Responses") {
+    table <- table |> rename(DmdEntityId = EntityId)
+  }
+  return(table)
+})
+
+lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
+
+# join tables on Reference and Revision, keeping rows in the latest revision table
+lfpse_parsed <-
+  purrr::reduce(
+    lfpse_analysis_tables, left_join, by = c("Reference", "Revision")
+  ) |>
+  rename(occurred_date = T005) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
+  mutate(P004_days = as.numeric(P004))
+
+lfpse_filtered_categorical <- lfpse_parsed |>
+  # apply date range filter and the categorical incident type filter
+  filter(
+    between(date_filter, start_date, end_date),
+    lfpse_categorical
+  ) |>
+  # keep columns specified in the LFPSE rename lookup, plus patient age
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days) |>
+  # compute the most severe harm scores and patient count per incident
+  group_by(Reference) |>
+  mutate(
+    OT001_min = min(as.numeric(OT001)),
+    OT002_min = min(as.numeric(OT002)),
+    npatient = max(EntityId)
+  ) |>
+  ungroup() |>
+  # pull the query results from the database into local memory
+  collect() |>
+  mutate(
+    # extract year and month from the chosen date column for aggregation
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    # combine into a year-month value
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    # assign financial year
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    # convert month number to abbreviated name
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
+    reported_date = as.character(reported_date),
+    occurred_date = as.character(occurred_date),
+    # add 1 to psychological harm score so it sits on the same scale as physical harm
+    OT002_min_plus_one = OT002_min + 1
+  ) |>
+  # compute the overall worst harm per row by taking the minimum across both
+  # adjusted harm scores, min_safe handles cases where both are NA
+  rowwise() |>
+  mutate(max_harm = min_safe(c(OT001_min, OT002_min_plus_one))) |>
+  ungroup() |>
+  mutate(
+    max_harm_level = case_when(
+      max_harm == 1 ~ "Fatal",
+      max_harm == 2 ~ "Severe harm",
+      max_harm == 3 ~ "Moderate harm",
+      max_harm == 4 ~ "Low harm",
+      max_harm == 5 ~ "No harm"
+    ),
+    max_physical_harm_level = case_when(
+      OT001_min == 1 ~ "Fatal",
+      OT001_min == 2 ~ "Severe physical harm",
+      OT001_min == 3 ~ "Moderate physical harm",
+      OT001_min == 4 ~ "Low physical harm",
+      OT001_min == 5 ~ "No physical harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    ),
+    max_psychological_harm_level = case_when(
+      OT002_min == 1 ~ "Severe psychological harm",
+      OT002_min == 2 ~ "Moderate psychological harm",
+      OT002_min == 3 ~ "Low psychological harm",
+      OT002_min == 4 ~ "No psychological harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    )
+  ) |>
+  # drop intermediate columns
+  select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
+  # collapse multiple DMD rows per incident into a single row 
+  group_by(across(-starts_with("DMD"))) |>
+  summarise(
+    across(
+      starts_with("DMD"),
+      ~ str_flatten(., collapse = ", "),
+      .names = "{.col}"
+    ),
+    .groups = "drop"
+  )
+```
+
+## New LFPSE Process
+
+This is the new process which uses the new LFPSE table. The new `vwEventsTransposedAll` view is a flattened table that combines everything, meaning the processor no longer needs to do multiple joins.
+
+The `vwTransposedAll` view joins the `EventsTransposed` and `EventsTransposedAdditionalPatients` tables, to include all patients.
+
+However, the additional patient rows only include any information not recorded in the transposed events table, and other values are NA. This was causing some issues with the original process for queries, leading to a lot of additional patient rows being filtered out. Now the process below starts by identifying the references that meet the criteria for the query (`valid_refs`) and using this to filter for all incidents for the query (there may be a cleaner, more efficient approach to do this).
+
+```{r}
+
+# filter for incidents where A001_InvolvedAgents contains the value 4
+lfpse_categorical <- expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %')
+
+# load the all patients view
+lfpse_analysis_table_new <-
+  tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll"))
+
+# identify the set of references that meet the date range and category criteria
+valid_refs <-
+  lfpse_analysis_table_new |>
+  mutate(occurred_date = OccurredDate) |>
+  filter(
+    EntityId == 1 | is.na(EntityId),
+    between(date_filter, start_date, end_date),
+    lfpse_categorical
+  ) |>
+  select(Reference) |>
+  distinct()
+
+lfpse_filtered_categorical_new <-
+  lfpse_analysis_table_new |>
+  # restrict to only the valid references identified above
+  inner_join(valid_refs, by = "Reference") |>
+  mutate(
+    occurred_date = OccurredDate,
+    reported_date = OriginalSubmissionDate,
+    P004_AgeAtTimeOfIncidentDays = as.numeric(P004_AgeAtTimeOfIncidentDays)
+  ) |>
+  # compute the most severe harm scores and patient count per incident
+  mutate(
+    OT001_min = min(as.numeric(OT001_PhysicalHarm), na.rm = FALSE),
+    OT002_min = min(as.numeric(OT002_PsychologicalHarm), na.rm = FALSE),
+    npatient = max(EntityId, na.rm = FALSE),
+    .by = Reference
+  ) |>
+  # pull results from the database into local memory
+  collect() |>
+  mutate(
+    # extract year and month
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    # combine into year-month
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    # assign financial year
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
+    reported_date = as.character(reported_date),
+    occurred_date = as.character(occurred_date),
+    # adjust psychological harm score to match the physical harm scale
+    OT002_min_plus_one = OT002_min + 1,
+    # take the element-wise minimum across both adjusted scores
+    # pmin is used because it is quicker (and results are the same)
+    max_harm = pmin(OT001_min, OT002_min_plus_one, na.rm = FALSE),
+    max_harm_level = case_when(
+      max_harm == 1 ~ "Fatal",
+      max_harm == 2 ~ "Severe harm",
+      max_harm == 3 ~ "Moderate harm",
+      max_harm == 4 ~ "Low harm",
+      max_harm == 5 ~ "No harm"
+    ),
+    max_physical_harm_level = case_when(
+      OT001_min == 1 ~ "Fatal",
+      OT001_min == 2 ~ "Severe physical harm",
+      OT001_min == 3 ~ "Moderate physical harm",
+      OT001_min == 4 ~ "Low physical harm",
+      OT001_min == 5 ~ "No physical harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    ),
+    max_psychological_harm_level = case_when(
+      OT002_min == 1 ~ "Severe psychological harm",
+      OT002_min == 2 ~ "Moderate psychological harm",
+      OT002_min == 3 ~ "Low psychological harm",
+      OT002_min == 4 ~ "No psychological harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    )
+  ) |>
+  # drop intermediate columns
+  select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
+  # replace database separator token with a readable comma separator
+  mutate(across(starts_with("DMD"), ~ str_replace_all(.x, fixed(" {~@~} "), ", ")))
+```
+
+## Comparison
+
+### Row Counts
+
+```{r}
+
+# compare total row counts between old and new pipelines
+nrow(lfpse_filtered_categorical) - nrow(lfpse_filtered_categorical_new)
+
+# compare distinct incident counts — positive value means old has more references
+nrow(distinct(lfpse_filtered_categorical, Reference)) -
+  nrow(distinct(lfpse_filtered_categorical_new, Reference))
+```
+
+There are currently 12 more rows in the old LFPSE table. Comparing distinct incidents shows the same, suggesting there are 12 distinct incidents that are not in the new LFPSE table.
+
+### Reference
+
+```{r}
+
+# incidents in the old table but not in the new table
+lfpse_filtered_categorical |>
+  filter(!Reference %in% lfpse_filtered_categorical_new$Reference)
+
+# incidents in the new table but not in the old table
+lfpse_filtered_categorical_new |>
+  filter(!Reference %in% lfpse_filtered_categorical$Reference)
+```
+
+There are 14 incidents that are in the old LFPSE table that don't show up in the new table, and two in the new table that are not in the old table.
+
+I have checked this isn't caused by the way the valid incident references are being identified by running the base query (categorical and date filters) on `vwEventsTransposed`, producing the same discrepancy.
+
+### Entity ID
+
+```{r}
+
+# count distinct entity id in each pipeline
+nrow(distinct(lfpse_filtered_categorical_new, EntityId))
+nrow(distinct(lfpse_filtered_categorical, EntityId))
+
+# check for any rows in the old pipeline where EntityId is NA
+lfpse_filtered_categorical |>
+  filter(is.na(EntityId))
+
+# filter both pipelines to single-patient records (EntityId == 1) for comparison
+old_single_patient <- lfpse_filtered_categorical |>
+  filter(EntityId == 1)
+
+new_single_patient <- lfpse_filtered_categorical_new |>
+  filter(EntityId == 1)
+
+# compare row counts for single-patient records between pipelines
+nrow(old_single_patient) - nrow(new_single_patient)
+
+# filter incidents that don't appear in the new table where EntityId is NA 
+lfpse_filtered_categorical |>
+  filter(is.na(EntityId) & !Reference %in% lfpse_filtered_categorical_new$Reference)
+```
+
+There is a small difference in the distinct `EntityId` values in both tables. This is because there are rows in the old table where `EntityId` is NA. There are almost 25,000 rows where `EntityId` = NA in the old table. However, when filtering by `Reference` as well, it appears that most of the NAs correspond to incidents that are in the new table, but the `EntityId` is not missing.
+
+When filtering out the extra patients, there is a big gap, which also seems to be caused primarily by the NAs (the difference is very similar to the number of EntityId = NA in the old table).
+
+This might not be an issue, but I wanted to highlight it and double-check it is expected.
+
+### DMD
+
+There were previously some issues with DMD records in the new tables not including all medications, however those have now been fixed.
+
+```{r}
+
+# extract medication fields from each pipeline, excluding rows where both are NA,
+# renaming new pipeline columns to match old pipeline names for comparison
+old_dmd <- lfpse_filtered_categorical |>
+  select(Reference, EntityId, Revision, DMD002, DMD004) |>
+  filter(!is.na(DMD002) | !is.na(DMD004)) |>
+  arrange(Reference)
+
+new_dmd <- lfpse_filtered_categorical_new |>
+  select(
+    Reference, EntityId, Revision,
+    DMD002 = DMD002_VTMString,
+    DMD004 = DMD004_VMPString
+  ) |>
+  filter(!is.na(DMD002) | !is.na(DMD004)) |>
+  arrange(Reference)
+
+# show row-level differences in medication data between pipelines
+diffdf::diffdf(old_dmd, new_dmd)
+
+# medication records in the new pipeline with no match in the old
+new_dmd |>
+  filter(!Reference %in% old_dmd$Reference)
+```
+
+There are two incidents that don't appear in the new table, but this seems to be a separate issue to DMD. There are minor differences between the two tables, like the ordering of medications, but otherwise they appear to be the same.
