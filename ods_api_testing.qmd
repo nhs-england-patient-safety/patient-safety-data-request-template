@@ -1,0 +1,309 @@
+---
+title: "ODS API Testing"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup
+
+```{r}
+
+library(tidyr)
+library(dplyr)
+library(dbplyr)
+library(stringr)
+library(Microsoft365R)
+library(zoo)
+library(httr2)
+```
+
+```{r}
+
+# returns NA if all values are missing, otherwise returns the minimum non-NA value
+min_safe <- function(vec) {
+  ifelse(length(vec[!is.na(vec)]) == 0, NA_real_, min(vec, na.rm = TRUE))
+}
+
+# flags controlling which incident reporting systems to query
+search_nrls <- F
+search_lfpse <- T
+search_steis <- F
+
+# date range and whether to filter by date of occurrence or date of report
+start_date <- "2025-01-01"
+end_date <- "2025-04-01"
+date_type <- "occurring"
+
+# load database connection settings and column name mappings
+source("R/config/connections.R")
+source("R/config/column_selection_lookups.R")
+
+# set the date column to filter on, based on date_type above
+date_filter <- if (date_type == 'occurring') {
+  expr(occurred_date)
+} else if (date_type == 'reported') {
+  expr(reported_date)
+}
+```
+
+## Example Query
+
+```{r}
+
+# filter for incidents where A001 contains the value 4
+lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
+
+# get the latest revision and earliest submission date for each incident
+latest_revision_table <-
+  tbl(con_lfpse, in_schema("analysis", "Events")) |>
+  group_by(Reference) |>
+  summarise(
+    Revision = max(Revision),
+    reported_date = min(SubmissionDate)
+  ) |>
+  ungroup()
+
+analysis_table_names <- c(
+  "Metadata_Responses",
+  "Incident_Responses",
+  "Risk_Responses",
+  "Outcome_Responses",
+  "GoodCare_Responses",
+  "EventDetails_Responses",
+  "EventTime_Responses",
+  "Location_Responses",
+  "Events",
+  "Patient_Responses",
+  "Medication_Responses",
+  "Devices_Responses",
+  "Reporter_Responses",
+  "Governance_Responses",
+  # "Findings_Responses",
+  "DmdMedication_Responses"
+)
+
+# load each table as a remote database reference
+# rename EntityId to DmdEntityId in DmdMedication_Responses to avoid clash
+analysis_tables <- lapply(analysis_table_names, function(x) {
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+  if (x == "DmdMedication_Responses") {
+    table <- table |> rename(DmdEntityId = EntityId)
+  }
+  return(table)
+})
+
+lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
+
+# join tables on Reference and Revision, keeping rows in the latest revision table
+lfpse_parsed <-
+  purrr::reduce(
+    lfpse_analysis_tables, left_join, by = c("Reference", "Revision")
+  ) |>
+  rename(occurred_date = T005) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
+  mutate(P004_days = as.numeric(P004))
+
+lfpse_filtered_categorical <- lfpse_parsed |>
+  # apply date range filter and the categorical incident type filter
+  filter(
+    between(date_filter, start_date, end_date),
+    lfpse_categorical
+  ) |>
+  # keep columns specified in the LFPSE rename lookup, plus patient age
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days) |>
+  # compute the most severe harm scores and patient count per incident
+  group_by(Reference) |>
+  mutate(
+    OT001_min = min(as.numeric(OT001)),
+    OT002_min = min(as.numeric(OT002)),
+    npatient = max(EntityId)
+  ) |>
+  ungroup() |>
+  # pull the query results from the database into local memory
+  collect() |>
+  mutate(
+    # extract year and month from the chosen date column for aggregation
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    # combine into a year-month value
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    # assign financial year
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    # convert month number to abbreviated name
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
+    reported_date = as.character(reported_date),
+    occurred_date = as.character(occurred_date),
+    # add 1 to psychological harm score so it sits on the same scale as physical harm
+    OT002_min_plus_one = OT002_min + 1
+  ) |>
+  # compute the overall worst harm per row by taking the minimum across both
+  # adjusted harm scores, min_safe handles cases where both are NA
+  rowwise() |>
+  mutate(max_harm = min_safe(c(OT001_min, OT002_min_plus_one))) |>
+  ungroup() |>
+  mutate(
+    max_harm_level = case_when(
+      max_harm == 1 ~ "Fatal",
+      max_harm == 2 ~ "Severe harm",
+      max_harm == 3 ~ "Moderate harm",
+      max_harm == 4 ~ "Low harm",
+      max_harm == 5 ~ "No harm"
+    ),
+    max_physical_harm_level = case_when(
+      OT001_min == 1 ~ "Fatal",
+      OT001_min == 2 ~ "Severe physical harm",
+      OT001_min == 3 ~ "Moderate physical harm",
+      OT001_min == 4 ~ "Low physical harm",
+      OT001_min == 5 ~ "No physical harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    ),
+    max_psychological_harm_level = case_when(
+      OT002_min == 1 ~ "Severe psychological harm",
+      OT002_min == 2 ~ "Moderate psychological harm",
+      OT002_min == 3 ~ "Low psychological harm",
+      OT002_min == 4 ~ "No psychological harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    )
+  ) |>
+  # drop intermediate columns
+  select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
+  # collapse multiple DMD rows per incident into a single row 
+  group_by(across(-starts_with("DMD"))) |>
+  summarise(
+    across(
+      starts_with("DMD"),
+      ~ str_flatten(., collapse = ", "),
+      .names = "{.col}"
+    ),
+    .groups = "drop"
+  )
+```
+
+## Test ODS API & Request Structure
+
+```{r}
+api_key <- Sys.getenv("ods_key")
+
+base_url <- "https://api.service.nhs.uk/organisation-data-terminology-api/fhir"
+lookup <- "Organization"
+org_code <- "FEQ00"
+
+query <- paste(base_url,lookup, org_code, sep = "/")
+
+req <- request(query) |>
+  req_headers(apikey = api_key) |>
+  req_perform() 
+
+response <- req |>
+  resp_body_json()
+
+response_df <- response |> 
+  as.data.frame() |> 
+  janitor::clean_names()
+
+response_df |>
+  # select only needed info and shorten variable names
+  select('api_org_name' = name) |> 
+  pull()
+```
+
+## ODS API Function
+
+```{r}
+
+get_ods_orgs <- function(org_code) {
+  
+  api_key <- Sys.getenv("ods_key")
+  
+  tryCatch({
+    response <- request("https://api.service.nhs.uk/organisation-data-terminology-api/fhir") |>
+      req_url_path_append("Organization", org_code) |>
+      req_headers(apikey = api_key) |>
+      req_throttle(rate = 5) |>
+      req_retry(max_tries = 3, backoff = \(x) 2) |>
+      req_perform() |>
+      resp_body_json()
+    
+    tibble(
+      org_code = purrr::pluck(response, "id",      .default = NA),
+      org_name = purrr::pluck(response, "name",    .default = NA),
+      org_type = purrr::pluck(response, "extension", 1, "extension", 2,
+                              "valueCodeableConcept", "coding", 1, "display",
+                              .default = NA),
+      country  = purrr::pluck(response, "address", 1, "country", .default = NA)
+    )
+    
+  }, error = function(e) {
+    message(glue::glue("No info available for {org_code}: {e$message}"))
+    tibble(org_code = org_code, org_name = NA_character_,
+           org_type = NA_character_, country = NA_character_)
+  })
+}
+```
+
+```{r}
+
+# get_ods_orgs <- memoise::memoise(get_ods_orgs)
+```
+
+### Test Results
+
+```{r}
+get_ods_orgs(org_code = c('FEQ00'))
+```
+
+```{r}
+org_codes <- c("FEQ00", "RBS")
+purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |>
+  purrr::list_rbind()
+```
+
+### Worked Example
+
+```{r}
+
+org_codes <- lfpse_filtered_categorical |>
+  pull(OccurredOrganisationCode) |>
+  na.omit() |>
+  unique()
+
+tictoc::tic()
+
+orgs <- 
+  purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |> 
+  purrr::list_rbind()
+
+tictoc::toc()
+
+lfpse_filtered_categorical <- lfpse_filtered_categorical |>
+  left_join(orgs, by = join_by(OccurredOrganisationCode == org_code))
+```
+
+#### Compare {furrr} Performance
+
+```{r}
+
+future::plan(multisession, workers = 4)
+
+tictoc::tic()
+
+orgs <- 
+  furrr::future_map(org_codes, get_ods_orgs, .progress = TRUE) |> 
+  purrr::list_rbind()
+
+tictoc::toc()
+
+future::plan(sequential)
+```
