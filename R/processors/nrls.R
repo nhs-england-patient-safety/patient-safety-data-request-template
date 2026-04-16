@@ -131,9 +131,12 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
     }
   } else {
     
+    # get ods organisation data
+    nrls_ods_joined <- fetch_and_join_ods(nrls_neopaed, english_only = TRUE)
+    
     # sampling
     nrls_sampled <- apply_sampling_strategy(
-      nrls_neopaed,
+      nrls_ods_joined,
       sampling_strategy,
       harm_column = "PD09",
       death_severe_values = c("Death", "Severe"),
@@ -142,7 +145,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
     )
     
     # get data for summary tables (with renamed columns)
-    nrls_for_summary_table_unsampled <- nrls_neopaed |>
+    nrls_for_summary_table_unsampled <- nrls_ods_joined |>
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_"))
     
     nrls_for_summary_table_sampled <- nrls_sampled |>
@@ -153,7 +156,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_")) |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
-    nrls_for_release_unsampled_pt_level <- nrls_neopaed |>
+    nrls_for_release_unsampled_pt_level <- nrls_ods_joined |>
       select(any_of(rename_lookup[["NRLS"]]), starts_with("group_")) |>
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
