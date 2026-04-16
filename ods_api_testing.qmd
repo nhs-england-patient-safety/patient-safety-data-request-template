@@ -275,35 +275,46 @@ purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |>
 ```{r}
 
 org_codes <- lfpse_filtered_categorical |>
-  pull(OccurredOrganisationCode) |>
+  pull(ReporterOrganisationCode) |>
   na.omit() |>
   unique()
+```
+
+```{r}
 
 tictoc::tic()
 
-orgs <- 
-  purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |> 
+orgs <- purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |> 
   purrr::list_rbind()
 
 tictoc::toc()
-
-lfpse_filtered_categorical <- lfpse_filtered_categorical |>
-  left_join(orgs, by = join_by(OccurredOrganisationCode == org_code))
 ```
 
 #### Compare {furrr} Performance
 
 ```{r}
 
-future::plan(multisession, workers = 4)
-
 tictoc::tic()
 
-orgs <- 
-  furrr::future_map(org_codes, get_ods_orgs, .progress = TRUE) |> 
+workers <- max(1, parallel::detectCores() - 1)
+future::plan(future::multisession, workers = workers)
+    
+orgs <- furrr::future_map(org_codes, get_ods_orgs, .progress = TRUE) |>
   purrr::list_rbind()
+    
+future::plan(future::sequential)
 
 tictoc::toc()
-
-future::plan(sequential)
 ```
+
+#### Join Org Data to Dataset
+
+```{r}
+
+lfpse_filtered_categorical <- 
+  lfpse_filtered_categorical |>
+  left_join(
+    orgs, by = join_by(ReporterOrganisationCode == org_code)
+    )
+```
+
