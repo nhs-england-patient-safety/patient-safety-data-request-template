@@ -118,6 +118,7 @@ source_files(
   files = c(
     "R/utils/text_filtering.R",
     "R/utils/date_utils.R",
+    "R/utils/org_utils.R",
     "R/utils/neopaed_utils.R",
     "R/utils/sampling_utils.R",
     "R/utils/logging_utils.R",
