@@ -114,7 +114,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
       )
     )
   
-  # apply neopaed filte
+  # apply neopaed filter
   nrls_neopaed <- filter_by_neopaed_strategy(nrls_age_categorised, is_neopaed)
   
   # print(str_glue("nrls_neopaed has {nrow(nrls_neopaed)} incidents"))
@@ -132,7 +132,9 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
   } else {
     
     # get ods organisation data
-    nrls_ods_joined <- fetch_and_join_ods(nrls_neopaed, english_only = TRUE)
+    if (include_org_data) {
+      nrls_ods_joined <- fetch_and_join_ods(nrls_neopaed, english_only = TRUE)
+    }
     
     # sampling
     nrls_sampled <- apply_sampling_strategy(
