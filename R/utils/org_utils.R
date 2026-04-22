@@ -8,20 +8,19 @@
 #'
 #' @return Dataframe with organisation data
 
-
 get_ods_orgs <- function(org_code) {
   
   api_key <- Sys.getenv("ods_key")
   
   tryCatch({
     response <- 
-      request("https://api.service.nhs.uk/organisation-data-terminology-api/fhir") |>
-      req_url_path_append("Organization", org_code) |>
-      req_headers(apikey = api_key) |>
-      req_throttle(rate = 5) |>
-      req_retry(max_tries = 3, backoff = \(x) 2) |>
-      req_perform() |>
-      resp_body_json()
+      httr2::request("https://api.service.nhs.uk/organisation-data-terminology-api/fhir") |>
+      httr2::req_url_path_append("Organization", org_code) |>
+      httr2::req_headers(apikey = api_key) |>
+      httr2::req_throttle(rate = 5) |>
+      httr2::req_retry(max_tries = 3, backoff = \(x) 2) |>
+      httr2::req_perform() |>
+      httr2::resp_body_json()
     
     tibble(
       org_code = purrr::pluck(response, "id",      .default = NA),
@@ -38,6 +37,24 @@ get_ods_orgs <- function(org_code) {
            org_type = NA_character_, org_country = NA_character_)
   })
 }
+
+
+#' Memoised version of `get_ods_orgs`
+#'
+#' Wraps `get_ods_orgs` with a disk cache that persists across sessions (set to 
+#' expire after 30 days). Use `get_ods_orgs` directly to force a fresh API call.
+#'
+#' @inheritParams get_ods_orgs
+#'
+#' @return Dataframe with organisation data, retrieved from cache where available
+
+get_ods_orgs_cached <- memoise::memoise(
+  get_ods_orgs,
+  cache = cachem::cache_disk(
+    dir = here::here(".ods_cache"),
+    max_age = 60 * 60 * 24 * 30  # 30 days
+  )
+)
 
 #' Fetch and join ODS organisation data to a dataset
 #'
@@ -77,19 +94,19 @@ fetch_and_join_ods <- function(data, dataset_name = dataset,
   
   n_codes <- length(org_codes)
   message(glue::glue("{n_codes} unique org codes to process."))
-  
+
   # use furrr if over threshold, otherwise purrr
   if (n_codes >= 250) {
     workers <- max(1, parallel::detectCores() - 1)
     future::plan(future::multisession, workers = workers)
     
-    orgs <- furrr::future_map(org_codes, get_ods_orgs, .progress = TRUE) |>
+    orgs <- furrr::future_map(org_codes, get_ods_orgs_cached, .progress = TRUE) |>
       purrr::list_rbind()
     
     future::plan(future::sequential)
     
   } else {
-    orgs <- purrr::map(org_codes, get_ods_orgs, .progress = TRUE) |>
+    orgs <- purrr::map(org_codes, get_ods_orgs_cached, .progress = TRUE) |>
       purrr::list_rbind()
   }
   
