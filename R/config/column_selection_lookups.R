@@ -8,8 +8,8 @@ rename_lookup_nrls<- c(
   `RP02 Care Setting of Occurrence` = "RP02",
   `RP07 NHS Organisation Code` = "RP07", #required for join
   `Organisation Name` = "ORGANISATIONNAME",
-  `ODS Organisation Name` = "org_name",
-  `ODS Organistation Type` = "org_type",
+  # `ODS Organisation Name` = "org_name",
+  `ODS Organisation Type` = "org_type",
   # `ODS Organisation Country` = "org_country",
   `Date of Incident` = "occurred_date", #required 
   `Date incident received by NRLS` = "reported_date",#required
@@ -58,8 +58,8 @@ rename_lookup_lfpse<-c(
   "Revision" = "Revision",
   "Occurred Organisation Code" = "OccurredOrganisationCode",
   "Reporter Organisation Code" = "ReporterOrganisationCode",
-  "ODS Organisation Name" = "org_name",
-  "ODS Organistation Type" = "org_type",
+  # "ODS Organisation Name" = "org_name",
+  "ODS Organisation Type" = "org_type",
   # "ODS Organisation Country" = "org_country",
   "T005 - Event date" = "occurred_date", #required
   "Reported Date" = "reported_date",#required
@@ -112,8 +112,8 @@ rename_lookup_steis<-c(
   `Log No` = "log_no",
   `Organisation reporting SI on STEIS` = "organisation_reporting_si_on_steis",
   `Organisation leading investigation` = "organisation_leading_investigation",
-  "ODS Organisation Name" = "org_name",
-  "ODS Organistation Type" = "org_type",
+  # "ODS Organisation Name" = "org_name",
+  "ODS Organisation Type" = "org_type",
   # "ODS Organisation Country" = "org_country",
   `CCG/CSU Name` = "ccg_csu_name",
   `Region - Geography` = "region_geography",
