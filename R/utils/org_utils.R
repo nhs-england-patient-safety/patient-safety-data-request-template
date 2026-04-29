@@ -52,7 +52,7 @@ get_ods_orgs_cached <- memoise::memoise(
   get_ods_orgs,
   cache = cachem::cache_disk(
     dir = here::here(".ods_cache"),
-    max_age = 60 * 60 * 24 * 30  # 30 days
+    max_age = 60 * 60 * 24 * 1  # 1 day
   )
 )
 
