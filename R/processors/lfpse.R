@@ -241,9 +241,14 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     }
   } else {
     
+    # Get ODS organisation data
+    if (include_org_data) {
+      lfpse_ods_joined <- fetch_and_join_ods(lfpse_neopaed, english_only = TRUE)
+    }
+    
     # Sampling
     lfpse_sampled <- apply_sampling_strategy(
-      lfpse_neopaed,
+      lfpse_ods_joined,
       sampling_strategy,
       harm_column = "OT001",
       death_severe_values = c("Fatal", "Severe physical harm"),
@@ -252,7 +257,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     )
     
     # Rename columns
-    lfpse_neopaed <- lfpse_neopaed |>
+    lfpse_unsampled <- lfpse_ods_joined |>
       select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
     
     lfpse_sampled <- lfpse_sampled |>
@@ -262,11 +267,11 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     lfpse_for_release_sampled_pt_level <- lfpse_sampled |> 
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
     
-    lfpse_for_release_unsampled_pt_level <- lfpse_neopaed |> 
+    lfpse_for_release_unsampled_pt_level <- lfpse_unsampled |> 
       select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
     
     # Get data for summary tables
-    lfpse_for_summary_table_unsampled <- lfpse_neopaed  
+    lfpse_for_summary_table_unsampled <- lfpse_unsampled  
     lfpse_for_summary_table_sampled <- lfpse_sampled  
     
     # Handle incident vs patient level for summary tables

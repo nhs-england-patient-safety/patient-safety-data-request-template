@@ -71,11 +71,17 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
   source('R/output/formatter.R')
 } else {
   
+  # get ods organisation data
+  if (include_org_data) {
+    steis_ods_joined <- 
+      fetch_and_join_ods(steis_filtered_text, english_only = TRUE)
+  }
+  
   # columns for release
   if(cols_to_extract == 'all'){
-    steis_for_release <- steis_filtered_text
+    steis_for_release <- steis_ods_joined
   } else if (cols_to_extract == 'default'){
-    steis_for_release <- steis_filtered_text |>
+    steis_for_release <- steis_ods_joined |>
       select(any_of(rename_lookup[["STEIS"]]), starts_with("group_"))
     
     
