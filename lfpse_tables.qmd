@@ -7,7 +7,7 @@ editor_options:
 
 ## Setup
 
-There are several packages, helper functions, and parameters that need to be set to run the LFPSE processor. 
+There are several packages, helper functions, and parameters that need to be set to run the LFPSE processor.
 
 ```{r}
 
@@ -311,7 +311,7 @@ nrow(distinct(lfpse_filtered_categorical, Reference)) -
   nrow(distinct(lfpse_filtered_categorical_new, Reference))
 ```
 
-There are currently 12 more rows in the old LFPSE table. Comparing distinct incidents shows the same, suggesting there are 12 distinct incidents that are not in the new LFPSE table.
+There are currently 2 rows more in the new LFPSE table. Comparing distinct incidents shows the same, suggesting the difference is being caused by additional incidents which were not captured in the old table.
 
 ### Reference
 
@@ -326,9 +326,22 @@ lfpse_filtered_categorical_new |>
   filter(!Reference %in% lfpse_filtered_categorical$Reference)
 ```
 
-There are 14 incidents that are in the old LFPSE table that don't show up in the new table, and two in the new table that are not in the old table.
+There are no incidents in the old table that don't appear in the new table, but there are two in the new table that are not in the old table. These are the two extra rows that are causing differences in the row counts.
 
 I have checked this isn't caused by the way the valid incident references are being identified by running the base query (categorical and date filters) on `vwEventsTransposed`, producing the same discrepancy.
+
+```{r}
+
+lfpse_analysis_table_new |> 
+  filter(Reference %in% c(149117423, 149313383)) |> 
+  select(Reference, Revision, EntityId, TaxonomyVersion, OccurredDate, A001_InvolvedAgents)
+
+lfpse_parsed |> 
+  filter(Reference %in% c(149117423, 149313383))|> 
+  select(Reference, Revision, EntityId, TaxonomyVersion, occurred_date, A001)
+```
+
+The two incidents that appear in the new table but not the old table appear to be missing because the `occurred_date` is NA. This suggests that the cause of the discrepancy is data quality issues with the old table.
 
 ### Entity ID
 
