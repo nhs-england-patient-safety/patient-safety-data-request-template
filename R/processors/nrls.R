@@ -132,9 +132,7 @@ if (check_and_log_empty_result(nrls_filtered_text, dataset, "text")) {
   } else {
     
     # get ods organisation data
-    if (include_org_data) {
-      nrls_ods_joined <- fetch_and_join_ods(nrls_neopaed, english_only = TRUE)
-    }
+    nrls_ods_joined <- fetch_and_join_ods(nrls_neopaed, english_only = TRUE)
     
     # sampling
     nrls_sampled <- apply_sampling_strategy(

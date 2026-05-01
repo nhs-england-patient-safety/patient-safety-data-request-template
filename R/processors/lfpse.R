@@ -242,9 +242,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
   } else {
     
     # Get ODS organisation data
-    if (include_org_data) {
-      lfpse_ods_joined <- fetch_and_join_ods(lfpse_neopaed, english_only = TRUE)
-    }
+    lfpse_ods_joined <- fetch_and_join_ods(lfpse_neopaed, english_only = TRUE)
     
     # Sampling
     lfpse_sampled <- apply_sampling_strategy(
