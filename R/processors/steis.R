@@ -73,7 +73,11 @@ if (check_and_log_empty_result(steis_filtered_text, dataset, "text")) {
   
   # get ods organisation data
   steis_ods_joined <- 
-    fetch_and_join_ods(steis_filtered_text, english_only = TRUE)
+    fetch_and_join_ods(
+      steis_filtered_text, 
+      english_only = TRUE,
+      include_org_cols = include_org_cols
+      )
   
   # columns for release
   if(cols_to_extract == 'all'){
