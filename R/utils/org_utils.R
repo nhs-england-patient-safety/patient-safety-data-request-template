@@ -1,6 +1,10 @@
 # ODS Organisation Utilities
 # Shared logic for fetching, wrangling, and joining organisation data from ODS API
 
+# available org columns
+ORG_COLS_ALL     <- c("org_name", "org_type", "org_country")
+ORG_COLS_NONE    <- NULL
+ORG_COLS_DEFAULT <- c("org_type")
 
 #' Get ODS organisation data
 #' 
@@ -60,11 +64,15 @@ get_ods_orgs_cached <- memoise::memoise(
 #'
 #' @param data A dataframe containing organisation codes
 #' @param dataset_name Name of dataset (e.g., 'NRLS', 'LFPSE', 'StEIS')
+#' @param english_only Logical. Filter to include English (and N/A) organisations
+#' @param include_org_cols Character. ODS columns to include (ORG_COLS_DEFAULT, 
+#' ORG_COLS_NONE, ORG_COLS_ALL, or custom vector)
 #'
 #' @return Original dataframe with organisation data joined on
 
 fetch_and_join_ods <- function(data, dataset_name = dataset, 
-                               english_only = TRUE) {
+                               english_only = TRUE, 
+                               include_org_cols = ORG_COLS_DEFAULT) {
   
   # map database name to the relevant org code column
   org_code_col <- 
@@ -134,6 +142,12 @@ fetch_and_join_ods <- function(data, dataset_name = dataset,
       ))
     }
   }
+  
+  # drop org columns not requested
+  cols_to_drop <- setdiff(ORG_COLS_ALL, include_org_cols)
+  
+  result <- result |>
+    dplyr::select(-dplyr::any_of(cols_to_drop))
   
   result
 }
