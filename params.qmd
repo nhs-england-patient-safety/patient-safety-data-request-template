@@ -48,9 +48,19 @@ cols_to_extract <- "default"
 
 ## ODS Organisation Data
 
+The `include_org_cols` parameter below specifies which ODS organisation columns to include in the data request output:
+
+-   `ORG_COLS_DEFAULT` - only **organisation type** included in output (default)
+
+-   `ORG_COLS_NONE` - no organisation columns
+
+-   `ORG_COLS_ALL` - all organisation columns
+
+-   `c("org_name", "org_type")` - specific columns only
+
 ```{r}
 
-include_org_data <- TRUE
+include_org_cols <- ORG_COLS_ALL
 ```
 
 ## Categorical Filters
@@ -197,6 +207,12 @@ results <- run_data_request(
   start_date = start_date,
   end_date = end_date,
   date_type = date_type,
+  
+  # column extraction
+  cols_to_extract = cols_to_extract,
+  
+  # organisation columns
+  include_org_cols = include_org_cols,
   
   # categorical filters
   nrls_categorical = nrls_categorical,
