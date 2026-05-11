@@ -60,7 +60,7 @@ The `include_org_cols` parameter below specifies which ODS organisation columns 
 
 ```{r}
 
-include_org_cols <- ORG_COLS_ALL
+include_org_cols <- ORG_COLS_DEFAULT
 ```
 
 ## Categorical Filters
