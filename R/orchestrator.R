@@ -17,6 +17,8 @@
 #' @param start_date Character. Start date in "YYYY-MM-DD" format
 #' @param end_date Character. End date in "YYYY-MM-DD" format
 #' @param date_type Character. Either "occurring" or "reported"
+#' @param cols_to_extract Character. Either "all" or "default"
+#' @param include_org_cols Character. ODS columns to include
 #' @param nrls_categorical Expression. NRLS categorical filter (use expr() or 0)
 #' @param lfpse_categorical Expression. LFPSE categorical filter (use expr() or 0)
 #' @param steis_categorical Expression. StEIS categorical filter (use expr() or 0)
@@ -41,10 +43,16 @@ run_data_request <- function(
   search_lfpse,
   search_steis,
   
-  # data parameters
+  # date parameters
   start_date,
   end_date,
   date_type,
+  
+  # column extraction
+  cols_to_extract,
+  
+  # organisation columns
+  include_org_cols,
   
   # categorical filters
   nrls_categorical,
@@ -83,6 +91,8 @@ run_data_request <- function(
   assign("search_nrls", search_nrls, envir = .GlobalEnv)
   assign("search_lfpse", search_lfpse, envir = .GlobalEnv)
   assign("search_steis", search_steis, envir = .GlobalEnv)
+  assign("cols_to_extract", cols_to_extract, envir = .GlobalEnv)
+  assign("include_org_cols", include_org_cols, envir = .GlobalEnv)
   assign("nrls_categorical", nrls_categorical, envir = .GlobalEnv)
   assign("lfpse_categorical", lfpse_categorical, envir = .GlobalEnv)
   assign("steis_categorical", steis_categorical, envir = .GlobalEnv)
