@@ -7,92 +7,71 @@ if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
 }
 
-# set latest revision table from events
-latest_revision_table <- tbl(con_lfpse, in_schema("analysis", "Events")) |>
-  group_by(Reference) |>
-  summarise(
-    Revision = max(Revision),
-    reported_date = min(SubmissionDate)
+# load the all patients view
+lfpse_analysis_table <-
+  tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll"))
+
+# identify the set of references that meet the date range and category criteria
+valid_refs <-
+  lfpse_analysis_table |>
+  mutate(occurred_date = OccurredDate) |>
+  filter(
+    EntityId == 1 | is.na(EntityId),
+    between(date_filter, start_date, end_date),
+    lfpse_categorical
   ) |>
-  ungroup()
-
-# gather analysis tables
-analysis_table_names <- c(
-  "Metadata_Responses",
-  "Incident_Responses",
-  "Risk_Responses",
-  "Outcome_Responses",
-  "GoodCare_Responses",
-  "EventDetails_Responses",
-  "EventTime_Responses",
-  "Location_Responses",
-  "Events",
-  "Patient_Responses",
-  "Medication_Responses",
-  "Devices_Responses",
-  "Reporter_Responses",
-  "Governance_Responses",
-  "DmdMedication_Responses"
-)
-
-# bring all tables together
-analysis_tables <- lapply(analysis_table_names, function(x) {
-  table <- tbl(con_lfpse, in_schema("analysis", x))
-  # Rename EntityId in DmdMedication_Responses
-  if(x == "DmdMedication_Responses") {
-    table <- table |> rename(DmdEntityId = EntityId)
-  }
-  return(table)
-})
-
-lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
-
-# join all tables
-lfpse_parsed <- purrr::reduce(lfpse_analysis_tables,
-                              left_join,
-                              by = c("Reference", "Revision")
-) |>
-  rename(occurred_date = T005) |>
-  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
-  mutate(P004_days = as.numeric(P004))
+  select(Reference) |>
+  distinct()
 
 # record time
 tic_lfpse <- Sys.time()
 
-lfpse_filtered_categorical <- lfpse_parsed |>
-  ### Apply categorical and date filters
-  filter(
-    between(date_filter, start_date, end_date),
-    lfpse_categorical
+lfpse_filtered_categorical <-
+  lfpse_analysis_table |>
+  # restrict to only the valid references identified above
+  inner_join(valid_refs, by = "Reference") |>
+  mutate(
+    occurred_date = OccurredDate,
+    reported_date = OriginalSubmissionDate,
+    P004_AgeAtTimeOfIncidentDays = as.numeric(P004_AgeAtTimeOfIncidentDays)
   ) |>
   # select relevant columns - use the lookup but do not rename at this step to use
   # additional columns, add them to R/config/column_selection_lookups.R
-  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days) |>
-  ### Generate additional columns (grouping by Reference)
-  group_by(Reference)  |>
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_AgeAtTimeOfIncidentDays) |>
+  # compute the most severe harm scores and patient count per incident
   mutate(
-    OT001_min = min(as.numeric(OT001)), # calculate the worst physical harm per incident
-    OT002_min = min(as.numeric(OT002)), # calculate the worst psychological harm per incident
-    npatient = max(EntityId) # calculate the number of incidents
+    OT001_min = min(as.numeric(OT001_PhysicalHarm), na.rm = FALSE),
+    OT002_min = min(as.numeric(OT002_PsychologicalHarm), na.rm = FALSE),
+    npatient = max(EntityId, na.rm = FALSE),
+    .by = Reference
   ) |>
-  ungroup() |>
-  ### Collect
+  # pull results from the database into local memory
   collect() |>
-  ### Generate date columns
-  add_date_columns_lfpse(date_filter) |>
   mutate(
+    # extract year and month
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    # combine into year-month
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    # assign financial year
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
     reported_date = as.character(reported_date),
     occurred_date = as.character(occurred_date),
-    # to make psychological and physical harm comparable, add 1 to psychological 
-    # (as there is no fatal psychological harm)
-    OT002_min_plus_one = OT002_min + 1 
-  ) |>
-  ### Combine physical and psychological harm
-  rowwise() |>
-  mutate(max_harm = min_safe(c(OT001_min, OT002_min_plus_one))) |>
-  ungroup() |>
-  ### Label harm levels
-  mutate(
+    # adjust psychological harm score to match the physical harm scale
+    OT002_min_plus_one = OT002_min + 1,
+    # take the element-wise minimum across both adjusted scores
+    # pmin is used because it is quicker (and results are the same)
+    max_harm = pmin(OT001_min, OT002_min_plus_one, na.rm = FALSE),
     max_harm_level = case_when(
       max_harm == 1 ~ "Fatal",
       max_harm == 2 ~ "Severe harm",
@@ -113,16 +92,15 @@ lfpse_filtered_categorical <- lfpse_parsed |>
       OT002_min == 1 ~ "Severe psychological harm",
       OT002_min == 2 ~ "Moderate psychological harm",
       OT002_min == 3 ~ "Low psychological harm",
-      OT002_min == 4 ~ "No psychological harm",  
+      OT002_min == 4 ~ "No psychological harm",
       is.na(npatient) ~ "Not applicable",
       .default = "Harm level missing"
     )
   ) |>
-  ### Remove helper columns
+  # drop intermediate columns
   select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
-  ### Handle DMD table duplication
-  group_by(across(-starts_with("DMD"))) |>
-  summarise(across(starts_with("DMD"), ~ str_flatten(., collapse = ", "), .names = "{.col}"), .groups="drop")
+  # replace database separator token with a readable comma separator
+  mutate(across(starts_with("DMD"), ~ str_replace_all(.x, fixed(" {~@~} "), ", ")))
 
 toc_lfpse <- Sys.time()
 time_diff_lfpse <- toc_lfpse - tic_lfpse
@@ -130,7 +108,17 @@ log_extraction_time(dataset, time_diff_lfpse)
 log_categorical_filter_count(dataset, nrow(lfpse_filtered_categorical))
 
 # text filters
-lfpse_text_columns <- c("F001", "AC001", "OT003", "A008_Other", "A008", "A002", "DMD002", "DMD004")
+lfpse_text_columns <- c(
+  "F001_Description", 
+  "AC001_ImmediateActions", 
+  "OT003_ClinicalOutcome", 
+  "A008_DeviceType",
+  "A008_Other_DeviceTypeOther", 
+  "A002_DrugsInvolved", 
+  "DMD002_VTMString", 
+  "DMD004_VMPString"
+  )
+
 lfpse_filtered_text <- apply_text_search(
   lfpse_filtered_categorical,
   text_terms,
@@ -149,68 +137,77 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
   }
 } else {
   
-  lfpse_labelled<- lfpse_filtered_text |>
-    # pivot the coded columns
-    pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
-    # separate the multi-responses into single row per selection
+  question_cols_pattern <- 
+    paste0("^(", paste(ResponseReference$QuestionId, collapse = "|"), ")(_|$)")
+  
+  lfpse_labelled <- lfpse_filtered_text |>
+    mutate(across(matches(question_cols_pattern), as.character)) |>
+    # match columns based on code (before underscore)
+    pivot_longer(cols = matches(question_cols_pattern)) |>
     separate_rows(value, sep = " {~@~} ") |>
-    # arrange so that multi-responses appear alphabetised later
     arrange(value) |>
-    # bring through the value labels
+    # extract code
+    mutate(QuestionId = str_extract(name, "^[^_]+")) |>
     left_join(ResponseReference, by = c(
-      "name" = "QuestionId",
+      "QuestionId" = "QuestionId",
       "value" = "ResponseCode",
       "TaxonomyVersion" = "TaxonomyVersion"
     )) |>
-    # remove the unnecessary columns
-    select(!c(value, Property, LastUpdated, IsActive)) |>
-    # pivot back into columns
+    select(!c(value, QuestionId, Property, LastUpdated, IsActive)) |>
     pivot_wider(
-      id_cols = !any_of(ResponseReference$QuestionId),
+      id_cols    = !any_of(ResponseReference$QuestionId),
       names_from = name,
       values_from = ResponseText,
-      # collapse multi-responses into single row per entity
-      values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
-    ) 
+      values_fn  = list(ResponseText = ~ str_c(., collapse = "; "))
+    )
   
   # create a new column for age following validation 
   lfpse_age_validated<- lfpse_labelled |>
     mutate(age_unit = case_when(
-      is.na(P004_days) ~ 'age missing',
-      between(P004_days, 1, 30) ~ 'days',
-      between(P004_days, 31, 371) ~ 'months',
-      between(P004_days, 372, 74028) ~ 'years',
+      is.na(P004_AgeAtTimeOfIncidentDays) ~ 'age missing',
+      between(P004_AgeAtTimeOfIncidentDays, 1, 30) ~ 'days',
+      between(P004_AgeAtTimeOfIncidentDays, 31, 371) ~ 'months',
+      between(P004_AgeAtTimeOfIncidentDays, 372, 74028) ~ 'years',
       .default = 'age outside bounds')) |>
     mutate(age_compliance = case_when(
       age_unit == 'age outside bounds' ~ 'age outside bounds',
       age_unit == 'age missing' ~ 'age missing',
-      age_unit == 'days' & between(P004_days, 1, 30) ~ 'yes',
-      age_unit == 'months' & P004_days %% 31 == 0 ~ 'yes',
-      age_unit == 'years' & P004_days %% 372 == 0 ~ 'yes',
+      age_unit == 'days' & between(P004_AgeAtTimeOfIncidentDays, 1, 30) ~ 'yes',
+      age_unit == 'months' & P004_AgeAtTimeOfIncidentDays %% 31 == 0 ~ 'yes',
+      age_unit == 'years' & P004_AgeAtTimeOfIncidentDays %% 372 == 0 ~ 'yes',
       .default = 'no')) |>
     mutate(P004_days_validated = if_else(
-      age_compliance == "yes", P004_days, NA
+      age_compliance == "yes", P004_AgeAtTimeOfIncidentDays, NA
     ))
   
   # age classification for neopaeds
   lfpse_age_classified <- lfpse_age_validated |>
     mutate(
-      concat_col = paste(F001, AC001, OT003, A008_Other, L006, L006_Other, sep = "_"),
+      concat_col = paste(
+        F001_Description, 
+        AC001_ImmediateActions, 
+        OT003_ClinicalOutcome, 
+        A008_DeviceType,
+        A008_Other_DeviceTypeOther, 
+        L006_ResponsibleSpecialty, 
+        L006_Other_ResponsibleSpecialtyOther, 
+        sep = "_"
+        ),
       age_category = case_when(
         (P004_days_validated > 0 & P004_days_validated <= 28) | 
-          (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
+          (P007_AgeBracket %in% c("0-14 days", "15-28 days")) ~ "neonate",
         (P004_days_validated > 28 & P004_days_validated < 6696) | 
-          (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
-        (!is.na(P007) | !is.na(P004_days_validated)) ~ 'adult estimated',
+          (P007_AgeBracket %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+        (!is.na(P007_AgeBracket) | !is.na(P004_days_validated)) ~ 'adult estimated',
         is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
         .default = 'other' 
       ),
       
-      neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
+      neonate_specialty_flag = str_detect(L006_ResponsibleSpecialty, neonatal_specialty_terms),
       neonate_terms_flag = str_detect(concat_col, neonatal_terms),
-      missing_specialty = is.na(L006),
-      no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate = TRUE), 
-      paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
+      missing_specialty = is.na(L006_ResponsibleSpecialty),
+      no_adult_specialty_flag = str_detect(L006_ResponsibleSpecialty, adult_specialty_terms, negate = TRUE), 
+      paediatric_specialty_flag = str_detect(L006_ResponsibleSpecialty, paediatric_specialty_terms),
       paediatric_term_flag = str_detect(concat_col, paediatric_terms),
       
       neonate_category = case_when(
@@ -245,7 +242,7 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     lfpse_sampled <- apply_sampling_strategy(
       lfpse_neopaed,
       sampling_strategy,
-      harm_column = "OT001",
+      harm_column = "OT001_PhysicalHarm",
       death_severe_values = c("Fatal", "Severe physical harm"),
       moderate_values = c("Moderate physical harm"),
       reference_column = "Reference"
