@@ -19,8 +19,9 @@ get_code_text <- function(column, code, database_name) {
       select(OPTIONTEXT)
   } else if (database_name == "lfpse") {
     code <- str_replace_all(code, "#", "")
+    question_id <- str_extract(column, "^[^_]+")
     code_text_df <- ResponseReference |>
-      filter(QuestionId == column, ResponseCode == code) |>
+      filter(QuestionId == question_id, ResponseCode == code) |>
       filter(TaxonomyVersion == max(TaxonomyVersion)) |>
       select(ResponseText) |>
       distinct(ResponseText)
@@ -46,8 +47,9 @@ get_column_text <- function(column, database_name) {
   if (database_name == "steis") {
     return(column)
   } else if (database_name == "lfpse") {
+    question_id <- str_extract(column, "^[^_]+")
     column_text_df <- QuestionReference |>
-      filter(QuestionId == column) |>
+      filter(QuestionId == question_id) |>
       filter(TaxonomyVersion == max(TaxonomyVersion)) |>
       distinct(QuestionId, Property) |>
       select(Property)
