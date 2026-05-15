@@ -66,9 +66,9 @@ nrls_categorical <-
 
 ``` r
 lfpse_categorical <- 
-  expr((' ' + A001 + ' ') %LIKE% '% 4 %'| 
-         ((' ' + A001 + ' ') %LIKE% '% 3 %' & 
-            (' ' + A001 + ' ') %LIKE% '% 10 %'))
+  expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %'| 
+         ((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 3 %' & 
+            (' ' + A001_InvolvedAgents + ' ') %LIKE% '% 10 %'))
 ```
 
 ### NRLS
@@ -82,7 +82,7 @@ nrls_categorical <- expr(IN05_LVL1 == 10)
 
 ```{r}
 
-lfpse_categorical <- expr((" " + A001 + " ") %LIKE% "% 4 %")
+lfpse_categorical <- expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
 ```
 
 ### StEIS
