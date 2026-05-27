@@ -173,7 +173,7 @@ list_of_tables_to_create_nrls <- list(c(expr(PD09)))
 
 # should LFPSE summary tables be incident level or patient level? (incident/patient)
 # note - if LFPSE is not searched, this will not have any effect
-summary_tables_incident_or_patient_level <- "patient"
+summary_tables_incident_or_patient_level <- "incident"
 ```
 
 # Execute Request
