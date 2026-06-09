@@ -49,22 +49,21 @@ rename_lookup_nrls<- c(
   `Paediatric Categorisation` = "paediatric_category"
   )
 
-rename_lookup_lfpse<-c(
+rename_lookup_lfpse_new<-c(
   Reference = "Reference", # required
   "Taxonomy Version"= "TaxonomyVersion", # required
   "Revision" = "Revision",
   "Occurred Organisation Code" = "OccurredOrganisationCode",
   "Reporter Organisation Code" = "ReporterOrganisationCode",
-  # Using old column name for occurred_date - should it use "Occurred Date" instead?
-  "T005 - Event Date" = "occurred_date", # required
-  "Reported Date" = "reported_date", # required
+  "T005 - Event Date" = "OccurredDate", # required
+  "Reported Date" = "OriginalSubmissionDate", # required
   `Month` = "month_reported_or_occurred", # required
   `Year` = "year_reported_or_occurred", # required
   `Month - Year` = "month_year_reported_or_occurred", # required
   `Financial Year` = "financial_year_reported_or_occurred", # required
   "Number of patients" = "npatient", # required
   "Patient no." = "EntityId", # required
-  # TODO: check whether these are needed
+  # TODO: check whether these ware needed
   # "T005 - Event Year" = "year(OccurredDate)",
   # "T005 - Event Month" = "month(OccurredDate)",
   "P004 - Age in days" = "P004_days_validated", # required for neopaed search 
@@ -82,6 +81,7 @@ rename_lookup_lfpse<-c(
   "AC001 - Immediate Actions" = "AC001_ImmediateActions", # required for text search
   # Used CL001_Type, but could also be CL001_Event. Which is correct?
   "CL001 - Event Type" = "CL001_Type",
+  "CL001 - Event" = "CL001_Event",
   "CL021 - Reference Number (Optional)" = "CL021_ReferenceNumber",
   "CL022 - From Online Forms" = "CL022_FromOnlineForms",
   "L001 - Organisation Known" = "L001_LocationKnown",
@@ -101,6 +101,59 @@ rename_lookup_lfpse<-c(
   #"Largest physical or psychological harm (across all patients in incident)" = "max_harm_level",
   "Largest psychological harm (across all patients in incident)" = "max_psychological_harm_level", # required
   "Largest physical harm (across all patients in incident)" =  "max_physical_harm_level", # required
+  `Neonate Categorisation` = "neonate_category",
+  `Paediatric Categorisation` = "paediatric_category"
+)
+
+rename_lookup_lfpse<-c(
+  Reference = "Reference", #required
+  "Taxonomy Version"= "TaxonomyVersion",#required
+  "Revision" = "Revision",
+  "Occurred Organisation Code" = "OccurredOrganisationCode",
+  "Reporter Organisation Code" = "ReporterOrganisationCode",
+  "T005 - Event date" = "occurred_date", #required
+  "Reported Date" = "reported_date",#required
+  `Month` = "month_reported_or_occurred",#required
+  `Year` = "year_reported_or_occurred",#required
+  `Month - Year` = "month_year_reported_or_occurred",#required
+  `Financial Year` = "financial_year_reported_or_occurred",#required
+  "Number of patients" = "npatient",#required
+  "Patient no." = "EntityId",#required
+  # TODO: check whether these are needed
+  # "T005 - Event year" = "year(T005)",
+  # "T005 - Event moth" = "month(T005)",
+  "P004 - Age in days" = "P004_days_validated",#required for neopaed search 
+  "P007 - Age Range" = "P007",#required for neopaed search
+  "L003 - Service Area" = "L003",
+  "L004 - Location Within Service" = "L004",
+  "L006 - Specialty" = "L006", #required for neopaed search
+  "L006_Other - Specialty (Other)" = "L006_Other",#required for neopaed search
+  "F001 - Describe what happened" = "F001", #required for text search
+  "AC001 - What was done immediately to reduce harm caused by the event?" = "AC001", #required for text search
+  "OT003 - What was the clinical outcome for the patient?" = "OT003", #required for text search
+  "A008 - Device Type" = "A008",#required for text search
+  "A008 - Device Type (Other)" = "A008_Other",#required for text search
+  "A001 - Involved Agents" = "A001",
+  "AC001 - Immediate Actions" = "AC001", #required for text search
+  "CL001 - Event Type" = "CL001",
+  "CL021 - Reference Number (Optional)" = "CL021",
+  "CL022 - From Online Forms" = "CL022",
+  "L001 - Organisation Known" = "L001",
+  "L002 - Organisation" = "L002",
+  "R006 - Reporter Organisation" = "R006",
+  "R006_Other - Reporter Organisation (Other)" = "R006_Other",
+  "RI003 - Is there imminent risk of severe harm or death?" = "RI003",
+  "OT001 - Physical harm" = "OT001",#required
+  "OT002 - Psychological harm" = "OT002",#required
+  "OT008 - Outcome Type" = "OT008", 
+  "A002 - Medicine types involved" = "A002",# required for text search
+  "DMD002 - Medicine types (VTM)" = "DMD002",#required for text search
+  "DMD004 - Medicine types (VMP)" = "DMD004",#required for text search
+  "A016 - BuildingsInfrastructure" = "A016",
+  "A016_Other - BuildingsInfrastructure (other)" = "A016_Other",
+  #"Largest physical or psychological harm (across all patients in incident)" = "max_harm_level",
+  "Largest psychological harm (across all patients in incident)" = "max_psychological_harm_level",#required
+  "Largest physical harm (across all patients in incident)" =  "max_physical_harm_level",#required
   `Neonate Categorisation` = "neonate_category",
   `Paediatric Categorisation` = "paediatric_category"
 )
@@ -146,5 +199,6 @@ rename_lookup_steis<-c(
 
 
 rename_lookup <- list("LFPSE"= rename_lookup_lfpse,
+                      "LFPSE_new" = rename_lookup_lfpse_new,
                       "NRLS" =rename_lookup_nrls,
                       "STEIS"= rename_lookup_steis)
