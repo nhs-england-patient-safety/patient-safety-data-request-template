@@ -20,6 +20,8 @@ end_date <- "2024-03-31"
 
 date_type <- "occurring" # "occurring" or "reported"
 
+date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(reported_date)
+
 source("R/setup.R")
 
 text_terms <- list(
@@ -42,6 +44,7 @@ list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
 
 summary_tables_incident_or_patient_level <- "patient"
 ```
+
 
 ## Old LFPSE Process
 
@@ -384,23 +387,19 @@ tictoc::tic()
 
 # filter for incidents where A001_InvolvedAgents contains the value 4
 lfpse_categorical <- expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %')
+
 # lfpse_categorical <- 0
+
 if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
 }
 
+# additional sql date filter
+sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(OriginalSubmissionDate)
+
 # load the all patients view
 lfpse_analysis_table_new <-
   tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll"))
-
-# primary_table <-
-#   tbl(con_lfpse, in_schema("analysis", "vwEventsTransposed"))
-
-# Original column names for SQL
-sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(OriginalSubmissionDate)
-
-# Renamed column names for post-collect R code (unchanged from current)
-date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(reported_date)
 
 # identify the set of references that meet the date range and category criteria
 # valid_refs <-
