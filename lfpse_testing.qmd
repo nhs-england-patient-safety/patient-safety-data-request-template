@@ -20,9 +20,9 @@ end_date <- "2024-03-31"
 
 date_type <- "occurring" # "occurring" or "reported"
 
-date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(reported_date)
-
 source("R/setup.R")
+
+date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(reported_date)
 
 text_terms <- list(
   group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
@@ -393,6 +393,12 @@ lfpse_categorical <- expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %')
 if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
 }
+
+# lightweight query to reduce initial runtime
+tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll")) |>
+  filter(between(!!sql_date_filter, start_date, end_date)) |>
+  count() |>
+  collect()
 
 # additional sql date filter
 sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(OriginalSubmissionDate)
