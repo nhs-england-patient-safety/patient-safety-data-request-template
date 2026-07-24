@@ -53,9 +53,9 @@ summary_tables_incident_or_patient_level <- "patient"
 tictoc::tic()
 
 # filter for incidents where A001 contains the value 4
-lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
+# lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
 
-# lfpse_categorical <- 0
+lfpse_categorical <- 0
 
 if (lfpse_categorical == 0) {
   lfpse_categorical <- expr(1 == 1)
@@ -383,57 +383,53 @@ However, the additional patient rows only include any information not recorded i
 
 ```{r}
 
-tictoc::tic()
+tictoc::tic(msg = "Full Query")
+
+tictoc::tic(msg = "Categorical Filter")
 
 # filter for incidents where A001_InvolvedAgents contains the value 4
 lfpse_categorical <- expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %')
 
-# lfpse_categorical <- 0
-
-if (lfpse_categorical == 0) {
-  lfpse_categorical <- expr(1 == 1)
-}
-
-# lightweight query to reduce initial runtime
-tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll")) |>
-  filter(between(!!sql_date_filter, start_date, end_date)) |>
-  count() |>
-  collect()
+# lfpse_categorical <- NULL
 
 # additional sql date filter
 sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(OriginalSubmissionDate)
 
 # load the all patients view
 lfpse_analysis_table_new <-
-  tbl(con_lfpse, in_schema("analysis", "vwEventsTransposedAll"))
+  tbl(con_lfpse, in_schema("analysis", "vwEventsLatestDataAllPatients"))
 
-# identify the set of references that meet the date range and category criteria
-# valid_refs <-
-#   lfpse_analysis_table_new |>
-#   filter(
-#     EntityId == 1L, # removed NA to speed things up - keep an eye on potential issues
-#     between(!!sql_date_filter, start_date, end_date),
-#     lfpse_categorical
-#   ) |>
-#   select(Reference)
+
+if (is.null(lfpse_categorical)) {
+  valid_refs <- lfpse_analysis_table_new |>
+    filter(EntityId == 1L, between(!!sql_date_filter, start_date, end_date)) |>
+    select(Reference) |>
+    collect()
+  
+  valid_refs_tbl <- copy_to(con_lfpse, valid_refs, name = "#valid_refs",
+                             temporary = TRUE, overwrite = TRUE)
+  
+  lfpse_query <- lfpse_analysis_table_new |>
+    inner_join(valid_refs_tbl, by = "Reference")
+  
+} else {
+  lfpse_query <- lfpse_analysis_table_new |>
+    inner_join(
+      lfpse_analysis_table_new |>
+        filter(
+          EntityId == 1L,
+          between(!!sql_date_filter, start_date, end_date),
+          !!lfpse_categorical
+        ) |>
+        select(Reference),
+      by = "Reference"
+    )
+}
 
 lfpse_filtered_categorical_new <-
-  lfpse_analysis_table_new |>
-  # inner_join(valid_refs, by = "Reference") |> 
-  inner_join(
-    lfpse_analysis_table_new |>
-      filter(
-        EntityId == 1L, # removed NA to speed things up - keep an eye on potential issues
-        between(!!sql_date_filter, start_date, end_date),
-        lfpse_categorical
-      ) |>
-      select(Reference),
-    by = "Reference"
-  ) |>
+  lfpse_query |>
   select(any_of(unname(rename_lookup[["LFPSE_new"]])), P004_AgeAtTimeOfIncidentDays) |>
-  # pull results from the database into local memory
   collect() |>
-  # compute the most severe harm scores and patient count per incident
   mutate(
     occurred_date = OccurredDate, reported_date = OriginalSubmissionDate,
     P004_AgeAtTimeOfIncidentDays = as.numeric(P004_AgeAtTimeOfIncidentDays),
@@ -443,17 +439,14 @@ lfpse_filtered_categorical_new <-
     .by = Reference
   ) |>
   mutate(
-    # extract year and month
     year_reported_or_occurred =
       as.numeric(substr(as.character(!!date_filter), 1, 4)),
     month_reported_or_occurred =
       as.numeric(substr(as.character(!!date_filter), 6, 7)),
-    # combine into year-month
     month_year_reported_or_occurred =
       zoo::as.yearmon(
         str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
       ),
-    # assign financial year
     financial_year_reported_or_occurred = ifelse(
       month_reported_or_occurred > 3,
       paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
@@ -462,10 +455,7 @@ lfpse_filtered_categorical_new <-
     month_reported_or_occurred = month.abb[month_reported_or_occurred],
     reported_date = as.character(reported_date),
     occurred_date = as.character(occurred_date),
-    # adjust psychological harm score to match the physical harm scale
     OT002_min_plus_one = OT002_min + 1,
-    # take the element-wise minimum across both adjusted scores
-    # pmin is used because it is quicker (and results are the same)
     max_harm = pmin(OT001_min, OT002_min_plus_one, na.rm = FALSE),
     max_harm_level = case_when(
       max_harm == 1 ~ "Fatal",
@@ -492,11 +482,10 @@ lfpse_filtered_categorical_new <-
       .default = "Harm level missing"
     )
   ) |>
-  # drop intermediate columns
   select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
-  # replace database separator token with a readable comma separator
   mutate(across(starts_with("DMD"), ~ str_replace_all(.x, fixed(" {~@~} "), ", ")))
 
+tictoc::tic(msg = "Text Search")
 
 # text filters
 lfpse_text_columns_new <- c(
@@ -517,6 +506,8 @@ lfpse_filtered_text_new <- apply_text_search(
   lfpse_text_columns_new,
   dataset
 )
+
+tictoc::toc()
 
 question_cols_pattern <- paste0("^(", paste(unique(ResponseReference$QuestionId), collapse = "|"), ")(_|$)") 
   
@@ -675,6 +666,11 @@ log_final_counts(
 
 
 tictoc::toc()
+```
+
+```{r}
+
+
 ```
 
 ## Comparison
