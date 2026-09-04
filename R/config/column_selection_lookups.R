@@ -49,7 +49,7 @@ rename_lookup_nrls<- c(
   `Paediatric Categorisation` = "paediatric_category"
   )
 
-rename_lookup_lfpse_new<-c(
+rename_lookup_lfpse<-c(
   Reference = "Reference", # required
   "Taxonomy Version"= "TaxonomyVersion", # required
   "Revision" = "Revision",
@@ -91,7 +91,7 @@ rename_lookup_lfpse_new<-c(
   "RI003 - Is there imminent risk of severe harm or death?" = "RI003_RiskImminent",
   "OT001 - Physical harm" = "OT001_PhysicalHarm", # required
   "OT002 - Psychological harm" = "OT002_PsychologicalHarm", # required
-  # OT008 is missing in the new LFPSE tables. Is there a reason for this?
+  # OT008 is currently missing, but this will be fixed (will chase Vijay for this)
   # "OT008 - Outcome Type" = "OT008", 
   "A002 - Medicine types involved" = "A002_DrugsInvolved", # required for text search
   "DMD002 - Medicine types (VTM)" = "DMD002_VTMString", # required for text search
@@ -105,7 +105,7 @@ rename_lookup_lfpse_new<-c(
   `Paediatric Categorisation` = "paediatric_category"
 )
 
-rename_lookup_lfpse<-c(
+rename_lookup_lfpse_old<-c(
   Reference = "Reference", #required
   "Taxonomy Version"= "TaxonomyVersion",#required
   "Revision" = "Revision",
@@ -122,7 +122,7 @@ rename_lookup_lfpse<-c(
   # TODO: check whether these are needed
   # "T005 - Event year" = "year(T005)",
   # "T005 - Event moth" = "month(T005)",
-  "P004 - Age in days" = "P004_days_validated",#required for neopaed search 
+  "P004 - Age in days" = "P004_days_validated",#required for neopaed search
   "P007 - Age Range" = "P007",#required for neopaed search
   "L003 - Service Area" = "L003",
   "L004 - Location Within Service" = "L004",
@@ -145,7 +145,7 @@ rename_lookup_lfpse<-c(
   "RI003 - Is there imminent risk of severe harm or death?" = "RI003",
   "OT001 - Physical harm" = "OT001",#required
   "OT002 - Psychological harm" = "OT002",#required
-  "OT008 - Outcome Type" = "OT008", 
+  "OT008 - Outcome Type" = "OT008",
   "A002 - Medicine types involved" = "A002",# required for text search
   "DMD002 - Medicine types (VTM)" = "DMD002",#required for text search
   "DMD004 - Medicine types (VMP)" = "DMD004",#required for text search
@@ -198,7 +198,7 @@ rename_lookup_steis<-c(
 
 
 
-rename_lookup <- list("LFPSE"= rename_lookup_lfpse,
-                      "LFPSE_new" = rename_lookup_lfpse_new,
+rename_lookup <- list("LFPSE_old"= rename_lookup_lfpse_old,
+                      "LFPSE" = rename_lookup_lfpse,
                       "NRLS" =rename_lookup_nrls,
                       "STEIS"= rename_lookup_steis)
