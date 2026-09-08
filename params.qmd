@@ -50,8 +50,8 @@ cols_to_extract <- "default"
 
 Define categorical filters for each database.
 
--   Wrap filter expressions in `expr()`.
--   Set to `0` for no filter.
+- Wrap filter expressions in `expr()`.
+- Set to `0` for no filter.
 
 `translate_categorical_string()` translates filters from the codes used to access the database to more human-readable code. It splits up filters by `&` (AND) or `|` (OR) and translates each filter one by one.
 
@@ -82,14 +82,19 @@ nrls_categorical <- expr(IN05_LVL1 == 10)
 
 ```{r}
 
-lfpse_categorical <- expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
+lfpse_categorical_first_row <- 
+  expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
+
+lfpse_categorical_any_row <-
+  expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
 ```
 
 ### StEIS
 
 ```{r}
 
-steis_categorical <- expr(type_of_incident == "Medication incident meeting SI criteria")
+steis_categorical <- 
+  expr(type_of_incident == "Medication incident meeting SI criteria")
 steis_filename <- "SUI_2_87360.csv"
 ```
 
