@@ -65,7 +65,7 @@ nrls_categorical <-
 ```
 
 ``` r
-lfpse_categorical <- 
+lfpse_categorical_patient_level <- 
   expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %'| 
          ((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 3 %' & 
             (' ' + A001_InvolvedAgents + ' ') %LIKE% '% 10 %'))
@@ -82,11 +82,11 @@ nrls_categorical <- expr(IN05_LVL1 == 10)
 
 ```{r}
 
-lfpse_categorical_first_row <- 
-  expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
+lfpse_categorical_incident_level <- 
+  expr((" " + L006_ResponsibleSpecialty + " ") %LIKE% "% 205 %")
 
-lfpse_categorical_any_row <-
-  expr((" " + A001_InvolvedAgents + " ") %LIKE% "% 4 %")
+lfpse_categorical_patient_level <-
+  expr(OT001_PhysicalHarm == 1)
 ```
 
 ### StEIS

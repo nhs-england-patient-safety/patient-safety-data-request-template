@@ -13,17 +13,17 @@ date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(as.Da
 lfpse_analysis_table <-
   tbl(con_lfpse, in_schema("analysis", "vwEventsLatestDataAllPatients"))
 
-if (lfpse_categorical_first_row == 0) {
-  lfpse_categorical_first_row <- expr(1 == 1)
+if (lfpse_categorical_incident_level == 0) {
+  lfpse_categorical_incident_level <- expr(1 == 1)
 }
 
-if (lfpse_categorical_any_row == 0) {
-  lfpse_categorical_any_row <- expr(1 == 1)
+if (lfpse_categorical_patient_level == 0) {
+  lfpse_categorical_patient_level <- expr(1 == 1)
 }
 
 # identify active filters
-has_first_row_filter <- !identical(lfpse_categorical_first_row, expr(1 == 1))
-has_any_row_filter   <- !identical(lfpse_categorical_any_row, expr(1 == 1))
+has_first_row_filter <- !identical(lfpse_categorical_incident_level, expr(1 == 1))
+has_any_row_filter   <- !identical(lfpse_categorical_patient_level, expr(1 == 1))
 
 if (!has_first_row_filter && !has_any_row_filter) {
   # no categorical filters
@@ -38,7 +38,7 @@ if (!has_first_row_filter && !has_any_row_filter) {
     filter(
       EntityId == 1L,
       between(!!sql_date_filter, start_date, end_date),
-      !!lfpse_categorical_first_row
+      !!lfpse_categorical_incident_level
     ) |>
     select(Reference) |>
     collect()
@@ -50,7 +50,7 @@ if (!has_first_row_filter && !has_any_row_filter) {
     select(Reference) |>
     inner_join(
       lfpse_analysis_table |>
-        filter(!!lfpse_categorical_any_row) |>
+        filter(!!lfpse_categorical_patient_level) |>
         select(Reference) |>
         distinct(),
       by = "Reference"
@@ -64,12 +64,12 @@ if (!has_first_row_filter && !has_any_row_filter) {
     filter(
       EntityId == 1L,
       between(!!sql_date_filter, start_date, end_date),
-      !!lfpse_categorical_first_row
+      !!lfpse_categorical_incident_level
     ) |>
     select(Reference) |>
     inner_join(
       lfpse_analysis_table |>
-        filter(!!lfpse_categorical_any_row) |>
+        filter(!!lfpse_categorical_patient_level) |>
         select(Reference) |>
         distinct(),
       by = "Reference"
