@@ -21,6 +21,8 @@ if (lfpse_categorical_patient_level == 0) {
   lfpse_categorical_patient_level <- expr(1 == 1)
 }
 
+date_or_na <- expr(between(!!sql_date_filter, start_date, end_date) | is.na(!!sql_date_filter))
+
 # identify active filters
 has_first_row_filter <- !identical(lfpse_categorical_incident_level, expr(1 == 1))
 has_any_row_filter   <- !identical(lfpse_categorical_patient_level, expr(1 == 1))
@@ -28,25 +30,21 @@ has_any_row_filter   <- !identical(lfpse_categorical_patient_level, expr(1 == 1)
 if (!has_first_row_filter && !has_any_row_filter) {
   # no categorical filters
   valid_refs <- lfpse_analysis_table |>
-    filter(EntityId == 1L, between(!!sql_date_filter, start_date, end_date)) |>
+    filter(EntityId == 1L, !!date_or_na) |>
     select(Reference) |>
     collect()
   
 } else if (has_first_row_filter && !has_any_row_filter) {
   # first row filter only
   valid_refs <- lfpse_analysis_table |>
-    filter(
-      EntityId == 1L,
-      between(!!sql_date_filter, start_date, end_date),
-      !!lfpse_categorical_incident_level
-    ) |>
+    filter(EntityId == 1L, !!date_or_na, !!lfpse_categorical_incident_level) |>
     select(Reference) |>
     collect()
   
 } else if (!has_first_row_filter && has_any_row_filter) {
   # any row filter only
   valid_refs <- lfpse_analysis_table |>
-    filter(EntityId == 1L, between(!!sql_date_filter, start_date, end_date)) |>
+    filter(EntityId == 1L, !!date_or_na) |>
     select(Reference) |>
     inner_join(
       lfpse_analysis_table |>
@@ -61,11 +59,7 @@ if (!has_first_row_filter && !has_any_row_filter) {
 } else {
   # both filters
   valid_refs <- lfpse_analysis_table |>
-    filter(
-      EntityId == 1L,
-      between(!!sql_date_filter, start_date, end_date),
-      !!lfpse_categorical_incident_level
-    ) |>
+    filter(EntityId == 1L, !!date_or_na, !!lfpse_categorical_incident_level) |>
     select(Reference) |>
     inner_join(
       lfpse_analysis_table |>
@@ -87,8 +81,6 @@ lfpse_filtered_categorical <-
   select(any_of(unname(rename_lookup[["LFPSE"]])), P004_AgeAtTimeOfIncidentDays) |>
   collect() |>
   mutate(
-    TaxonomyVersion = TaxonomyVersion[EntityId == 1L],
-    occurred_date = OccurredDate, reported_date = OriginalSubmissionDate,
     P004_AgeAtTimeOfIncidentDays = as.numeric(P004_AgeAtTimeOfIncidentDays),
     OT001_min = min(as.numeric(OT001_PhysicalHarm), na.rm = FALSE),
     OT002_min = min(as.numeric(OT002_PsychologicalHarm), na.rm = FALSE),
@@ -96,6 +88,8 @@ lfpse_filtered_categorical <-
     .by = Reference
   ) |>
   mutate(
+    occurred_date = OccurredDate,
+    reported_date = OriginalSubmissionDate,
     year_reported_or_occurred =
       as.numeric(substr(as.character(!!date_filter), 1, 4)),
     month_reported_or_occurred =
@@ -158,15 +152,18 @@ lfpse_text_columns <- c(
   "DMD004_VMPString"
 )
 
-first_row_text <- lfpse_filtered_categorical |>
+first_row_fill <- lfpse_filtered_categorical |>
   filter(EntityId == 1L) |>
-  select(Reference, all_of(lfpse_text_columns)) |>
-  rename_with(~ paste0(.x, "_fill"), all_of(lfpse_text_columns))
+  select(Reference, TaxonomyVersion, all_of(lfpse_text_columns)) |>
+  rename_with(
+    ~ paste0(.x, "_fill"), 
+    c(TaxonomyVersion, all_of(lfpse_text_columns))
+  )
 
 lfpse_filtered_categorical <- lfpse_filtered_categorical |>
-  left_join(first_row_text, by = "Reference")
+  left_join(first_row_fill, by = "Reference")
 
-for (col in lfpse_text_columns) {
+for (col in c("TaxonomyVersion", lfpse_text_columns)) {
   fill_col <- paste0(col, "_fill")
   lfpse_filtered_categorical[[col]] <- if_else(
     is.na(lfpse_filtered_categorical[[col]]),
@@ -174,6 +171,9 @@ for (col in lfpse_text_columns) {
     lfpse_filtered_categorical[[col]]
   )
 }
+
+lfpse_filtered_categorical <- lfpse_filtered_categorical |>
+  select(-ends_with("_fill"))
 
 lfpse_filtered_categorical <- lfpse_filtered_categorical |>
   select(-ends_with("_fill"))
@@ -202,7 +202,6 @@ if (check_and_log_empty_result(lfpse_filtered_text, dataset, "text")) {
     mutate(across(matches(question_cols_pattern), as.character)) |>
     pivot_longer(cols = matches(question_cols_pattern)) |>
     separate_rows(value, sep = " {~@~} ") |>
-    arrange(value) |>
     mutate(QuestionId = str_extract(name, "^[^_]+")) |>
     left_join(ResponseReference, by = c(
       "QuestionId" = "QuestionId",
