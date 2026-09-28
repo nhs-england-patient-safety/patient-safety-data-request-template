@@ -198,7 +198,8 @@ results <- run_data_request(
   
   # categorical filters
   nrls_categorical = nrls_categorical,
-  lfpse_categorical = lfpse_categorical,
+  lfpse_categorical_incident_level = lfpse_categorical_incident_level,
+  lfpse_categorical_patient_level = lfpse_categorical_patient_level,
   steis_categorical = steis_categorical,
   steis_filename = steis_filename,
   
