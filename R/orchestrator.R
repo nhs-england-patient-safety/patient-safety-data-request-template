@@ -18,7 +18,8 @@
 #' @param end_date Character. End date in "YYYY-MM-DD" format
 #' @param date_type Character. Either "occurring" or "reported"
 #' @param nrls_categorical Expression. NRLS categorical filter (use expr() or 0)
-#' @param lfpse_categorical Expression. LFPSE categorical filter (use expr() or 0)
+#' @param lfpse_categorical_incident_level Expression. LFPSE incident level categorical filter (use expr() or 0)
+#' @param lfpse_categorical_patient_level Expression. LFPSE patient level categorical filter (use expr() or 0)
 #' @param steis_categorical Expression. StEIS categorical filter (use expr() or 0)
 #' @param steis_filename Character. Name of StEIS CSV file in data/ folder
 #' @param text_terms Named list. Text search terms grouped by category
@@ -48,7 +49,8 @@ run_data_request <- function(
   
   # categorical filters
   nrls_categorical,
-  lfpse_categorical,
+  lfpse_categorical_incident_level,
+  lfpse_categorical_patient_level,
   steis_categorical,
   steis_filename = NULL,
   
@@ -84,7 +86,8 @@ run_data_request <- function(
   assign("search_lfpse", search_lfpse, envir = .GlobalEnv)
   assign("search_steis", search_steis, envir = .GlobalEnv)
   assign("nrls_categorical", nrls_categorical, envir = .GlobalEnv)
-  assign("lfpse_categorical", lfpse_categorical, envir = .GlobalEnv)
+  assign("lfpse_categorical_incident_level", lfpse_categorical_incident_level, envir = .GlobalEnv)
+  assign("lfpse_categorical_patient_level", lfpse_categorical_patient_level, envir = .GlobalEnv)
   assign("steis_categorical", steis_categorical, envir = .GlobalEnv)
   assign("steis_filename", steis_filename, envir = .GlobalEnv)
   assign("text_terms", text_terms, envir = .GlobalEnv)
