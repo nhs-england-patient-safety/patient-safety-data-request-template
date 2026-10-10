@@ -13,9 +13,9 @@ Configure all parameters for the data request. Modify the values below to set th
 
 ```{r}
 
-search_nrls <- TRUE
+search_nrls <- FALSE
 search_lfpse <- TRUE
-search_steis <- TRUE
+search_steis <- FALSE
 ```
 
 ## Date Range
@@ -24,8 +24,8 @@ Specify the date range and whether the dates are occurring or reported.
 
 ```{r}
 
-start_date <- "2023-01-01"
-end_date <- "2024-12-31"
+start_date <- "2024-01-01"
+end_date <- "2024-01-02"
 date_type <- "occurring" # "occurring" or "reported"
 ```
 
@@ -104,13 +104,11 @@ steis_filename <- "SUI_2_87360.csv"
 
 # define search term groups
 text_terms <- list(
-  group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
-  group_B = c("(?i)\\bibuprofen"),
-  group_C = c("(?i)\\bunwell")
+  group_A = c("(?i)\\bpatient")
 )
 
 # define how groups combine (using boolean logic)
-text_filter <- expr((group_A | group_B) & group_C)
+text_filter <- expr(group_A)
 
 # to skip text search, use:
 # text_terms <- list()
@@ -130,7 +128,7 @@ is_neopaed <- "none"
 ```{r}
 
 # sampling strategy (default/FOI/none)
-sampling_strategy <- "default"
+sampling_strategy <- "none"
 ```
 
 ## Output Options
