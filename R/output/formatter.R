@@ -96,7 +96,7 @@ metadata_answers <- c(
   "",
   expanded_categorical_filter_steis,
   "",
-  expanded_categorical_filter_lfpse,
+  expanded_categorical_filter_lfpse_incident_level, expanded_categorical_filter_lfpse_patient_level,
   "",
   deparse(sampling_strategy),
   "",
