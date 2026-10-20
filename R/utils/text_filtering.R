@@ -8,7 +8,7 @@
 #' @param text_terms Named list of terms by group, e.g. list(group_A = c("term1", "term2"))
 #' @param text_filter Expression defining filter logic, e.g. expr(group_A | group_B)
 #' @param columns_to_search Character vector of column names to concatenate and search
-#' @param dataset_name Name of dataset (for logging)
+#' @param dataset_name Name of dataset
 #' 
 #' @return Filtered dataframe with group columns added
 
@@ -44,12 +44,24 @@ apply_text_search <- function(data, text_terms, text_filter, columns_to_search, 
       mutate("{group}" := rowSums(across(starts_with(group))) > 0)
   }
   
-  # flag references where any row matches then keep all rows
-  filtered_data <- data_with_concat |>
-    group_by(Reference) |>
-    filter(any(!!text_filter)) |>
-    ungroup() |>
-    select(-concat_col)
+  if (dataset_name == "LFPSE"){
+    
+    # flag references where any row matches then keep all rows
+    filtered_data <- data_with_concat |>
+      group_by(Reference) |>
+      filter(any(!!text_filter)) |>
+      ungroup() |>
+      select(-concat_col)
+    
+  } else {
+    
+    filtered_data <- data_with_concat |>
+      filter(!!text_filter) |>
+      select(-concat_col)
+    
+  }
+
+  
   
   message(str_glue("{dataset_name} text search retrieved {format(nrow(filtered_data), big.mark = ',')} indicents."))
   
