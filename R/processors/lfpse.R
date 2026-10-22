@@ -4,10 +4,14 @@ log_dataset_start(dataset)
 tic_lfpse <- Sys.time()
 
 # sql_date_filter uses original column names for the DB query
-sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(as.Date(OriginalSubmissionDate))
+lfpse_sql_date_filter <- if (date_type == 'occurring') {
+  expr(OccurredDate)
+} else {
+  expr(as.Date(OriginalSubmissionDate))
+}
 
 # date_filter uses renamed column names for post-collect
-date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(as.Date(reported_date))
+lfpse_date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(as.Date(reported_date))
 
 # load the all patients view
 lfpse_analysis_table <-
@@ -21,7 +25,10 @@ if (lfpse_categorical_patient_level == 0) {
   lfpse_categorical_patient_level <- expr(1 == 1)
 }
 
-date_or_na <- expr(between(!!sql_date_filter, start_date, end_date) | is.na(!!sql_date_filter))
+date_or_na <- expr(
+  between(!!lfpse_sql_date_filter, start_date, end_date) |
+    is.na(!!lfpse_sql_date_filter)
+)
 
 # identify active filters
 has_first_row_filter <- !identical(lfpse_categorical_incident_level, expr(1 == 1))
@@ -91,9 +98,9 @@ lfpse_filtered_categorical <-
     occurred_date = OccurredDate,
     reported_date = OriginalSubmissionDate,
     year_reported_or_occurred =
-      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+      as.numeric(substr(as.character(!!lfpse_date_filter), 1, 4)),
     month_reported_or_occurred =
-      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+      as.numeric(substr(as.character(!!lfpse_date_filter), 6, 7)),
     month_year_reported_or_occurred =
       zoo::as.yearmon(
         str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
