@@ -1,4 +1,5 @@
-expanded_categorical_filter_lfpse<-translate_categorical_string(lfpse_categorical, "lfpse")
+expanded_categorical_filter_lfpse_incident_level<-translate_categorical_string(lfpse_categorical_incident_level, "lfpse")
+expanded_categorical_filter_lfpse_patient_level<-translate_categorical_string(lfpse_categorical_patient_level, "lfpse")
 expanded_categorical_filter_nrls<-translate_categorical_string(nrls_categorical, "nrls")
 expanded_categorical_filter_steis<-translate_categorical_string(steis_categorical, "steis")
 
