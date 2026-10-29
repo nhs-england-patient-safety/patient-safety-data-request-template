@@ -83,10 +83,10 @@ nrls_categorical <- expr(IN05_LVL1 == 10)
 ```{r}
 
 lfpse_categorical_incident_level <- 
-  expr((" " + L006_ResponsibleSpecialty + " ") %LIKE% "% 205 %")
+  expr(L006_ResponsibleSpecialty %in% c("5", "107", "174"))
 
 lfpse_categorical_patient_level <-
-  expr(OT001_PhysicalHarm == 1)
+  expr(OT001_PhysicalHarm %in% c(3, 4, 5))
 ```
 
 ### StEIS
