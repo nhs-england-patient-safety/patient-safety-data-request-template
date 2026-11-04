@@ -8,7 +8,7 @@
 #' @param text_terms Named list of terms by group, e.g. list(group_A = c("term1", "term2"))
 #' @param text_filter Expression defining filter logic, e.g. expr(group_A | group_B)
 #' @param columns_to_search Character vector of column names to concatenate and search
-#' @param dataset_name Name of dataset (for logging)
+#' @param dataset_name Name of dataset
 #' 
 #' @return Filtered dataframe with group columns added
 
@@ -24,28 +24,44 @@ apply_text_search <- function(data, text_terms, text_filter, columns_to_search, 
   
   # create concatenated column from specified columns
   data_with_concat <- data |> 
-    mutate(concat_col = paste(!!!syms(columns_to_search), sep = " "))
+    mutate(concat_col = apply(
+      # replace NA with empty string so it doesn't appear as "NA" in concat
+      across(all_of(columns_to_search), ~ replace_na(as.character(.), "")),
+      1, paste, collapse = " "
+    ))
   
   # iterate through each group
   groups <- names(text_terms)
   for (group in groups) {
     terms <- text_terms[[group]]
-    
     # iterate through each term in the group
     for (term in terms) {
       data_with_concat <- data_with_concat |> 
         mutate("{group}_term_{term}" := str_detect(concat_col, term))
     }
-    
     # create group-level flag (TRUE if any term in group matches)
     data_with_concat <- data_with_concat |> 
       mutate("{group}" := rowSums(across(starts_with(group))) > 0)
   }
   
-  # apply the text filter logic
-  filtered_data <- data_with_concat |> 
-    filter(!!text_filter) |> 
-    select(-concat_col)
+  if (dataset_name == "LFPSE"){
+    
+    # flag references where any row matches then keep all rows
+    filtered_data <- data_with_concat |>
+      group_by(Reference) |>
+      filter(any(!!text_filter)) |>
+      ungroup() |>
+      select(-concat_col)
+    
+  } else {
+    
+    filtered_data <- data_with_concat |>
+      filter(!!text_filter) |>
+      select(-concat_col)
+    
+  }
+
+  
   
   message(str_glue("{dataset_name} text search retrieved {format(nrow(filtered_data), big.mark = ',')} indicents."))
   

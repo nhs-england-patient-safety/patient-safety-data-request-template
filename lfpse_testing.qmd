@@ -1,0 +1,719 @@
+---
+  title: "LFPSE Tables Comparison"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+  
+## Setup
+
+```{r}
+
+search_nrls <- FALSE
+search_lfpse <- TRUE
+search_steis <- FALSE
+
+dataset <- "lfpse"
+
+start_date <- "2024-01-01"
+end_date <- "2024-03-31"
+
+date_type <- "occurring" # "occurring" or "reported"
+
+source("R/setup.R")
+
+date_filter <- if (date_type == 'occurring') expr(occurred_date) else expr(reported_date)
+
+text_terms <- list(
+  group_A = c("(?i)\\bparacetamol", "(?i)\\bco(-)?codamol"),
+  group_B = c("(?i)\\bibuprofen"),
+  group_C = c("(?i)\\bunwell")
+)
+
+text_filter <- expr((group_A | group_B) & group_C)
+
+is_neopaed <- "none"
+
+sampling_strategy <- "default"
+
+include_term_tally_table <- "yes"
+
+incident_level_required <- "yes"
+
+list_of_tables_to_create_lfpse <- list(c(expr(max_physical_harm_level)))
+
+summary_tables_incident_or_patient_level <- "patient"
+```
+
+
+## Old LFPSE Process
+
+```{r}
+
+tictoc::tic()
+
+# filter for incidents where A001 contains the value 4
+# lfpse_categorical <- expr((' ' + A001 + ' ') %LIKE% '% 4 %')
+
+lfpse_categorical <- 0
+
+if (lfpse_categorical == 0) {
+  lfpse_categorical <- expr(1 == 1)
+}
+
+# get the latest revision and earliest submission date for each incident
+latest_revision_table <-
+  tbl(con_lfpse, in_schema("analysis", "Events")) |>
+  group_by(Reference) |>
+  summarise(
+    Revision = max(Revision),
+    reported_date = min(SubmissionDate)
+  ) |>
+  ungroup()
+
+analysis_table_names <- c(
+  "Metadata_Responses",
+  "Incident_Responses",
+  "Risk_Responses",
+  "Outcome_Responses",
+  "GoodCare_Responses",
+  "EventDetails_Responses",
+  "EventTime_Responses",
+  "Location_Responses",
+  "Events",
+  "Patient_Responses",
+  "Medication_Responses",
+  "Devices_Responses",
+  "Reporter_Responses",
+  "Governance_Responses",
+  # "Findings_Responses",
+  "DmdMedication_Responses"
+)
+
+# load each table as a remote database reference
+# rename EntityId to DmdEntityId in DmdMedication_Responses to avoid clash
+analysis_tables <- lapply(analysis_table_names, function(x) {
+  table <- tbl(con_lfpse, in_schema("analysis", x))
+  if (x == "DmdMedication_Responses") {
+    table <- table |> rename(DmdEntityId = EntityId)
+  }
+  return(table)
+})
+
+lfpse_analysis_tables <- c(list(latest_revision_table), analysis_tables)
+
+# join tables on Reference and Revision, keeping rows in the latest revision table
+lfpse_parsed <-
+  purrr::reduce(
+    lfpse_analysis_tables, left_join, by = c("Reference", "Revision")
+  ) |>
+  rename(occurred_date = T005) |>
+  mutate(reported_date = sql('CAST("reported_date" AS DATE)')) |>
+  mutate(P004_days = as.numeric(P004))
+
+lfpse_filtered_categorical <- lfpse_parsed |>
+  # apply date range filter and the categorical incident type filter
+  filter(
+    between(date_filter, start_date, end_date),
+    lfpse_categorical
+  ) |>
+  # keep columns specified in the LFPSE rename lookup, plus patient age
+  select(any_of(unname(rename_lookup[["LFPSE"]])), P004_days) |>
+  # compute the most severe harm scores and patient count per incident
+  group_by(Reference) |>
+  mutate(
+    OT001_min = min(as.numeric(OT001)),
+    OT002_min = min(as.numeric(OT002)),
+    npatient = max(EntityId)
+  ) |>
+  ungroup() |>
+  # pull the query results from the database into local memory
+  collect() |>
+  mutate(
+    # extract year and month from the chosen date column for aggregation
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    # combine into a year-month value
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    # assign financial year
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    # convert month number to abbreviated name
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
+    reported_date = as.character(reported_date),
+    occurred_date = as.character(occurred_date),
+    # add 1 to psychological harm score so it sits on the same scale as physical harm
+    OT002_min_plus_one = OT002_min + 1
+  ) |>
+  # compute the overall worst harm per row by taking the minimum across both
+  # adjusted harm scores, min_safe handles cases where both are NA
+  rowwise() |>
+  mutate(max_harm = min_safe(c(OT001_min, OT002_min_plus_one))) |>
+  ungroup() |>
+  mutate(
+    max_harm_level = case_when(
+      max_harm == 1 ~ "Fatal",
+      max_harm == 2 ~ "Severe harm",
+      max_harm == 3 ~ "Moderate harm",
+      max_harm == 4 ~ "Low harm",
+      max_harm == 5 ~ "No harm"
+    ),
+    max_physical_harm_level = case_when(
+      OT001_min == 1 ~ "Fatal",
+      OT001_min == 2 ~ "Severe physical harm",
+      OT001_min == 3 ~ "Moderate physical harm",
+      OT001_min == 4 ~ "Low physical harm",
+      OT001_min == 5 ~ "No physical harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    ),
+    max_psychological_harm_level = case_when(
+      OT002_min == 1 ~ "Severe psychological harm",
+      OT002_min == 2 ~ "Moderate psychological harm",
+      OT002_min == 3 ~ "Low psychological harm",
+      OT002_min == 4 ~ "No psychological harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    )
+  ) |>
+  # drop intermediate columns
+  select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
+  # collapse multiple DMD rows per incident into a single row 
+  group_by(across(-starts_with("DMD"))) |>
+  summarise(
+    across(
+      starts_with("DMD"),
+      ~ str_flatten(., collapse = ", "),
+      .names = "{.col}"
+    ),
+    .groups = "drop"
+  )
+
+# text filters
+lfpse_text_columns <- c(
+  "F001", 
+  "AC001", 
+  "OT003", 
+  "A008",
+  "A008_Other", 
+  "A002", 
+  "DMD002", 
+  "DMD004"
+)
+
+lfpse_filtered_text <- apply_text_search(
+  lfpse_filtered_categorical,
+  text_terms,
+  text_filter,
+  lfpse_text_columns,
+  dataset
+)
+
+lfpse_labelled<- lfpse_filtered_text |>
+  # pivot the coded columns
+  pivot_longer(cols = any_of(ResponseReference$QuestionId)) |>
+  # separate the multi-responses into single row per selection
+  separate_rows(value, sep = " {~@~} ") |>
+  # arrange so that multi-responses appear alphabetised later
+  arrange(value) |>
+  # bring through the value labels
+  left_join(ResponseReference, by = c(
+    "name" = "QuestionId",
+    "value" = "ResponseCode",
+    "TaxonomyVersion" = "TaxonomyVersion"
+  )) |>
+  # remove the unnecessary columns
+  select(!c(value, Property, LastUpdated, IsActive)) |>
+  # pivot back into columns
+  pivot_wider(
+    id_cols = !any_of(ResponseReference$QuestionId),
+    names_from = name,
+    values_from = ResponseText,
+    # collapse multi-responses into single row per entity
+    values_fn = list(ResponseText = ~ str_c(., collapse = "; "))
+  ) 
+
+# create a new column for age following validation 
+lfpse_age_validated <- lfpse_labelled |>
+  mutate(age_unit = case_when(
+    is.na(P004_days) ~ 'age missing',
+    between(P004_days, 1, 30) ~ 'days',
+    between(P004_days, 31, 371) ~ 'months',
+    between(P004_days, 372, 74028) ~ 'years',
+    .default = 'age outside bounds')) |>
+  mutate(age_compliance = case_when(
+    age_unit == 'age outside bounds' ~ 'age outside bounds',
+    age_unit == 'age missing' ~ 'age missing',
+    age_unit == 'days' & between(P004_days, 1, 30) ~ 'yes',
+    age_unit == 'months' & P004_days %% 31 == 0 ~ 'yes',
+    age_unit == 'years' & P004_days %% 372 == 0 ~ 'yes',
+    .default = 'no')) |>
+  mutate(P004_days_validated = if_else(
+    age_compliance == "yes", P004_days, NA
+  ))
+
+# age classification for neopaeds
+lfpse_age_classified <- lfpse_age_validated |>
+  mutate(
+    concat_col = paste(
+      F001, 
+      AC001, 
+      OT003, 
+      # A008,
+      A008_Other, 
+      L006, 
+      L006_Other, 
+      sep = "_"
+    ),
+    age_category = case_when(
+      (P004_days_validated > 0 & P004_days_validated <= 28) | 
+        (P007 %in% c("0-14 days", "15-28 days")) ~ "neonate",
+      (P004_days_validated > 28 & P004_days_validated < 6696) | 
+        (P007 %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+      (!is.na(P007) | !is.na(P004_days_validated)) ~ 'adult estimated',
+      is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
+      .default = 'other' 
+    ),
+    
+    neonate_specialty_flag = str_detect(L006, neonatal_specialty_terms),
+    neonate_terms_flag = str_detect(concat_col, neonatal_terms),
+    missing_specialty = is.na(L006),
+    no_adult_specialty_flag = str_detect(L006, adult_specialty_terms, negate = TRUE), 
+    paediatric_specialty_flag = str_detect(L006, paediatric_specialty_terms),
+    paediatric_term_flag = str_detect(concat_col, paediatric_terms),
+    
+    neonate_category = case_when(
+      age_category == 'neonate' ~ "neonate_by_age",
+      neonate_specialty_flag ~ "neonate_by_specialty",
+      (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
+      .default = "not neonate related"
+    ),
+    
+    paediatric_category = case_when(
+      age_category == 'paediatric' ~ "paediatric_by_age",
+      paediatric_specialty_flag ~ "paediatric_by_specialty",
+      (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
+      .default = "not paediatric related"
+    )
+  )
+
+# Apply neopaed filter
+lfpse_neopaed <- filter_by_neopaed_strategy(lfpse_age_classified, is_neopaed)
+
+
+# Sampling
+lfpse_sampled <- apply_sampling_strategy(
+  lfpse_neopaed,
+  sampling_strategy,
+  harm_column = "OT001",
+  death_severe_values = c("Fatal", "Severe physical harm"),
+  moderate_values = c("Moderate physical harm"),
+  reference_column = "Reference"
+)
+
+# Rename columns
+lfpse_neopaed <- lfpse_neopaed |>
+  select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
+
+lfpse_sampled <- lfpse_sampled |>
+  select(any_of(rename_lookup[["LFPSE"]]), starts_with("group_")) 
+
+# Create patient level tables
+lfpse_for_release_sampled_pt_level <- lfpse_sampled |> 
+  select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
+
+lfpse_for_release_unsampled_pt_level <- lfpse_neopaed |> 
+  select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+
+# Get data for summary tables
+lfpse_for_summary_table_unsampled <- lfpse_neopaed  
+lfpse_for_summary_table_sampled <- lfpse_sampled  
+
+# Handle incident vs patient level for summary tables
+if (summary_tables_incident_or_patient_level == "incident") {
+  lfpse_for_summary_table_unsampled <- lfpse_for_summary_table_unsampled |>
+    # remove columns that contain patient specific info (for summary tables)
+    select(-any_of(c("Patient no.",
+                     "OT001 - Physical harm",
+                     "OT002 - Psychological harm",
+                     "P004 - Age in days", 
+                     "P007 - Age Range",
+                     "OT003 - What was the clinical outcome for the patient?"
+    ))) |> 
+    distinct(Reference, .keep_all = TRUE)
+  
+  lfpse_for_summary_table_sampled <- lfpse_for_summary_table_sampled |>
+    select(-any_of(c("Patient no.",
+                     "OT001 - Physical harm",
+                     "OT002 - Psychological harm",
+                     "P004 - Age in days", 
+                     "P007 - Age Range",
+                     "OT003 - What was the clinical outcome for the patient?"
+    ))) |> 
+    distinct(Reference, .keep_all = TRUE)
+}
+
+# Log final counts
+log_final_counts(
+  dataset,
+  lfpse_for_summary_table_unsampled,
+  lfpse_for_summary_table_sampled,
+  lfpse_for_release_unsampled_pt_level,
+  lfpse_for_release_sampled_pt_level
+)
+
+tictoc::toc()
+```
+
+## New LFPSE Process
+
+This is the new process which uses the new LFPSE table. The new `vwEventsTransposedAll` view is a flattened table that combines everything, meaning the processor no longer needs to do multiple joins.
+
+The `vwTransposedAll` view joins the `EventsTransposed` and `EventsTransposedAdditionalPatients` tables, to include all patients.
+
+However, the additional patient rows only include any information not recorded in the transposed events table, and other values are NA. This was causing some issues with the original process for queries, leading to a lot of additional patient rows being filtered out. Now the process below starts by identifying the references that meet the criteria for the query (`valid_refs`) and using this to filter for all incidents for the query (there may be a cleaner, more efficient approach to do this).
+
+```{r}
+
+tictoc::tic(msg = "Full Query")
+
+tictoc::tic(msg = "Categorical Filter")
+
+# filter for incidents where A001_InvolvedAgents contains the value 4
+lfpse_categorical <- expr((' ' + A001_InvolvedAgents + ' ') %LIKE% '% 4 %')
+
+# lfpse_categorical <- NULL
+
+# additional sql date filter
+sql_date_filter <- if (date_type == 'occurring') expr(OccurredDate) else expr(OriginalSubmissionDate)
+
+# load the all patients view
+lfpse_analysis_table_new <-
+  tbl(con_lfpse, in_schema("analysis", "vwEventsLatestDataAllPatients"))
+
+
+if (is.null(lfpse_categorical)) {
+  valid_refs <- lfpse_analysis_table_new |>
+    filter(EntityId == 1L, between(!!sql_date_filter, start_date, end_date)) |>
+    select(Reference) |>
+    collect()
+  
+  valid_refs_tbl <- copy_to(con_lfpse, valid_refs, name = "#valid_refs",
+                             temporary = TRUE, overwrite = TRUE)
+  
+  lfpse_query <- lfpse_analysis_table_new |>
+    inner_join(valid_refs_tbl, by = "Reference")
+  
+} else {
+  lfpse_query <- lfpse_analysis_table_new |>
+    inner_join(
+      lfpse_analysis_table_new |>
+        filter(
+          EntityId == 1L,
+          between(!!sql_date_filter, start_date, end_date),
+          !!lfpse_categorical
+        ) |>
+        select(Reference),
+      by = "Reference"
+    )
+}
+
+lfpse_filtered_categorical_new <-
+  lfpse_query |>
+  select(any_of(unname(rename_lookup[["LFPSE_new"]])), P004_AgeAtTimeOfIncidentDays) |>
+  collect() |>
+  mutate(
+    occurred_date = OccurredDate, reported_date = OriginalSubmissionDate,
+    P004_AgeAtTimeOfIncidentDays = as.numeric(P004_AgeAtTimeOfIncidentDays),
+    OT001_min = min(as.numeric(OT001_PhysicalHarm), na.rm = FALSE),
+    OT002_min = min(as.numeric(OT002_PsychologicalHarm), na.rm = FALSE),
+    npatient = max(EntityId, na.rm = FALSE),
+    .by = Reference
+  ) |>
+  mutate(
+    year_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 1, 4)),
+    month_reported_or_occurred =
+      as.numeric(substr(as.character(!!date_filter), 6, 7)),
+    month_year_reported_or_occurred =
+      zoo::as.yearmon(
+        str_glue("{year_reported_or_occurred}-{month_reported_or_occurred}")
+      ),
+    financial_year_reported_or_occurred = ifelse(
+      month_reported_or_occurred > 3,
+      paste0(year_reported_or_occurred, '/', year_reported_or_occurred + 1),
+      paste0(year_reported_or_occurred - 1, '/', year_reported_or_occurred)
+    ),
+    month_reported_or_occurred = month.abb[month_reported_or_occurred],
+    reported_date = as.character(reported_date),
+    occurred_date = as.character(occurred_date),
+    OT002_min_plus_one = OT002_min + 1,
+    max_harm = pmin(OT001_min, OT002_min_plus_one, na.rm = FALSE),
+    max_harm_level = case_when(
+      max_harm == 1 ~ "Fatal",
+      max_harm == 2 ~ "Severe harm",
+      max_harm == 3 ~ "Moderate harm",
+      max_harm == 4 ~ "Low harm",
+      max_harm == 5 ~ "No harm"
+    ),
+    max_physical_harm_level = case_when(
+      OT001_min == 1 ~ "Fatal",
+      OT001_min == 2 ~ "Severe physical harm",
+      OT001_min == 3 ~ "Moderate physical harm",
+      OT001_min == 4 ~ "Low physical harm",
+      OT001_min == 5 ~ "No physical harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    ),
+    max_psychological_harm_level = case_when(
+      OT002_min == 1 ~ "Severe psychological harm",
+      OT002_min == 2 ~ "Moderate psychological harm",
+      OT002_min == 3 ~ "Low psychological harm",
+      OT002_min == 4 ~ "No psychological harm",
+      is.na(npatient) ~ "Not applicable",
+      .default = "Harm level missing"
+    )
+  ) |>
+  select(-OT001_min, -OT002_min, -OT002_min_plus_one, -max_harm) |>
+  mutate(across(starts_with("DMD"), ~ str_replace_all(.x, fixed(" {~@~} "), ", ")))
+
+tictoc::tic(msg = "Text Search")
+
+# text filters
+lfpse_text_columns_new <- c(
+  "F001_Description",
+  "AC001_ImmediateActions",
+  "OT003_ClinicalOutcome",
+  "A008_DeviceType",
+  "A008_Other_DeviceTypeOther",
+  "A002_DrugsInvolved",
+  "DMD002_VTMString",
+  "DMD004_VMPString"
+  )
+
+lfpse_filtered_text_new <- apply_text_search(
+  lfpse_filtered_categorical_new,
+  text_terms,
+  text_filter,
+  lfpse_text_columns_new,
+  dataset
+)
+
+tictoc::toc()
+
+question_cols_pattern <- paste0("^(", paste(unique(ResponseReference$QuestionId), collapse = "|"), ")(_|$)") 
+  
+lfpse_labelled_new <- lfpse_filtered_text_new |>
+  mutate(across(matches(question_cols_pattern), as.character)) |>
+  # match columns based on code (before underscore)
+  pivot_longer(cols = matches(question_cols_pattern)) |>
+  separate_rows(value, sep = " {~@~} ") |>
+  # possibly remove the arrange because this is cosmetic and will (possibly) have significant performance costs?
+  # arrange(value) |>
+  # extract code
+  mutate(QuestionId = str_extract(name, "^[^_]+")) |>
+  left_join(ResponseReference, by = c(
+    "QuestionId" = "QuestionId",
+    "value" = "ResponseCode",
+    "TaxonomyVersion" = "TaxonomyVersion"
+    )) |>
+  select(!c(value, QuestionId, Property, LastUpdated, IsActive)) |>
+  pivot_wider(
+    id_cols = !any_of(ResponseReference$QuestionId),
+    names_from = name,
+    values_from = ResponseText,
+    values_fn  = list(ResponseText = ~ str_c(., collapse = "; "))
+    )
+  
+# create a new column for age following validation 
+lfpse_age_validated_new <- lfpse_labelled_new |>
+  mutate(
+    age_unit = case_when(
+      is.na(P004_AgeAtTimeOfIncidentDays) ~ 'age missing',
+      between(P004_AgeAtTimeOfIncidentDays, 1, 30) ~ 'days',
+      between(P004_AgeAtTimeOfIncidentDays, 31, 371) ~ 'months',
+      between(P004_AgeAtTimeOfIncidentDays, 372, 74028) ~ 'years',
+      .default = 'age outside bounds'
+      ),
+    age_compliance = case_when(
+      age_unit == 'age outside bounds' ~ 'age outside bounds',
+      age_unit == 'age missing' ~ 'age missing',
+      age_unit == 'days' & between(P004_AgeAtTimeOfIncidentDays, 1, 30) ~ 'yes',
+      age_unit == 'months' & P004_AgeAtTimeOfIncidentDays %% 31 == 0 ~ 'yes',
+      age_unit == 'years' & P004_AgeAtTimeOfIncidentDays %% 372 == 0 ~ 'yes',
+      .default = 'no'
+      ),
+    P004_days_validated = if_else(age_compliance == "yes", P004_AgeAtTimeOfIncidentDays, NA)
+    )
+  
+# age classification for neopaeds
+lfpse_age_classified_new <- lfpse_age_validated_new |>
+    mutate(
+      concat_col = paste(
+        F001_Description, 
+        AC001_ImmediateActions, 
+        OT003_ClinicalOutcome, 
+        A008_DeviceType,
+        A008_Other_DeviceTypeOther, 
+        L006_ResponsibleSpecialty, 
+        L006_Other_ResponsibleSpecialtyOther, 
+        sep = "_"
+        ),
+      age_category = case_when(
+        (P004_days_validated > 0 & P004_days_validated <= 28) | 
+          (P007_AgeBracket %in% c("0-14 days", "15-28 days")) ~ "neonate",
+        (P004_days_validated > 28 & P004_days_validated < 6696) | 
+          (P007_AgeBracket %in% c("1-11 months", "1-4 years", "5-9 years", "10-15 years", "16 and 17 years")) ~ "paediatric",
+        (!is.na(P007_AgeBracket) | !is.na(P004_days_validated)) ~ 'adult estimated',
+        is.na(P004_days_validated) ~ 'unknown',# includes those where age is below zero / above believable threshold
+        .default = 'other' 
+      ),
+      
+      neonate_specialty_flag = str_detect(L006_ResponsibleSpecialty, neonatal_specialty_terms),
+      neonate_terms_flag = str_detect(concat_col, neonatal_terms),
+      missing_specialty = is.na(L006_ResponsibleSpecialty),
+      no_adult_specialty_flag = str_detect(L006_ResponsibleSpecialty, adult_specialty_terms, negate = TRUE), 
+      paediatric_specialty_flag = str_detect(L006_ResponsibleSpecialty, paediatric_specialty_terms),
+      paediatric_term_flag = str_detect(concat_col, paediatric_terms),
+      
+      neonate_category = case_when(
+        age_category == 'neonate' ~ "neonate_by_age",
+        neonate_specialty_flag ~ "neonate_by_specialty",
+        (neonate_terms_flag & (no_adult_specialty_flag | missing_specialty)) ~ "neonate_by_text",
+        .default = "not neonate related"
+      ),
+      
+      paediatric_category = case_when(
+        age_category == 'paediatric' ~ "paediatric_by_age",
+        paediatric_specialty_flag ~ "paediatric_by_specialty",
+        (paediatric_term_flag & (no_adult_specialty_flag | missing_specialty)) ~ "paediatric_by_text",
+        .default = "not paediatric related"
+      )
+    )
+  
+# Apply neopaed filter
+lfpse_neopaed_new <- filter_by_neopaed_strategy(lfpse_age_classified_new, is_neopaed)
+
+    
+# Sampling
+lfpse_sampled_new <- apply_sampling_strategy(
+  lfpse_neopaed_new,
+  sampling_strategy,
+  harm_column = "OT001_PhysicalHarm",
+  death_severe_values = c("Fatal", "Severe physical harm"),
+  moderate_values = c("Moderate physical harm"),
+  reference_column = "Reference"
+  )
+    
+# Rename columns
+lfpse_neopaed_new <- lfpse_neopaed_new |>
+  select(any_of(rename_lookup[["LFPSE_new"]]), starts_with("group_")) 
+    
+lfpse_sampled_new <- lfpse_sampled_new |>
+  select(any_of(rename_lookup[["LFPSE_new"]]), starts_with("group_")) 
+    
+# Create patient level tables
+lfpse_for_release_sampled_pt_level_new <- lfpse_sampled_new |> 
+  select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`)) 
+    
+lfpse_for_release_unsampled_pt_level_new <- lfpse_neopaed_new |> 
+  select(!c(contains("_term_"), `Month`, `Year`, `Month - Year`))
+    
+# Get data for summary tables
+lfpse_for_summary_table_unsampled_new <- lfpse_neopaed_new  
+lfpse_for_summary_table_sampled_new <- lfpse_sampled_new  
+    
+# Handle incident vs patient level for summary tables
+if (summary_tables_incident_or_patient_level == "incident") {
+  lfpse_for_summary_table_unsampled_new <- lfpse_for_summary_table_unsampled_new |>
+    # remove columns that contain patient specific info (for summary tables)
+    select(-any_of(c("Patient no.",
+                     "OT001 - Physical harm",
+                     "OT002 - Psychological harm",
+                     "P004 - Age in days", 
+                     "P007 - Age Range",
+                     "OT003 - What was the clinical outcome for the patient?"
+                     ))) |> 
+  distinct(Reference, .keep_all = TRUE)
+  
+  lfpse_for_summary_table_sampled_new <- lfpse_for_summary_table_sampled_new |>
+    select(-any_of(c("Patient no.",
+                     "OT001 - Physical harm",
+                     "OT002 - Psychological harm",
+                     "P004 - Age in days", 
+                     "P007 - Age Range",
+                     "OT003 - What was the clinical outcome for the patient?"
+                     ))) |> 
+    distinct(Reference, .keep_all = TRUE)
+    }
+    
+# Log final counts
+log_final_counts(
+  dataset,
+  lfpse_for_summary_table_unsampled_new,
+  lfpse_for_summary_table_sampled_new,
+  lfpse_for_release_unsampled_pt_level_new,
+  lfpse_for_release_sampled_pt_level_new
+)
+
+
+tictoc::toc()
+```
+
+```{r}
+
+
+```
+
+## Comparison
+
+### Row Counts
+
+```{r}
+
+# compare total row counts between old and new pipelines
+nrow(lfpse_filtered_categorical_new) - nrow(lfpse_filtered_categorical)
+nrow(lfpse_filtered_text_new) - nrow(lfpse_filtered_text)
+nrow(lfpse_labelled_new) - nrow(lfpse_labelled)
+nrow(lfpse_sampled_new) - nrow(lfpse_sampled)
+
+# compare distinct incident counts — negative value means old has more references
+nrow(distinct(lfpse_filtered_categorical_new, Reference, EntityId)) -
+  nrow(distinct(lfpse_filtered_categorical, Reference, EntityId))
+```
+
+### Reference
+
+```{r}
+
+# incidents in the old table but not in the new table
+lfpse_filtered_text |>
+  filter(!Reference %in% lfpse_filtered_text_new$Reference)
+
+# incidents in the new table but not in the old table
+lfpse_filtered_text_new |>
+  filter(!Reference %in% lfpse_filtered_text$Reference)
+```
+
+### Differences
+
+```{r}
+
+full_join(
+  lfpse_filtered_text |> count(Reference, name = "count_old"),
+  lfpse_filtered_text_new |> count(Reference, name = "count_new"),
+  by = "Reference"
+) |>
+  mutate(diff = count_new - count_old) |>
+  filter(diff != 0)
+```
+
+
